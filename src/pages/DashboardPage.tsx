@@ -1236,11 +1236,11 @@ export function DashboardPage() {
               <p className="text-xs text-navy-700/70">Chiffre d'affaires</p>
             </div>
             <Link to="/dashboard/configuration" className="rounded-3xl border border-stone-200/70 bg-white p-5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-navy-300/40">
-              <p className="text-2xl">⚙️</p>
-              <p className="mt-2 text-sm font-semibold text-stone-700">
+              <p className="text-2xl">🔐</p>
+              <p className="mt-2 text-sm font-semibold text-stone-900">Configuration</p>
+              <p className="text-xs text-stone-400">
                 {restaurant.servicePin ? '🔒 PIN activé' : 'Code PIN, NFC, avis'}
               </p>
-              <p className="text-xs text-stone-500 underline">Configuration</p>
             </Link>
           </div>
         </section>
