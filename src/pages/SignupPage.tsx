@@ -1,12 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import logoHorizontal from '../assets/logo-horizontal.png';
+import { setPageMeta } from '../lib/seo';
 
 export function SignupPage() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Créer mon compte restaurateur — Nourevo',
+      description: 'Créez votre compte Nourevo et composez votre carte digitale en quelques minutes.',
+    });
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

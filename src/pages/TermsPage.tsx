@@ -1,7 +1,16 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import logoHorizontal from '../assets/logo-horizontal.png';
+import { setPageMeta } from '../lib/seo';
 
 export function TermsPage() {
+  useEffect(() => {
+    setPageMeta({
+      title: "Conditions générales d'utilisation — Nourevo",
+      description: "Conditions générales d'utilisation de la plateforme Nourevo.",
+    });
+  }, []);
+
   return (
     <div className="min-h-screen px-4 py-14">
       <div className="mx-auto max-w-3xl">
@@ -59,7 +68,7 @@ export function TermsPage() {
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li><strong>59€ HT/mois</strong> — sans engagement, résiliable à tout moment depuis le dashboard ;</li>
                 <li>
-                  <strong>49€ HT/mois</strong> — avec un engagement initial de 12 mois, facturé mensuellement sur
+                  <strong>54€ HT/mois</strong> — avec un engagement initial de 12 mois, facturé mensuellement sur
                   toute la durée de l'engagement ;
                 </li>
                 <li><strong>588€ HT/an</strong> — engagement de 12 mois, facturé en une seule fois.</li>

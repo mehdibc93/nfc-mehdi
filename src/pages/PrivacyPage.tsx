@@ -1,7 +1,16 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import logoHorizontal from '../assets/logo-horizontal.png';
+import { setPageMeta } from '../lib/seo';
 
 export function PrivacyPage() {
+  useEffect(() => {
+    setPageMeta({
+      title: 'Politique de confidentialité — Nourevo',
+      description: 'Politique de confidentialité et protection des données personnelles sur Nourevo.',
+    });
+  }, []);
+
   return (
     <div className="min-h-screen px-4 py-14">
       <div className="mx-auto max-w-3xl">

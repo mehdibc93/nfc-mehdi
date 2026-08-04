@@ -16,6 +16,8 @@ import { LegalNoticePage } from './pages/LegalNoticePage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { ContactPage } from './pages/ContactPage';
+import { PricingPage } from './pages/PricingPage';
+import { FaqPage } from './pages/FaqPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -108,6 +110,8 @@ function App() {
         <Route path="/cgu" element={<TermsPage />} />
         <Route path="/confidentialite" element={<PrivacyPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/tarifs" element={<PricingPage />} />
+        <Route path="/faq" element={<FaqPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

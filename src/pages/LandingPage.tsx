@@ -71,6 +71,20 @@ export function LandingPage() {
             <p className="mt-1 text-xs uppercase tracking-[0.32em] text-stone-400">Carte digitale pour restaurants</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <Link
+              to="/tarifs"
+              className="hidden px-2 text-sm font-semibold text-stone-600 transition-colors duration-300 hover:text-navy-700 sm:inline-block"
+            >
+              Tarifs
+            </Link>
+            <a
+              href="https://wa.me/33753924902?text=Bonjour%2C%20je%20souhaite%20commander%20une%20carte%20NFC%20pour%20mon%20restaurant."
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 rounded-full bg-[#25D366] px-4 py-2 text-sm font-bold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              💬 WhatsApp
+            </a>
             {isAuthenticated ? (
               <>
                 <button
@@ -241,6 +255,12 @@ export function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-xs text-stone-400 sm:flex-row">
           <p>© {new Date().getFullYear()} Nourevo</p>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <Link to="/tarifs" className="hover:text-navy-700">
+              Tarifs
+            </Link>
+            <Link to="/faq" className="hover:text-navy-700">
+              FAQ
+            </Link>
             <Link to="/contact" className="hover:text-navy-700">
               Contact
             </Link>

@@ -1,12 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import logoHorizontal from '../assets/logo-horizontal.png';
+import { setPageMeta } from '../lib/seo';
 
 export function LoginPage() {
   const { signIn, sendPasswordReset } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Connexion restaurateur — Nourevo',
+      description: 'Connectez-vous à votre dashboard Nourevo pour gérer votre carte, vos commandes et votre restaurant.',
+    });
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

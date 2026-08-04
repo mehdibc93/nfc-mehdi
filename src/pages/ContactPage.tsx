@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import logoHorizontal from '../assets/logo-horizontal.png';
+import { setPageMeta } from '../lib/seo';
 
 const CONTACT_EMAIL = 'contact.nourevo@gmail.com';
 
@@ -22,6 +24,13 @@ const REASONS = [
 ];
 
 export function ContactPage() {
+  useEffect(() => {
+    setPageMeta({
+      title: 'Contact — Nourevo',
+      description: 'Une question sur Nourevo, votre abonnement ou un problème technique ? Contactez-nous directement.',
+    });
+  }, []);
+
   return (
     <div className="min-h-screen px-4 py-14">
       <div className="mx-auto max-w-3xl">

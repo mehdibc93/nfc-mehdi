@@ -34,7 +34,7 @@ const DEFAULT_CATEGORY_NAMES = ['Entrées', 'Plats', 'Desserts', 'Boissons'];
 const ACCENT_PRESETS = ['#1c2f47', '#6b2737', '#2f5233', '#a5522d', '#4a2545', '#1f2328'];
 const SUBSCRIPTION_PLAN_LABELS: Record<'monthly' | 'annual_monthly' | 'annual_upfront', string> = {
   monthly: '59€/mois',
-  annual_monthly: '49€/mois (engagement 1 an)',
+  annual_monthly: '54€/mois (engagement 1 an)',
   annual_upfront: '588€/an',
 };
 
@@ -1060,7 +1060,7 @@ export function DashboardPage() {
                   disabled={subscribingPlan !== null}
                   className="w-full rounded-full border border-navy-400 bg-navy-300/10 px-5 py-3.5 text-sm font-bold text-navy-700 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
                 >
-                  {subscribingPlan === 'annual_monthly' ? 'Redirection...' : "S'abonner — 49€/mois (engagement 1 an)"}
+                  {subscribingPlan === 'annual_monthly' ? 'Redirection...' : "S'abonner — 54€/mois (engagement 1 an)"}
                 </button>
                 <button
                   type="button"
@@ -1611,15 +1611,11 @@ export function DashboardPage() {
                       role="switch"
                       aria-checked={restaurant.lunchEnabled}
                       onClick={() => updateRestaurantField({ lunchEnabled: !restaurant.lunchEnabled })}
-                      className={`relative h-7 w-[52px] shrink-0 rounded-full transition-colors duration-300 ${
-                        restaurant.lunchEnabled ? 'bg-emerald-500' : 'bg-red-400'
+                      className={`flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors duration-300 ${
+                        restaurant.lunchEnabled ? 'justify-end bg-emerald-500' : 'justify-start bg-red-400'
                       }`}
                     >
-                      <span
-                        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                          restaurant.lunchEnabled ? 'translate-x-[28px]' : 'translate-x-1'
-                        }`}
-                      />
+                      <span className="h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300" />
                     </button>
                   </div>
                   <div
@@ -1661,15 +1657,11 @@ export function DashboardPage() {
                       role="switch"
                       aria-checked={restaurant.dinnerEnabled}
                       onClick={() => updateRestaurantField({ dinnerEnabled: !restaurant.dinnerEnabled })}
-                      className={`relative h-7 w-[52px] shrink-0 rounded-full transition-colors duration-300 ${
-                        restaurant.dinnerEnabled ? 'bg-emerald-500' : 'bg-red-400'
+                      className={`flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors duration-300 ${
+                        restaurant.dinnerEnabled ? 'justify-end bg-emerald-500' : 'justify-start bg-red-400'
                       }`}
                     >
-                      <span
-                        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                          restaurant.dinnerEnabled ? 'translate-x-[28px]' : 'translate-x-1'
-                        }`}
-                      />
+                      <span className="h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300" />
                     </button>
                   </div>
                   <div

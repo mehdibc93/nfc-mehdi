@@ -1,7 +1,13 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import logoHorizontal from '../assets/logo-horizontal.png';
+import { setPageMeta } from '../lib/seo';
 
 export function LegalNoticePage() {
+  useEffect(() => {
+    setPageMeta({ title: 'Mentions légales — Nourevo', description: 'Mentions légales du site Nourevo.' });
+  }, []);
+
   return (
     <div className="min-h-screen px-4 py-14">
       <div className="mx-auto max-w-3xl">

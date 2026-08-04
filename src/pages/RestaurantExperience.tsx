@@ -18,6 +18,7 @@ import { ALLERGENS, DIET_TAGS, allergenLabel, dietIcon, dietLabel } from '../lib
 import { getStripe } from '../lib/stripeClient';
 import { StripeCheckoutForm } from '../components/StripeCheckoutForm';
 import { LoadingScreen } from '../components/LoadingScreen';
+import { setPageMeta } from '../lib/seo';
 
 type Phase = 'scan' | 'cinematic' | 'menu' | 'checkout' | 'success';
 type ModalStep = 'dish' | 'added' | 'drink' | 'drink-added' | 'dessert' | 'dessert-added' | null;
@@ -135,6 +136,17 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         ? restaurant.translations[language].tags
         : restaurant.tags;
   const openStatus = useMemo(() => getOpenStatus(restaurant.openingHours), [restaurant.openingHours]);
+
+  useEffect(() => {
+    const description = restaurantAddress
+      ? `Menu digital de ${restaurantName} — ${restaurantAddress}. Consultez la carte et commandez directement depuis votre téléphone.`
+      : `Menu digital de ${restaurantName}. Consultez la carte et commandez directement depuis votre téléphone.`;
+    setPageMeta({
+      title: `${restaurantName} — Menu digital | Nourevo`,
+      description,
+      image: restaurant.heroImage || undefined,
+    });
+  }, [restaurantName, restaurantAddress, restaurant.heroImage]);
 
   const paymentOptions = useMemo(
     () =>
