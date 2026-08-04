@@ -1,0 +1,184 @@
+import { useState } from 'react';
+import type { FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import logoHorizontal from '../assets/logo-horizontal.png';
+
+export function LoginPage() {
+  const { signIn, sendPasswordReset } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [mode, setMode] = useState<'login' | 'forgot'>('login');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState('');
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+    setSubmitting(true);
+    const { error: signInError } = await signIn(email, password);
+    setSubmitting(false);
+    if (signInError) {
+      setError(
+        signInError.message === 'Invalid login credentials'
+          ? 'Email ou mot de passe incorrect.'
+          : signInError.message,
+      );
+      return;
+    }
+    navigate('/dashboard');
+  };
+
+  const handleResetSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setResetError('');
+    setResetSubmitting(true);
+    const { error: resetErr } = await sendPasswordReset(resetEmail);
+    setResetSubmitting(false);
+    if (resetErr) {
+      setResetError(resetErr.message);
+      return;
+    }
+    setResetSent(true);
+  };
+
+  if (mode === 'forgot') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-14">
+        <Link
+          to="/"
+          className="mb-4 flex w-full max-w-sm items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
+        >
+          ← Retour à l'accueil
+        </Link>
+        <div className="w-full max-w-sm rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft">
+          <img src={logoHorizontal} alt="Nourevo" className="h-7 w-auto" />
+          <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">Mot de passe oublié</h1>
+
+          {resetSent ? (
+            <>
+              <p className="mt-2 text-sm text-stone-500">
+                Si un compte existe pour <strong>{resetEmail}</strong>, un email avec un lien de réinitialisation
+                vient d'être envoyé. Pensez à vérifier vos spams.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setResetSent(false);
+                }}
+                className="mt-6 w-full rounded-full border border-stone-200 bg-white px-5 py-3.5 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
+              >
+                Retour à la connexion
+              </button>
+            </>
+          ) : (
+            <form onSubmit={handleResetSubmit}>
+              <p className="mt-2 text-sm text-stone-500">
+                Entrez votre email, on vous envoie un lien pour choisir un nouveau mot de passe.
+              </p>
+              <label className="mt-6 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
+                Email
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  value={resetEmail}
+                  onChange={(event) => setResetEmail(event.target.value)}
+                  className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-normal normal-case tracking-normal text-stone-700 outline-none transition-colors duration-300 focus:border-navy-300"
+                />
+              </label>
+
+              {resetError && <p className="mt-3 text-sm font-semibold text-red-500">{resetError}</p>}
+
+              <button
+                type="submit"
+                disabled={resetSubmitting}
+                className="mt-6 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 disabled:opacity-60"
+              >
+                {resetSubmitting ? 'Envoi...' : 'Envoyer le lien'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className="mt-3 w-full rounded-full border border-stone-200 bg-white px-5 py-3.5 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
+              >
+                Retour à la connexion
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-14">
+      <Link
+        to="/"
+        className="mb-4 flex w-full max-w-sm items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
+      >
+        ← Retour à l'accueil
+      </Link>
+      <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft">
+        <img src={logoHorizontal} alt="Nourevo" className="h-7 w-auto" />
+        <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">Connexion restaurateur</h1>
+        <p className="mt-2 text-sm text-stone-500">Accédez à la gestion de votre carte.</p>
+
+        <label className="mt-6 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
+          Email
+          <input
+            type="email"
+            required
+            autoFocus
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-normal normal-case tracking-normal text-stone-700 outline-none transition-colors duration-300 focus:border-navy-300"
+          />
+        </label>
+        <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
+          Mot de passe
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-normal normal-case tracking-normal text-stone-700 outline-none transition-colors duration-300 focus:border-navy-300"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => {
+            setResetEmail(email);
+            setMode('forgot');
+          }}
+          className="mt-2 text-xs font-semibold text-stone-400 underline hover:text-navy-700"
+        >
+          Mot de passe oublié ?
+        </button>
+
+        {error && <p className="mt-3 text-sm font-semibold text-red-500">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="mt-6 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 disabled:opacity-60"
+        >
+          {submitting ? 'Connexion...' : 'Se connecter'}
+        </button>
+
+        <p className="mt-5 text-center text-sm text-stone-500">
+          Pas encore de compte ?{' '}
+          <Link to="/inscription" className="font-semibold text-navy-700">
+            Créer un compte
+          </Link>
+        </p>
+      </form>
+    </div>
+  );
+}
