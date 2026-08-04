@@ -153,6 +153,13 @@ export function LandingPage() {
                 </Link>
               </div>
 
+              <Link
+                to="/decouvrir-dashboard"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-navy-700 underline-offset-2 hover:underline"
+              >
+                🔎 Découvrir le dashboard restaurateur
+              </Link>
+
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-stone-400">
                 {['Inscription rapide', 'Carte gérée par vous', 'Lien unique par tag NFC'].map((label) => (
                   <span key={label} className="flex items-center gap-1.5">

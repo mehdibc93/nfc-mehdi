@@ -6,27 +6,30 @@ import { setPageMeta } from '../lib/seo';
 const PLANS = [
   {
     id: 'monthly',
-    label: 'Mensuel',
-    price: '59€',
-    period: '/ mois',
-    note: 'Sans engagement',
+    name: 'Liberté',
+    icon: '',
+    price: '59€/mois',
+    subPrice: null as string | null,
     highlight: false,
+    advantages: ['Sans engagement', 'Résiliation à tout moment', 'Idéal pour découvrir le service'],
   },
   {
     id: 'annual_monthly',
-    label: 'Annuel, payé au mois',
-    price: '54€',
-    period: '/ mois',
-    note: 'Engagement 12 mois',
+    name: 'Pro',
+    icon: '⭐',
+    price: '54€/mois',
+    subPrice: null as string | null,
     highlight: true,
+    advantages: ['Engagement 12 mois', 'Paiement mensuel', "Économisez 60€ par an par rapport à l'offre Liberté"],
   },
   {
     id: 'annual_upfront',
-    label: 'Annuel, payé en une fois',
-    price: '588€',
-    period: '/ an',
-    note: 'Engagement 12 mois',
+    name: 'Annuelle',
+    icon: '💎',
+    price: '49€/mois',
+    subPrice: '(588€ payés en une fois)',
     highlight: false,
+    advantages: ['Paiement unique pour 12 mois', 'Le meilleur tarif', "Économisez 120€ par an par rapport à l'offre Liberté"],
   },
 ];
 
@@ -71,39 +74,66 @@ export function PricingPage() {
           jamais de commission sur vos ventes, contrairement à beaucoup d'outils similaires.
         </p>
 
-        <div className="mt-10 grid gap-6 sm:grid-cols-3">
-          {PLANS.map((plan) => (
-            <div
-              key={plan.id}
-              className={`rounded-3xl border p-6 ${
-                plan.highlight
-                  ? 'border-navy-400 bg-navy-300/8 shadow-card'
-                  : 'border-stone-200/70 bg-white shadow-soft'
-              }`}
-            >
-              {plan.highlight && (
-                <span className="rounded-full bg-navy-700 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-                  Le plus choisi
-                </span>
-              )}
-              <p className="mt-3 text-sm font-semibold text-stone-500">{plan.label}</p>
-              <p className="mt-2">
-                <span className="font-display text-4xl font-bold text-stone-900">{plan.price}</span>
-                <span className="text-sm text-stone-400">{plan.period}</span>
-              </p>
-              <p className="mt-1 text-xs text-stone-400">{plan.note}</p>
-              <Link
-                to="/inscription"
-                className={`mt-6 block rounded-full px-5 py-3 text-center text-sm font-bold transition-all duration-300 ease-out hover:-translate-y-0.5 ${
-                  plan.highlight
-                    ? 'bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 text-white shadow-glow hover:shadow-lg'
-                    : 'border border-stone-200 text-stone-700 hover:border-navy-300/40'
-                }`}
-              >
-                Créer mon compte
-              </Link>
-            </div>
-          ))}
+        <div className="mt-10 overflow-x-auto rounded-3xl border border-stone-200/70 bg-white shadow-card">
+          <table className="w-full min-w-[760px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-stone-200">
+                <th className="px-6 py-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Offre</th>
+                <th className="px-6 py-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Tarif</th>
+                <th className="px-6 py-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
+                  Avantages
+                </th>
+                <th className="px-6 py-5" />
+              </tr>
+            </thead>
+            <tbody>
+              {PLANS.map((plan) => (
+                <tr
+                  key={plan.id}
+                  className={`border-b border-stone-100 align-middle last:border-0 ${
+                    plan.highlight ? 'relative bg-navy-300/8' : ''
+                  }`}
+                >
+                  <td className={`px-6 py-7 align-top ${plan.highlight ? 'border-l-4 border-navy-600' : ''}`}>
+                    <p className="flex items-center gap-2 font-display text-xl font-bold text-stone-900">
+                      {plan.name} {plan.icon && <span className="text-lg">{plan.icon}</span>}
+                    </p>
+                    {plan.highlight && (
+                      <span className="mt-2 inline-block rounded-full bg-navy-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                        Recommandée
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-7 align-top tabular-nums">
+                    <p className="font-display text-2xl font-bold text-stone-900">{plan.price}</p>
+                    {plan.subPrice && <p className="mt-0.5 text-xs italic text-stone-400">{plan.subPrice}</p>}
+                  </td>
+                  <td className="px-6 py-7 align-top">
+                    <ul className="space-y-2">
+                      {plan.advantages.map((advantage) => (
+                        <li key={advantage} className="flex items-start gap-2 text-sm text-stone-600">
+                          <span className="mt-0.5 shrink-0 text-navy-600">✓</span>
+                          {advantage}
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                  <td className="px-6 py-7 align-top">
+                    <Link
+                      to="/inscription"
+                      className={`inline-block whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold transition-all duration-300 ease-out hover:-translate-y-0.5 ${
+                        plan.highlight
+                          ? 'bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 text-white shadow-glow hover:shadow-lg'
+                          : 'border border-stone-200 text-stone-700 hover:border-navy-300/40'
+                      }`}
+                    >
+                      Choisir
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         <div className="mt-14 rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft">

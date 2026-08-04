@@ -18,6 +18,7 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { ContactPage } from './pages/ContactPage';
 import { PricingPage } from './pages/PricingPage';
 import { FaqPage } from './pages/FaqPage';
+import { DiscoverDashboardPage } from './pages/DiscoverDashboardPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -112,6 +113,7 @@ function App() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/tarifs" element={<PricingPage />} />
         <Route path="/faq" element={<FaqPage />} />
+        <Route path="/decouvrir-dashboard" element={<DiscoverDashboardPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
