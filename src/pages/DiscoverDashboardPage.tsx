@@ -34,14 +34,99 @@ function marginColor(margin: number) {
   return { bar: 'bg-red-500', emoji: '🔴' };
 }
 
-const CUSTOMIZATION_ITEMS = [
-  { icon: '🎨', label: 'Couleur des boutons', description: "Choisissez la couleur d'accent vue par vos clients." },
-  { icon: '🖼️', label: 'Photo de couverture', description: 'Galerie prête à l\'emploi, ou vos propres photos.' },
-  { icon: '🎬', label: "Vidéo d'introduction", description: "Un modèle proposé, ou votre propre vidéo à l'ouverture de la carte." },
-  { icon: '👨‍🍳', label: "Animation d'attente", description: 'Illustration ou vidéo personnalisée pendant que le client patiente.' },
-  { icon: '🌍', label: '5 langues', description: 'Traduction automatique de toute votre carte en un clic.' },
-  { icon: '🕐', label: 'Horaires sur-mesure', description: "Horaires d'ouverture, menus midi/soir, chacun activable indépendamment." },
+// Palette catégorielle sans danger pour le daltonisme (Okabe-Ito + un indigo), validée avec
+// scripts/validate_palette.js du skill dataviz avant utilisation.
+const DASHBOARD_PAGES = [
+  {
+    icon: '📋',
+    color: '#E69F00',
+    label: 'Carte',
+    description: "C'est ici que vous construisez votre menu : plats, photos, prix, catégories, suppléments. Le cœur de la carte que vos clients voient.",
+  },
+  {
+    icon: '🏠',
+    color: '#56B4E9',
+    label: 'Restaurant',
+    description: 'Les informations générales de votre établissement : nom, adresse, photo de couverture, horaires, couleurs, vidéos.',
+  },
+  {
+    icon: '💳',
+    color: '#009E73',
+    label: 'Paiements',
+    description: 'Connectez votre compte bancaire pour encaisser vos clients (carte, Apple Pay, Google Pay), et gérez votre propre abonnement Nourevo.',
+  },
+  {
+    icon: '📊',
+    color: '#0072B2',
+    label: 'Statistiques',
+    description: 'Combien de personnes consultent votre menu, ajoutent au panier, commandent — pour comprendre ce qui marche vraiment.',
+  },
+  {
+    icon: '💰',
+    color: '#D55E00',
+    label: 'Rentabilité',
+    description: 'Quels plats vous rapportent vraiment de l\'argent une fois les coûts pris en compte — pas juste ceux qui se vendent le plus.',
+  },
+  {
+    icon: '🔔',
+    color: '#CC79A7',
+    label: 'Mode Service',
+    description: "L'écran utilisé pendant le service : les commandes arrivent en direct table par table, avec les demandes des clients (addition, serveur).",
+  },
+  {
+    icon: '🔐',
+    color: '#4338CA',
+    label: 'Configuration',
+    description: 'Les réglages plus sensibles : code PIN pour protéger vos pages, carte NFC, lien vers vos avis clients.',
+  },
 ];
+
+const CUSTOMIZATION_ITEMS = [
+  {
+    icon: '🎨',
+    color: '#E69F00',
+    label: 'Couleur des boutons',
+    description: "À quoi ça sert : que vos boutons de commande reprennent les couleurs de votre restaurant, pas un thème générique.",
+  },
+  {
+    icon: '🖼️',
+    color: '#56B4E9',
+    label: 'Photo de couverture',
+    description: "À quoi ça sert : donner une première impression soignée. Piochez dans une galerie prête à l'emploi ou envoyez vos propres photos.",
+  },
+  {
+    icon: '🎬',
+    color: '#009E73',
+    label: "Vidéo d'introduction",
+    description: "À quoi ça sert : accueillir le client en vidéo avant qu'il découvre la carte, comme une porte d'entrée à votre restaurant.",
+  },
+  {
+    icon: '👨‍🍳',
+    color: '#0072B2',
+    label: "Animation d'attente",
+    description: "À quoi ça sert : occuper l'écran du client pendant la préparation, avec votre propre vidéo si vous en avez une.",
+  },
+  {
+    icon: '🌍',
+    color: '#D55E00',
+    label: '5 langues',
+    description: "À quoi ça sert : accueillir une clientèle internationale sans traduire vous-même — un clic suffit.",
+  },
+  {
+    icon: '🕐',
+    color: '#CC79A7',
+    label: 'Horaires sur-mesure',
+    description: "À quoi ça sert : que la carte du midi et celle du soir se gèrent seules, sans jamais dupliquer un plat.",
+  },
+];
+
+function SectionBadge({ number }: { number: string }) {
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-navy-700 text-xs font-bold text-white">
+      {number}
+    </span>
+  );
+}
 
 export function DiscoverDashboardPage() {
   useEffect(() => {
@@ -72,30 +157,66 @@ export function DiscoverDashboardPage() {
 
         {/* 1. Vue d'ensemble */}
         <section className="mt-12">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
-            01 — L'accueil de votre espace
-          </p>
-          <div className="mt-3">
+          <div className="flex items-center gap-3">
+            <SectionBadge number="1" />
+            <div>
+              <p className="font-display text-lg font-bold text-stone-900">L'accueil de votre espace</p>
+              <p className="text-sm text-stone-500">
+                À quoi ça sert : voir en un coup d'œil vos ventes du jour, puis accéder à chaque outil.
+              </p>
+            </div>
+          </div>
+          <div className="mt-5">
             <DashboardPreview />
           </div>
         </section>
 
-        {/* 2. Personnalisation */}
-        <section className="mt-14">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
-            02 — Personnalisation illimitée
-          </p>
-          <h2 className="mt-2 font-display text-xl font-bold text-stone-900 sm:text-2xl">
-            Votre carte, à l'image de votre restaurant.
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-500">
-            Aucun modèle imposé : chaque élément visible par vos clients se personnalise depuis votre dashboard,
-            sans limite de changements.
-          </p>
+        {/* 2. Les 7 espaces du dashboard */}
+        <section className="mt-16">
+          <div className="flex items-center gap-3">
+            <SectionBadge number="2" />
+            <div>
+              <p className="font-display text-lg font-bold text-stone-900">Les 7 espaces de votre dashboard</p>
+              <p className="text-sm text-stone-500">
+                À quoi ça sert, en un coup d'œil, pour ceux qui découvrent Nourevo pour la première fois.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {DASHBOARD_PAGES.map((page) => (
+              <div key={page.label} className="rounded-3xl border border-stone-200/70 bg-white p-5 shadow-soft">
+                <span
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg"
+                  style={{ backgroundColor: `${page.color}20` }}
+                >
+                  {page.icon}
+                </span>
+                <p className="mt-3 text-sm font-bold text-stone-900">{page.label}</p>
+                <p className="mt-1 text-xs leading-5 text-stone-500">{page.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 3. Personnalisation */}
+        <section className="mt-16 rounded-[2.5rem] bg-navy-300/6 p-6 sm:p-10">
+          <div className="flex items-center gap-3">
+            <SectionBadge number="3" />
+            <div>
+              <p className="font-display text-lg font-bold text-stone-900">Personnalisation illimitée</p>
+              <p className="text-sm text-stone-500">
+                À quoi ça sert : que votre carte ressemble à votre restaurant, pas à un modèle générique — et vous
+                pouvez tout changer aussi souvent que vous voulez.
+              </p>
+            </div>
+          </div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {CUSTOMIZATION_ITEMS.map((item) => (
               <div key={item.label} className="rounded-3xl border border-stone-200/70 bg-white p-5 shadow-soft">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-navy-300/10 text-lg">
+                <span
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg"
+                  style={{ backgroundColor: `${item.color}20` }}
+                >
                   {item.icon}
                 </span>
                 <p className="mt-3 text-sm font-bold text-stone-900">{item.label}</p>
@@ -106,15 +227,23 @@ export function DiscoverDashboardPage() {
         </section>
 
         {/* 3. Mode Service + Stats/Rentabilité */}
-        <section className="mt-14">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
-            03 — Piloter le service et vos chiffres
-          </p>
-          <div className="mt-4 grid gap-6 lg:grid-cols-2">
+        <section className="mt-16">
+          <div className="flex items-center gap-3">
+            <SectionBadge number="4" />
+            <div>
+              <p className="font-display text-lg font-bold text-stone-900">Piloter le service et vos chiffres</p>
+              <p className="text-sm text-stone-500">
+                À quoi ça sert : savoir ce qui se passe en cuisine et ce qui rapporte vraiment, sans jongler entre
+                plusieurs outils.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
             <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
               <p className="font-display text-base font-bold text-stone-900">🔔 Mode Service</p>
               <p className="mt-1.5 text-sm text-stone-500">
-                Les commandes arrivent en direct, table par table, avec leur statut à jour d'un clic.
+                À quoi ça sert : votre équipe voit les commandes arriver en direct, table par table, sans passer par
+                la cuisine ou crier à travers la salle.
               </p>
               <div className="mt-4 space-y-2">
                 {SERVICE_ORDERS.map((order) => (
@@ -139,7 +268,9 @@ export function DiscoverDashboardPage() {
             <div className="flex flex-col gap-6">
               <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
                 <p className="font-display text-base font-bold text-stone-900">📊 Statistiques</p>
-                <p className="mt-1.5 text-sm text-stone-500">Du premier coup d'œil à la commande finalisée.</p>
+                <p className="mt-1.5 text-sm text-stone-500">
+                  À quoi ça sert : repérer où vous perdez des clients entre la découverte du menu et la commande.
+                </p>
                 <div className="mt-4 space-y-3">
                   {FUNNEL_STEPS.map((step) => (
                     <div key={step.label}>
@@ -156,11 +287,17 @@ export function DiscoverDashboardPage() {
                     </div>
                   ))}
                 </div>
+                <p className="mt-3 text-xs text-stone-400">
+                  Exemple ici : 312 personnes ont vu le menu, 47 ont commandé — soit 15% de conversion.
+                </p>
               </div>
 
               <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
                 <p className="font-display text-base font-bold text-stone-900">💰 Rentabilité</p>
-                <p className="mt-1.5 text-sm text-stone-500">La marge réelle de chaque plat, au premier coup d'œil.</p>
+                <p className="mt-1.5 text-sm text-stone-500">
+                  À quoi ça sert : savoir quels plats vous rapportent vraiment de l'argent, pas juste lesquels se
+                  vendent le plus.
+                </p>
                 <div className="mt-4 space-y-3">
                   {DISH_MARGINS.map((dish) => {
                     const { bar, emoji } = marginColor(dish.margin);
@@ -182,13 +319,14 @@ export function DiscoverDashboardPage() {
                     );
                   })}
                 </div>
+                <p className="mt-3 text-xs text-stone-400">🟢 marge saine · 🟠 correcte · 🔴 à surveiller.</p>
               </div>
             </div>
           </div>
         </section>
 
         {/* CTA */}
-        <div className="mt-14 flex flex-col items-center gap-5 rounded-3xl bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 p-10 text-center shadow-glow sm:p-14">
+        <div className="mt-16 flex flex-col items-center gap-5 rounded-3xl bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 p-10 text-center shadow-glow sm:p-14">
           <h2 className="font-display text-2xl font-bold text-white sm:text-3xl">Prêt à essayer avec votre carte ?</h2>
           <p className="max-w-xl text-sm text-white/80 sm:text-base">
             Créez votre compte et composez votre propre carte en quelques minutes.

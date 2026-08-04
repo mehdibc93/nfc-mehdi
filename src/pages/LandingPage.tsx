@@ -27,6 +27,12 @@ const FEATURE_HIGHLIGHTS = [
     description: 'Vos clients consultent la carte, commandent et paient directement depuis leur téléphone.',
   },
   {
+    icon: '📈',
+    title: 'Panier moyen plus élevé',
+    description:
+      'Suggestion automatique de boisson et dessert après chaque plat, suppléments, mise en avant des best-sellers — pensé pour augmenter naturellement le montant de chaque commande.',
+  },
+  {
     icon: '⭐',
     title: "Plus d'avis Google",
     description: 'Invitez vos clients à laisser un avis au bon moment, pendant l\'attente de leur commande.',
