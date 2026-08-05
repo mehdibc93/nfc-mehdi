@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { mapRestaurantWithMenu } from '../lib/mappers';
 import type { Dish, RestaurantWithMenu } from '../lib/types';
@@ -109,6 +109,8 @@ export function RestaurantExperience() {
 }
 
 function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
+  const [searchParams] = useSearchParams();
+  const skipScan = searchParams.get('demo') === '1';
   const [language, setLanguage] = useState<Locale>('fr');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const tr = (key: Parameters<typeof t>[1], vars?: Record<string, string | number>) => t(language, key, vars);
@@ -205,7 +207,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
     [restaurant, language],
   );
 
-  const [phase, setPhase] = useState<Phase>('scan');
+  const [phase, setPhase] = useState<Phase>(skipScan ? 'cinematic' : 'scan');
   const [scanPing, setScanPing] = useState(0);
   const [selectedDish, setSelectedDish] = useState<FlatDish | null>(null);
   const [modalStep, setModalStep] = useState<ModalStep>(null);

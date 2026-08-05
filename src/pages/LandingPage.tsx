@@ -205,7 +205,7 @@ export function LandingPage() {
                   {isAuthenticated ? 'Aller à mon dashboard' : 'Créer mon compte'}
                 </Link>
                 <Link
-                  to={`/r/${DEMO_SLUG}`}
+                  to={`/r/${DEMO_SLUG}?demo=1`}
                   className="rounded-full border border-stone-200/70 bg-white/60 px-6 py-4 text-center text-sm text-stone-500 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
                 >
                   Voir la démo « Le Jardin Parisien »
