@@ -123,6 +123,12 @@ export function LandingPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Link
+              to="/decouvrir-dashboard"
+              className="hidden px-2 text-sm font-semibold text-stone-600 transition-colors duration-300 hover:text-navy-700 sm:inline-block"
+            >
+              Dashboard
+            </Link>
+            <Link
               to="/tarifs"
               className="hidden px-2 text-sm font-semibold text-stone-600 transition-colors duration-300 hover:text-navy-700 sm:inline-block"
             >
@@ -205,6 +211,10 @@ export function LandingPage() {
                   Voir la démo « Le Jardin Parisien »
                 </Link>
               </div>
+
+              <p className="text-sm text-stone-400">
+                Plan <Link to="/tarifs" className="font-semibold text-navy-700 underline-offset-2 hover:underline">sans engagement</Link> disponible dès 59€/mois.
+              </p>
 
               <Link
                 to="/decouvrir-dashboard"

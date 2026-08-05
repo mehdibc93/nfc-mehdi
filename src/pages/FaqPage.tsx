@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import logoHorizontal from '../assets/logo-horizontal.png';
 import { setPageMeta } from '../lib/seo';
+import { useAuth } from '../hooks/useAuth';
 
 const FAQ_ITEMS = [
   {
@@ -73,6 +74,7 @@ const FAQ_ITEMS = [
 
 export function FaqPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     setPageMeta({
@@ -124,6 +126,21 @@ export function FaqPage() {
               </div>
             );
           })}
+        </div>
+
+        <div className="mt-12 flex flex-col items-center gap-4 rounded-3xl bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 p-8 text-center shadow-glow sm:p-10">
+          <h2 className="font-display text-xl font-bold text-white sm:text-2xl">
+            Prêt à essayer Nourevo ?
+          </h2>
+          <p className="max-w-md text-sm text-white/80">
+            Créez votre compte et composez votre carte en quelques minutes.
+          </p>
+          <Link
+            to={isAuthenticated ? '/dashboard' : '/inscription'}
+            className="rounded-full bg-white px-7 py-3.5 text-sm font-bold text-navy-800 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg"
+          >
+            {isAuthenticated ? 'Aller à mon dashboard' : 'Créer mon compte'}
+          </Link>
         </div>
       </div>
     </div>
