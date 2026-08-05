@@ -49,6 +49,26 @@ const FAQ_ITEMS = [
     answer:
       'Oui, depuis votre espace de gestion d\'abonnement (portail Stripe accessible depuis le dashboard). Pour les plans avec engagement de 12 mois, l\'annulation prend effet à la fin de la période engagée.',
   },
+  {
+    question: 'Vos clients doivent-ils télécharger une application ?',
+    answer:
+      'Non, aucune application à télécharger. Le client scanne la carte NFC (ou clique sur un lien), et le menu s\'ouvre directement dans son navigateur, comme n\'importe quelle page web.',
+  },
+  {
+    question: 'Puis-je modifier mon menu quand je veux ?',
+    answer:
+      'Oui, à tout moment depuis votre dashboard. Vos changements sont visibles par vos clients dès que vous cliquez sur "Sauvegarder".',
+  },
+  {
+    question: 'Le paiement est-il vraiment sécurisé ?',
+    answer:
+      'Oui, tous les paiements passent directement par Stripe, une infrastructure certifiée utilisée par des millions d\'entreprises dans le monde. Nourevo n\'a jamais accès aux coordonnées bancaires de vos clients.',
+  },
+  {
+    question: 'Puis-je créer un design totalement personnalisé ?',
+    answer:
+      'Vous personnalisez les couleurs, les photos, les vidéos et les textes de votre carte. Il n\'y a en revanche pas d\'éditeur de mise en page libre : la structure de la carte reste celle de Nourevo, pensée pour rester claire et efficace sur mobile.',
+  },
 ];
 
 export function FaqPage() {
