@@ -12,6 +12,8 @@ import type { OrderStatus } from '../lib/types';
 import { accentGradient, accentTextColor } from '../lib/color';
 import { getIntroVideo } from '../lib/introVideos';
 import { ChefCookingIllustration } from '../components/ChefCookingIllustration';
+import { FoodWaitAnimation } from '../components/FoodWaitAnimation';
+import { getWaitAnimationId } from '../lib/waitAnimations';
 import { getActiveMenuServices } from '../lib/menuSlots';
 import { getOpenStatus } from '../lib/openingHours';
 import { ALLERGENS, DIET_TAGS, allergenLabel, dietIcon, dietLabel } from '../lib/dietInfo';
@@ -1110,7 +1112,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                     <h2 className="font-display text-2xl font-bold text-stone-900">{tr('menu.chefPicksTitle')}</h2>
                     <p className="text-sm text-stone-400">{tr('menu.chefPicksSubtitle')}</p>
                   </div>
-                  <div className="grid gap-6 sm:grid-cols-2">
+                  <div className="grid gap-6">
                     {recommendations.map((dish) => (
                       <div
                         key={dish.id}
@@ -1123,14 +1125,14 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                         }}
                         role="button"
                         tabIndex={0}
-                        className="grid grid-cols-1 gap-0 overflow-hidden rounded-3xl border border-stone-200/70 bg-white text-left shadow-soft transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-card sm:grid-cols-[150px_1fr]"
+                        className="grid grid-cols-1 gap-0 overflow-hidden rounded-3xl border border-stone-200/70 bg-white text-left shadow-soft transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-card md:grid-cols-[150px_1fr]"
                       >
                         <img
                           src={dish.image}
                           alt={localizedDishName(dish)}
                           loading="lazy"
                           decoding="async"
-                          className="h-full min-h-[180px] w-full object-cover sm:min-h-[220px]"
+                          className="h-full min-h-[180px] w-full object-cover md:min-h-[220px]"
                         />
                         <div className="p-6">
                           <div className="flex flex-wrap items-center gap-2">
@@ -1520,6 +1522,8 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                 src={restaurant.customWaitVideo}
                 className="relative z-10 h-48 w-48 rounded-3xl object-cover sm:h-64 sm:w-64"
               />
+            ) : getWaitAnimationId(restaurant.waitAnimation) === 'food' ? (
+              <FoodWaitAnimation className="relative z-10 h-48 w-48 sm:h-64 sm:w-64" />
             ) : (
               <ChefCookingIllustration className="relative z-10 h-48 w-48 sm:h-64 sm:w-64" />
             )}
