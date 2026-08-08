@@ -213,7 +213,11 @@ export function LandingPage() {
               </div>
 
               <p className="text-sm text-stone-400">
-                Plan <Link to="/tarifs" className="font-semibold text-navy-700 underline-offset-2 hover:underline">sans engagement</Link> disponible dès 59€/mois.
+                🎉 7 jours d'essai gratuit · Plan{' '}
+                <Link to="/tarifs" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
+                  sans engagement
+                </Link>{' '}
+                disponible dès 59€/mois.
               </p>
 
               <Link
@@ -425,6 +429,9 @@ export function LandingPage() {
               <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-stone-500 sm:text-base">
                 Le prix d'un café, pour toute une plateforme de gestion.
               </p>
+              <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+                🎉 7 jours d'essai gratuit sur votre premier abonnement
+              </div>
               <div className="mx-auto mt-8 grid max-w-2xl grid-cols-2 gap-x-6 gap-y-3 text-left sm:grid-cols-2">
                 {PRICING_INCLUDED.map((item) => (
                   <span key={item} className="flex items-center gap-2 text-sm text-stone-600">

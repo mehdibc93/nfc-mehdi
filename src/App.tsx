@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import { supabase } from './lib/supabaseClient';
 import { LoadingScreen } from './components/LoadingScreen';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
@@ -29,6 +31,41 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/connexion" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// Bloque l'accès aux pages restaurateur (Mode Service, stats, rentabilité, configuration) tant
+// que l'abonnement n'est pas actif — DashboardPage.tsx affiche déjà l'écran de paiement/
+// réactivation, donc on y redirige plutôt que de dupliquer cet écran ici.
+function RequireActiveSubscription({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const [status, setStatus] = useState<'loading' | 'active' | 'inactive'>('loading');
+
+  useEffect(() => {
+    if (!user) return undefined;
+    let cancelled = false;
+    supabase
+      .from('restaurants')
+      .select('subscription_status')
+      .eq('owner_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setStatus(data?.subscription_status === 'active' ? 'active' : 'inactive');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  if (status === 'loading') {
+    return <LoadingScreen />;
+  }
+
+  if (status === 'inactive') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -78,7 +115,9 @@ function App() {
           path="/dashboard/stats"
           element={
             <RequireAuth>
-              <StatsPage />
+              <RequireActiveSubscription>
+                <StatsPage />
+              </RequireActiveSubscription>
             </RequireAuth>
           }
         />
@@ -86,7 +125,9 @@ function App() {
           path="/service"
           element={
             <RequireAuth>
-              <ServicePage />
+              <RequireActiveSubscription>
+                <ServicePage />
+              </RequireActiveSubscription>
             </RequireAuth>
           }
         />
@@ -94,7 +135,9 @@ function App() {
           path="/dashboard/rentabilite"
           element={
             <RequireAuth>
-              <ProfitabilityPage />
+              <RequireActiveSubscription>
+                <ProfitabilityPage />
+              </RequireActiveSubscription>
             </RequireAuth>
           }
         />
@@ -102,7 +145,9 @@ function App() {
           path="/dashboard/configuration"
           element={
             <RequireAuth>
-              <ConfigurationPage />
+              <RequireActiveSubscription>
+                <ConfigurationPage />
+              </RequireActiveSubscription>
             </RequireAuth>
           }
         />

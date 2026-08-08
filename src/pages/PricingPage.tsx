@@ -74,7 +74,12 @@ export function PricingPage() {
           jamais de commission sur vos ventes, contrairement à beaucoup d'outils similaires.
         </p>
 
-        <div className="mt-10 overflow-x-auto rounded-3xl border border-stone-200/70 bg-white shadow-card">
+        <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700">
+          🎉 7 jours d'essai gratuit sur votre premier abonnement, quel que soit le plan choisi — annulez avant la
+          fin de l'essai et vous ne serez jamais débité.
+        </div>
+
+        <div className="mt-8 overflow-x-auto rounded-3xl border border-stone-200/70 bg-white shadow-card">
           <table className="w-full min-w-[760px] border-collapse text-left">
             <thead>
               <tr className="border-b border-stone-200">

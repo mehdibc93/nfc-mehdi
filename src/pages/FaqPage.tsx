@@ -26,6 +26,11 @@ const FAQ_ITEMS = [
       'Le plan à 59€/mois est sans engagement, résiliable à tout moment. Les plans à 54€/mois et 588€/an impliquent un engagement de 12 mois, en échange d\'un tarif réduit.',
   },
   {
+    question: 'Y a-t-il un essai gratuit ?',
+    answer:
+      'Oui, 7 jours d\'essai gratuit sur votre premier abonnement, quel que soit le plan choisi. Votre carte bancaire est demandée à l\'inscription mais n\'est débitée qu\'à l\'issue des 7 jours — annulez avant cette date et vous ne serez jamais prélevé.',
+  },
+  {
     question: 'Puis-je gérer mon menu dans plusieurs langues ?',
     answer:
       'Oui, votre carte peut être traduite en français, anglais, espagnol, chinois et russe, avec une traduction automatique en un clic depuis le dashboard.',

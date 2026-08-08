@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { PinSectionGate } from '../components/PinSectionGate';
 import { STAFF_SECTIONS } from '../lib/staffMode';
+import { slugify } from '../lib/slug';
 
 type ConfigRestaurant = {
   id: string;
@@ -32,6 +33,11 @@ export function ConfigurationPage() {
   const [reviewUrl, setReviewUrl] = useState('');
   const [savingReview, setSavingReview] = useState(false);
   const [reviewSaved, setReviewSaved] = useState(false);
+
+  const [editingSlug, setEditingSlug] = useState(false);
+  const [slugInput, setSlugInput] = useState('');
+  const [savingSlug, setSavingSlug] = useState(false);
+  const [slugError, setSlugError] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -81,8 +87,50 @@ export function ConfigurationPage() {
 
   const copyNfcLink = () => {
     if (!restaurant) return;
-    const url = `${window.location.origin}/r/${restaurant.slug}`;
+    const url = `${window.location.origin}/r/${restaurant.slug}?nfc=1`;
     navigator.clipboard?.writeText(url).then(() => setToast('Lien copié !'));
+  };
+
+  const startEditSlug = () => {
+    if (!restaurant) return;
+    setSlugInput(restaurant.slug);
+    setSlugError('');
+    setEditingSlug(true);
+  };
+
+  const cancelEditSlug = () => {
+    setEditingSlug(false);
+    setSlugError('');
+  };
+
+  const saveSlug = async () => {
+    if (!restaurant) return;
+    const nextSlug = slugify(slugInput);
+    if (nextSlug === restaurant.slug) {
+      setEditingSlug(false);
+      return;
+    }
+    if (
+      !window.confirm(
+        "Changer ce lien rendra invalide toute carte NFC déjà programmée avec l'ancien lien : elle devra être " +
+          'reprogrammée. Continuer ?',
+      )
+    ) {
+      return;
+    }
+    setSavingSlug(true);
+    setSlugError('');
+    const { error } = await supabase.from('restaurants').update({ slug: nextSlug }).eq('id', restaurant.id);
+    setSavingSlug(false);
+    if (error) {
+      setSlugError(
+        error.code === '23505' ? 'Ce lien est déjà utilisé par un autre restaurant, choisissez-en un autre.' : error.message,
+      );
+      return;
+    }
+    setRestaurant({ ...restaurant, slug: nextSlug });
+    setEditingSlug(false);
+    setToast('Lien mis à jour !');
   };
 
   const nfcSupported = typeof window !== 'undefined' && Boolean(window.NDEFReader);
@@ -93,7 +141,7 @@ export function ConfigurationPage() {
     setWritingNfc(true);
     try {
       const reader = new window.NDEFReader();
-      const url = `${window.location.origin}/r/${restaurant.slug}`;
+      const url = `${window.location.origin}/r/${restaurant.slug}?nfc=1`;
       await reader.write({ records: [{ recordType: 'url', data: url }] });
       setToast('Carte NFC programmée avec succès !');
     } catch (err) {
@@ -200,17 +248,55 @@ export function ConfigurationPage() {
             <h2 className="font-display text-xl font-bold text-stone-900">📲 Carte NFC</h2>
             <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-navy-300/25 bg-navy-300/8 p-4">
               <span className="text-sm text-stone-600">Lien à associer à votre tag NFC :</span>
-              <code className="rounded-full bg-white px-3 py-1.5 text-xs text-stone-700">
-                {window.location.origin}/r/{restaurant.slug}
-              </code>
-              <button
-                type="button"
-                onClick={copyNfcLink}
-                className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-1.5 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5"
-              >
-                Copier
-              </button>
-              {nfcSupported ? (
+              {editingSlug ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-stone-500">{window.location.origin}/r/</span>
+                  <input
+                    type="text"
+                    value={slugInput}
+                    onChange={(event) => setSlugInput(event.target.value)}
+                    className="rounded-full border border-navy-300/40 bg-white px-3 py-1.5 text-xs text-stone-700 focus:border-navy-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveSlug}
+                    disabled={savingSlug || !slugInput.trim()}
+                    className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-1.5 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
+                  >
+                    {savingSlug ? 'Enregistrement...' : 'Enregistrer'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelEditSlug}
+                    disabled={savingSlug}
+                    className="rounded-full border border-stone-300 bg-white px-4 py-1.5 text-xs font-bold text-stone-600 transition-all duration-300 hover:-translate-y-0.5"
+                  >
+                    Annuler
+                  </button>
+                  {slugError && <span className="w-full text-xs font-semibold text-red-600">{slugError}</span>}
+                </div>
+              ) : (
+                <>
+                  <code className="rounded-full bg-white px-3 py-1.5 text-xs text-stone-700">
+                    {window.location.origin}/r/{restaurant.slug}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={copyNfcLink}
+                    className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-1.5 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5"
+                  >
+                    Copier
+                  </button>
+                  <button
+                    type="button"
+                    onClick={startEditSlug}
+                    className="rounded-full border border-navy-400 bg-white px-4 py-1.5 text-xs font-bold text-navy-700 transition-all duration-300 hover:-translate-y-0.5"
+                  >
+                    ✎ Modifier
+                  </button>
+                </>
+              )}
+              {!editingSlug && nfcSupported ? (
                 <button
                   type="button"
                   onClick={handleWriteNfc}

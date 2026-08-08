@@ -112,7 +112,9 @@ export function RestaurantExperience() {
 
 function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const [searchParams] = useSearchParams();
-  const skipScan = searchParams.get('demo') === '1';
+  // `demo=1` : lien de démo partagé (pitch commercial). `nfc=1` : lien réellement programmé
+  // sur le tag physique — le vrai scan a déjà eu lieu, inutile de refaire semblant d'en faire un.
+  const skipScan = searchParams.get('demo') === '1' || searchParams.get('nfc') === '1';
   const [language, setLanguage] = useState<Locale>('fr');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const tr = (key: Parameters<typeof t>[1], vars?: Record<string, string | number>) => t(language, key, vars);

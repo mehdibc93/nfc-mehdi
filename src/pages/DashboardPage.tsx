@@ -1046,6 +1046,11 @@ export function DashboardPage() {
               </button>
             ) : (
               <div className="mt-6 space-y-2.5">
+                {!restaurant.stripeSubscriptionId && (
+                  <p className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-700">
+                    🎉 7 jours d'essai gratuit, quel que soit le plan choisi — annulable avant la fin de l'essai.
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={() => handleSubscribe('monthly')}

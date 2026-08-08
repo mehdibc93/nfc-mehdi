@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
 
     const { data: restaurant, error: restaurantError } = await supabase
       .from('restaurants')
-      .select('id, name, stripe_customer_id')
+      .select('id, name, stripe_customer_id, stripe_subscription_id')
       .eq('owner_id', userData.user.id)
       .maybeSingle();
 
@@ -77,6 +77,11 @@ Deno.serve(async (req) => {
       await supabase.from('restaurants').update({ stripe_customer_id: customerId }).eq('id', restaurant.id);
     }
 
+    // Essai gratuit de 7 jours réservé au premier abonnement du restaurant (jamais eu de
+    // stripe_subscription_id) — évite qu'un restaurateur résilie puis se réabonne pour cumuler
+    // des essais gratuits à l'infini.
+    const isFirstSubscription = !restaurant.stripe_subscription_id;
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
@@ -85,7 +90,14 @@ Deno.serve(async (req) => {
       success_url: `${siteUrl}/dashboard?billing=success`,
       cancel_url: `${siteUrl}/dashboard?billing=cancel`,
       metadata: { restaurant_id: restaurant.id, plan },
-      subscription_data: { metadata: { restaurant_id: restaurant.id, plan } },
+      subscription_data: {
+        metadata: { restaurant_id: restaurant.id, plan },
+        ...(isFirstSubscription ? { trial_period_days: 7 } : {}),
+      },
+      // Affiche un champ "Code promo" sur la page Stripe Checkout. Les codes eux-mêmes se
+      // créent et se gèrent entièrement côté Stripe Dashboard (Produits > Coupons > Codes
+      // promotionnels) — pas de logique de validation à coder ni de table à maintenir ici.
+      allow_promotion_codes: true,
     });
 
     return json({ url: session.url });
