@@ -2,10 +2,10 @@ import type { Dish } from './types';
 
 export type ProfitabilityTier = 'high' | 'medium' | 'low';
 
-export const PROFITABILITY_TIER_LABEL: Record<ProfitabilityTier, string> = {
-  high: 'Très rentable',
-  medium: 'Correct',
-  low: 'À optimiser',
+export const PROFITABILITY_TIER_LABEL: Record<ProfitabilityTier, { fr: string; en: string }> = {
+  high: { fr: 'Très rentable', en: 'Very profitable' },
+  medium: { fr: 'Correct', en: 'Decent' },
+  low: { fr: 'À optimiser', en: 'To optimize' },
 };
 
 export const PROFITABILITY_TIER_EMOJI: Record<ProfitabilityTier, string> = {

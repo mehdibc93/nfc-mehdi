@@ -6,6 +6,8 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { PinSectionGate } from '../components/PinSectionGate';
 import { STAFF_SECTIONS } from '../lib/staffMode';
 import { slugify } from '../lib/slug';
+import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
+import { useDt } from '../lib/dashboardLocale';
 
 type ConfigRestaurant = {
   id: string;
@@ -17,6 +19,7 @@ type ConfigRestaurant = {
 };
 
 export function ConfigurationPage() {
+  const dt = useDt();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [restaurant, setRestaurant] = useState<ConfigRestaurant | null>(null);
@@ -82,13 +85,13 @@ export function ConfigurationPage() {
     if (patch.servicePin !== undefined) dbPatch.service_pin = patch.servicePin;
     if (patch.pinProtectedSections !== undefined) dbPatch.pin_protected_sections = patch.pinProtectedSections;
     const { error } = await supabase.from('restaurants').update(dbPatch).eq('id', restaurant.id);
-    if (error) setToast(`Échec de l'enregistrement : ${error.message}`);
+    if (error) setToast(dt(`Échec de l'enregistrement : ${error.message}`, `Save failed: ${error.message}`));
   };
 
   const copyNfcLink = () => {
     if (!restaurant) return;
     const url = `${window.location.origin}/r/${restaurant.slug}?nfc=1`;
-    navigator.clipboard?.writeText(url).then(() => setToast('Lien copié !'));
+    navigator.clipboard?.writeText(url).then(() => setToast(dt('Lien copié !', 'Link copied!')));
   };
 
   const startEditSlug = () => {
@@ -112,8 +115,10 @@ export function ConfigurationPage() {
     }
     if (
       !window.confirm(
-        "Changer ce lien rendra invalide toute carte NFC déjà programmée avec l'ancien lien : elle devra être " +
-          'reprogrammée. Continuer ?',
+        dt(
+          "Changer ce lien rendra invalide toute carte NFC déjà programmée avec l'ancien lien : elle devra être reprogrammée. Continuer ?",
+          'Changing this link will invalidate any NFC card already programmed with the old link: it will need to be reprogrammed. Continue?',
+        ),
       )
     ) {
       return;
@@ -124,13 +129,15 @@ export function ConfigurationPage() {
     setSavingSlug(false);
     if (error) {
       setSlugError(
-        error.code === '23505' ? 'Ce lien est déjà utilisé par un autre restaurant, choisissez-en un autre.' : error.message,
+        error.code === '23505'
+          ? dt('Ce lien est déjà utilisé par un autre restaurant, choisissez-en un autre.', 'This link is already used by another restaurant, choose a different one.')
+          : error.message,
       );
       return;
     }
     setRestaurant({ ...restaurant, slug: nextSlug });
     setEditingSlug(false);
-    setToast('Lien mis à jour !');
+    setToast(dt('Lien mis à jour !', 'Link updated!'));
   };
 
   const nfcSupported = typeof window !== 'undefined' && Boolean(window.NDEFReader);
@@ -143,10 +150,13 @@ export function ConfigurationPage() {
       const reader = new window.NDEFReader();
       const url = `${window.location.origin}/r/${restaurant.slug}?nfc=1`;
       await reader.write({ records: [{ recordType: 'url', data: url }] });
-      setToast('Carte NFC programmée avec succès !');
+      setToast(dt('Carte NFC programmée avec succès !', 'NFC card programmed successfully!'));
     } catch (err) {
       setToast(
-        `Échec de l'écriture : ${err instanceof Error ? err.message : 'approchez une carte NFC vierge et réessayez'}`,
+        dt(
+          `Échec de l'écriture : ${err instanceof Error ? err.message : 'approchez une carte NFC vierge et réessayez'}`,
+          `Write failed: ${err instanceof Error ? err.message : 'bring a blank NFC card close and try again'}`,
+        ),
       );
     } finally {
       setWritingNfc(false);
@@ -175,24 +185,24 @@ export function ConfigurationPage() {
       setPinConfirmed(true);
       setPinError('');
     } else {
-      setPinError('Code actuel incorrect.');
+      setPinError(dt('Code actuel incorrect.', 'Incorrect current code.'));
       setPinConfirmValue('');
     }
   };
 
   const savePinRemoval = async () => {
     await updateRestaurantField({ servicePin: null });
-    setToast('Code PIN retiré.');
+    setToast(dt('Code PIN retiré.', 'PIN code removed.'));
     resetPinFlow();
   };
 
   const saveNewPin = async () => {
     if (pinNewValue.length !== 4) {
-      setPinError('Le code doit contenir 4 chiffres.');
+      setPinError(dt('Le code doit contenir 4 chiffres.', 'The code must contain 4 digits.'));
       return;
     }
     await updateRestaurantField({ servicePin: pinNewValue });
-    setToast('Code PIN mis à jour.');
+    setToast(dt('Code PIN mis à jour.', 'PIN code updated.'));
     resetPinFlow();
   };
 
@@ -218,13 +228,13 @@ export function ConfigurationPage() {
   if (!restaurant) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-        <h1 className="font-display text-2xl font-bold text-stone-900">Aucun restaurant</h1>
-        <p className="text-stone-500">Créez votre restaurant avant d'accéder à la configuration.</p>
+        <h1 className="font-display text-2xl font-bold text-stone-900">{dt('Aucun restaurant', 'No restaurant')}</h1>
+        <p className="text-stone-500">{dt("Créez votre restaurant avant d'accéder à la configuration.", 'Create your restaurant before accessing settings.')}</p>
         <Link
           to="/dashboard"
           className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-6 py-3 text-sm font-bold text-white"
         >
-          Aller au dashboard
+          {dt('Aller au dashboard', 'Go to dashboard')}
         </Link>
       </div>
     );
@@ -235,9 +245,12 @@ export function ConfigurationPage() {
       <div className="min-h-screen pb-20">
         <header className="sticky top-0 z-40 border-b border-stone-900/5 bg-[#f6f8fb]/80 backdrop-blur-xl">
           <div className="mx-auto flex max-w-3xl flex-col gap-1 px-4 py-5 sm:px-8">
-            <p className="font-display text-lg font-semibold text-stone-900">Configuration — {restaurant.name}</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-display text-lg font-semibold text-stone-900">{dt('Configuration', 'Settings')} — {restaurant.name}</p>
+              <DashboardLanguageSwitch />
+            </div>
             <Link to="/dashboard" className="text-xs font-semibold uppercase tracking-[0.3em] text-navy-700">
-              ← Retour au dashboard
+              {dt('← Retour au dashboard', '← Back to dashboard')}
             </Link>
           </div>
         </header>
@@ -245,9 +258,9 @@ export function ConfigurationPage() {
         <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-8">
           {/* Carte NFC */}
           <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-            <h2 className="font-display text-xl font-bold text-stone-900">📲 Carte NFC</h2>
+            <h2 className="font-display text-xl font-bold text-stone-900">{dt('📲 Carte NFC', '📲 NFC card')}</h2>
             <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-navy-300/25 bg-navy-300/8 p-4">
-              <span className="text-sm text-stone-600">Lien à associer à votre tag NFC :</span>
+              <span className="text-sm text-stone-600">{dt('Lien à associer à votre tag NFC :', 'Link to associate with your NFC tag:')}</span>
               {editingSlug ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs text-stone-500">{window.location.origin}/r/</span>
@@ -263,7 +276,7 @@ export function ConfigurationPage() {
                     disabled={savingSlug || !slugInput.trim()}
                     className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-1.5 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
                   >
-                    {savingSlug ? 'Enregistrement...' : 'Enregistrer'}
+                    {savingSlug ? dt('Enregistrement...', 'Saving...') : dt('Enregistrer', 'Save')}
                   </button>
                   <button
                     type="button"
@@ -271,7 +284,7 @@ export function ConfigurationPage() {
                     disabled={savingSlug}
                     className="rounded-full border border-stone-300 bg-white px-4 py-1.5 text-xs font-bold text-stone-600 transition-all duration-300 hover:-translate-y-0.5"
                   >
-                    Annuler
+                    {dt('Annuler', 'Cancel')}
                   </button>
                   {slugError && <span className="w-full text-xs font-semibold text-red-600">{slugError}</span>}
                 </div>
@@ -285,14 +298,14 @@ export function ConfigurationPage() {
                     onClick={copyNfcLink}
                     className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-1.5 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5"
                   >
-                    Copier
+                    {dt('Copier', 'Copy')}
                   </button>
                   <button
                     type="button"
                     onClick={startEditSlug}
                     className="rounded-full border border-navy-400 bg-white px-4 py-1.5 text-xs font-bold text-navy-700 transition-all duration-300 hover:-translate-y-0.5"
                   >
-                    ✎ Modifier
+                    {dt('✎ Modifier', '✎ Edit')}
                   </button>
                 </>
               )}
@@ -303,12 +316,11 @@ export function ConfigurationPage() {
                   disabled={writingNfc}
                   className="rounded-full border border-navy-400 bg-white px-4 py-1.5 text-xs font-bold text-navy-700 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
                 >
-                  {writingNfc ? 'Approchez la carte...' : '📲 Écrire sur une carte NFC'}
+                  {writingNfc ? dt('Approchez la carte...', 'Bring the card close...') : dt('📲 Écrire sur une carte NFC', '📲 Write to an NFC card')}
                 </button>
               ) : isIOS ? (
                 <span className="text-xs text-stone-500">
-                  Écriture NFC indisponible sur iPhone (limite Apple, pas de notre site). Copiez le lien ci-dessus et
-                  collez-le dans une app gratuite comme{' '}
+                  {dt('Écriture NFC indisponible sur iPhone (limite Apple, pas de notre site). Copiez le lien ci-dessus et collez-le dans une app gratuite comme', 'NFC writing is unavailable on iPhone (an Apple limitation, not our site). Copy the link above and paste it into a free app like')}{' '}
                   <a
                     href="https://apps.apple.com/app/nfc-tools/id1252962749"
                     target="_blank"
@@ -317,11 +329,11 @@ export function ConfigurationPage() {
                   >
                     NFC Tools
                   </a>{' '}
-                  pour programmer votre carte en 30 secondes.
+                  {dt('pour programmer votre carte en 30 secondes.', 'to program your card in 30 seconds.')}
                 </span>
               ) : (
-                <span className="text-xs text-stone-500" title="Fonctionne uniquement sur Chrome pour Android">
-                  Écriture NFC : ouvrez cette page sur Chrome Android pour programmer une carte directement
+                <span className="text-xs text-stone-500" title={dt('Fonctionne uniquement sur Chrome pour Android', 'Only works on Chrome for Android')}>
+                  {dt('Écriture NFC : ouvrez cette page sur Chrome Android pour programmer une carte directement', 'NFC writing: open this page on Chrome for Android to program a card directly')}
                 </span>
               )}
             </div>
@@ -329,11 +341,12 @@ export function ConfigurationPage() {
 
           {/* Code PIN */}
           <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-            <h2 className="font-display text-xl font-bold text-stone-900">🔒 Code PIN — Mode Service</h2>
+            <h2 className="font-display text-xl font-bold text-stone-900">{dt('🔒 Code PIN — Mode Service', '🔒 PIN code — Service Mode')}</h2>
             <p className="mt-2 text-sm text-stone-500">
-              Demandé pour quitter le Mode Service — utile si vous laissez une tablette à un serveur. Modifier ou
-              retirer le code nécessite de connaître le code actuel, même depuis le dashboard, pour éviter qu'un
-              serveur désactive lui-même la protection.
+              {dt(
+                "Demandé pour quitter le Mode Service — utile si vous laissez une tablette à un serveur. Modifier ou retirer le code nécessite de connaître le code actuel, même depuis le dashboard, pour éviter qu'un serveur désactive lui-même la protection.",
+                "Required to leave Service Mode — useful if you hand a tablet to a server. Changing or removing the code requires knowing the current code, even from the dashboard, so a server can't disable the protection themselves.",
+              )}
             </p>
 
             {pinAction === null && (
@@ -341,21 +354,21 @@ export function ConfigurationPage() {
                 {restaurant.servicePin ? (
                   <>
                     <span className="rounded-full bg-navy-50 px-3 py-1.5 text-xs font-semibold text-navy-700">
-                      🔒 Code activé
+                      {dt('🔒 Code activé', '🔒 Code enabled')}
                     </span>
                     <button
                       type="button"
                       onClick={() => startPinAction('change')}
                       className="rounded-full border border-stone-200 px-3 py-1.5 text-xs font-semibold text-stone-600 transition hover:border-navy-300 hover:text-navy-700"
                     >
-                      Modifier
+                      {dt('Modifier', 'Edit')}
                     </button>
                     <button
                       type="button"
                       onClick={() => startPinAction('remove')}
                       className="rounded-full border border-stone-200 px-3 py-1.5 text-xs font-semibold text-stone-600 transition hover:border-red-300 hover:text-red-600"
                     >
-                      Retirer
+                      {dt('Retirer', 'Remove')}
                     </button>
                   </>
                 ) : (
@@ -364,7 +377,7 @@ export function ConfigurationPage() {
                     onClick={() => startPinAction('change')}
                     className="rounded-full border border-stone-200 px-3 py-1.5 text-xs font-semibold text-stone-600 transition hover:border-navy-300 hover:text-navy-700"
                   >
-                    Définir un code PIN
+                    {dt('Définir un code PIN', 'Set a PIN code')}
                   </button>
                 )}
               </div>
@@ -372,7 +385,7 @@ export function ConfigurationPage() {
 
             {pinAction !== null && !pinConfirmed && (
               <div className="mt-4 rounded-2xl border border-stone-200 bg-white p-3">
-                <p className="text-xs font-semibold text-stone-600">Entrez le code actuel pour continuer</p>
+                <p className="text-xs font-semibold text-stone-600">{dt('Entrez le code actuel pour continuer', 'Enter the current code to continue')}</p>
                 <div className="mt-1.5 flex items-center gap-2">
                   <input
                     type="password"
@@ -392,14 +405,14 @@ export function ConfigurationPage() {
                     onClick={confirmCurrentPin}
                     className="rounded-full bg-navy-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-navy-800"
                   >
-                    Valider
+                    {dt('Valider', 'Confirm')}
                   </button>
                   <button
                     type="button"
                     onClick={resetPinFlow}
                     className="rounded-full px-3 py-2 text-xs font-semibold text-stone-400 transition hover:text-stone-600"
                   >
-                    Annuler
+                    {dt('Annuler', 'Cancel')}
                   </button>
                 </div>
                 {pinError && <p className="mt-1.5 text-xs font-normal text-red-600">{pinError}</p>}
@@ -408,7 +421,7 @@ export function ConfigurationPage() {
 
             {pinAction === 'change' && pinConfirmed && (
               <div className="mt-4 rounded-2xl border border-stone-200 bg-white p-3">
-                <p className="text-xs font-semibold text-stone-600">Nouveau code (4 chiffres)</p>
+                <p className="text-xs font-semibold text-stone-600">{dt('Nouveau code (4 chiffres)', 'New code (4 digits)')}</p>
                 <div className="mt-1.5 flex items-center gap-2">
                   <input
                     type="text"
@@ -420,7 +433,7 @@ export function ConfigurationPage() {
                       setPinError('');
                     }}
                     onKeyDown={(event) => event.key === 'Enter' && saveNewPin()}
-                    placeholder="Ex : 1234"
+                    placeholder={dt('Ex : 1234', 'E.g. 1234')}
                     className="w-24 rounded-xl border border-stone-200 bg-white px-3 py-2 text-center text-sm tracking-[0.3em] text-stone-700 outline-none focus:border-navy-300"
                   />
                   <button
@@ -428,14 +441,14 @@ export function ConfigurationPage() {
                     onClick={saveNewPin}
                     className="rounded-full bg-navy-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-navy-800"
                   >
-                    Enregistrer
+                    {dt('Enregistrer', 'Save')}
                   </button>
                   <button
                     type="button"
                     onClick={resetPinFlow}
                     className="rounded-full px-3 py-2 text-xs font-semibold text-stone-400 transition hover:text-stone-600"
                   >
-                    Annuler
+                    {dt('Annuler', 'Cancel')}
                   </button>
                 </div>
                 {pinError && <p className="mt-1.5 text-xs font-normal text-red-600">{pinError}</p>}
@@ -444,21 +457,21 @@ export function ConfigurationPage() {
 
             {pinAction === 'remove' && pinConfirmed && (
               <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3">
-                <p className="text-xs font-semibold text-red-700">Retirer définitivement la protection par code ?</p>
+                <p className="text-xs font-semibold text-red-700">{dt('Retirer définitivement la protection par code ?', 'Permanently remove the code protection?')}</p>
                 <div className="mt-1.5 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={savePinRemoval}
                     className="rounded-full bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
                   >
-                    Oui, retirer
+                    {dt('Oui, retirer', 'Yes, remove it')}
                   </button>
                   <button
                     type="button"
                     onClick={resetPinFlow}
                     className="rounded-full px-3 py-2 text-xs font-semibold text-stone-500 transition hover:text-stone-700"
                   >
-                    Annuler
+                    {dt('Annuler', 'Cancel')}
                   </button>
                 </div>
               </div>
@@ -466,19 +479,19 @@ export function ConfigurationPage() {
 
             <div className="mt-6 border-t border-stone-100 pt-5">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                Pages protégées par le code PIN{' '}
+                {dt('Pages protégées par le code PIN', 'Pages protected by the PIN code')}{' '}
                 <span className="font-normal normal-case tracking-normal text-stone-400">
-                  (cochez une page pour qu'elle demande le code à l'ouverture)
+                  ({dt('cochez une page pour qu\'elle demande le code à l\'ouverture', 'check a page so it asks for the code on open')})
                 </span>
               </p>
               {!restaurant.servicePin ? (
                 <p className="mt-1.5 text-xs text-stone-400">
-                  Configurez d'abord un code PIN ci-dessus pour pouvoir protéger des pages.
+                  {dt("Configurez d'abord un code PIN ci-dessus pour pouvoir protéger des pages.", 'Set up a PIN code above first to be able to protect pages.')}
                 </p>
               ) : (
                 <>
                   <p className="mt-1.5 text-xs text-stone-500">
-                    Le code sera redemandé à chaque ouverture d'une page cochée, à chaque fois.
+                    {dt("Le code sera redemandé à chaque ouverture d'une page cochée, à chaque fois.", 'The code will be asked for every time a checked page is opened.')}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {STAFF_SECTIONS.map((section) => {
@@ -512,14 +525,16 @@ export function ConfigurationPage() {
 
           {/* Avis client */}
           <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-            <h2 className="font-display text-xl font-bold text-stone-900">⭐ Avis client</h2>
+            <h2 className="font-display text-xl font-bold text-stone-900">{dt('⭐ Avis client', '⭐ Customer reviews')}</h2>
             <p className="mt-2 text-sm text-stone-500">
-              Affiché à vos clients pendant l'attente de leur commande, avec un bouton "Laisser un avis". Pour
-              l'obtenir sur Google : Google Business Profile → "Demander des avis" → copier le lien.
+              {dt(
+                'Affiché à vos clients pendant l\'attente de leur commande, avec un bouton "Laisser un avis". Pour l\'obtenir sur Google : Google Business Profile → "Demander des avis" → copier le lien.',
+                'Shown to your customers while they wait for their order, with a "Leave a review" button. To get it from Google: Google Business Profile → "Ask for reviews" → copy the link.',
+              )}
             </p>
             <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-              Lien vers votre page d'avis{' '}
-              <span className="font-normal normal-case tracking-normal text-stone-500">(facultatif)</span>
+              {dt("Lien vers votre page d'avis", 'Link to your review page')}{' '}
+              <span className="font-normal normal-case tracking-normal text-stone-500">({dt('facultatif', 'optional')})</span>
               <input
                 type="url"
                 value={reviewUrl}
@@ -535,9 +550,9 @@ export function ConfigurationPage() {
                 disabled={savingReview}
                 className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-6 py-3 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
               >
-                {savingReview ? 'Enregistrement...' : 'Enregistrer'}
+                {savingReview ? dt('Enregistrement...', 'Saving...') : dt('Enregistrer', 'Save')}
               </button>
-              {reviewSaved && <span className="text-sm font-semibold text-emerald-600">✓ Enregistré</span>}
+              {reviewSaved && <span className="text-sm font-semibold text-emerald-600">{dt('✓ Enregistré', '✓ Saved')}</span>}
             </div>
           </div>
         </main>

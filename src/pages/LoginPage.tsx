@@ -4,8 +4,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import logoHorizontal from '../assets/logo-horizontal.png';
 import { setPageMeta } from '../lib/seo';
+import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
+import { useDt } from '../lib/dashboardLocale';
 
 export function LoginPage() {
+  const dt = useDt();
   const { signIn, sendPasswordReset } = useAuth();
   const navigate = useNavigate();
 
@@ -34,7 +37,7 @@ export function LoginPage() {
     if (signInError) {
       setError(
         signInError.message === 'Invalid login credentials'
-          ? 'Email ou mot de passe incorrect.'
+          ? dt('Email ou mot de passe incorrect.', 'Incorrect email or password.')
           : signInError.message,
       );
       return;
@@ -58,21 +61,24 @@ export function LoginPage() {
   if (mode === 'forgot') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-4 py-14">
-        <Link
-          to="/"
-          className="mb-4 flex w-full max-w-sm items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
-        >
-          ← Retour à l'accueil
-        </Link>
+        <div className="mb-4 flex w-full max-w-sm items-center justify-between gap-3">
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
+          >
+            {dt("← Retour à l'accueil", '← Back to home')}
+          </Link>
+          <DashboardLanguageSwitch />
+        </div>
         <div className="w-full max-w-sm rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft">
           <img src={logoHorizontal} alt="Nourevo" className="h-7 w-auto" />
-          <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">Mot de passe oublié</h1>
+          <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">{dt('Mot de passe oublié', 'Forgot password')}</h1>
 
           {resetSent ? (
             <>
               <p className="mt-2 text-sm text-stone-500">
-                Si un compte existe pour <strong>{resetEmail}</strong>, un email avec un lien de réinitialisation
-                vient d'être envoyé. Pensez à vérifier vos spams.
+                {dt('Si un compte existe pour', 'If an account exists for')} <strong>{resetEmail}</strong>{' '}
+                {dt("un email avec un lien de réinitialisation vient d'être envoyé. Pensez à vérifier vos spams.", 'an email with a reset link has just been sent. Remember to check your spam folder.')}
               </p>
               <button
                 type="button"
@@ -82,16 +88,16 @@ export function LoginPage() {
                 }}
                 className="mt-6 w-full rounded-full border border-stone-200 bg-white px-5 py-3.5 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
               >
-                Retour à la connexion
+                {dt('Retour à la connexion', 'Back to login')}
               </button>
             </>
           ) : (
             <form onSubmit={handleResetSubmit}>
               <p className="mt-2 text-sm text-stone-500">
-                Entrez votre email, on vous envoie un lien pour choisir un nouveau mot de passe.
+                {dt('Entrez votre email, on vous envoie un lien pour choisir un nouveau mot de passe.', "Enter your email, we'll send you a link to choose a new password.")}
               </p>
               <label className="mt-6 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                Email
+                {dt('Email', 'Email')}
                 <input
                   type="email"
                   required
@@ -109,14 +115,14 @@ export function LoginPage() {
                 disabled={resetSubmitting}
                 className="mt-6 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 disabled:opacity-60"
               >
-                {resetSubmitting ? 'Envoi...' : 'Envoyer le lien'}
+                {resetSubmitting ? dt('Envoi...', 'Sending...') : dt('Envoyer le lien', 'Send the link')}
               </button>
               <button
                 type="button"
                 onClick={() => setMode('login')}
                 className="mt-3 w-full rounded-full border border-stone-200 bg-white px-5 py-3.5 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
               >
-                Retour à la connexion
+                {dt('Retour à la connexion', 'Back to login')}
               </button>
             </form>
           )}
@@ -127,19 +133,22 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-14">
-      <Link
-        to="/"
-        className="mb-4 flex w-full max-w-sm items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
-      >
-        ← Retour à l'accueil
-      </Link>
+      <div className="mb-4 flex w-full max-w-sm items-center justify-between gap-3">
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
+        >
+          {dt("← Retour à l'accueil", '← Back to home')}
+        </Link>
+        <DashboardLanguageSwitch />
+      </div>
       <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft">
         <img src={logoHorizontal} alt="Nourevo" className="h-7 w-auto" />
-        <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">Connexion restaurateur</h1>
-        <p className="mt-2 text-sm text-stone-500">Accédez à la gestion de votre carte.</p>
+        <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">{dt('Connexion restaurateur', 'Restaurant owner login')}</h1>
+        <p className="mt-2 text-sm text-stone-500">{dt('Accédez à la gestion de votre carte.', 'Access your menu management.')}</p>
 
         <label className="mt-6 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-          Email
+          {dt('Email', 'Email')}
           <input
             type="email"
             required
@@ -150,7 +159,7 @@ export function LoginPage() {
           />
         </label>
         <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-          Mot de passe
+          {dt('Mot de passe', 'Password')}
           <input
             type="password"
             required
@@ -167,7 +176,7 @@ export function LoginPage() {
           }}
           className="mt-2 text-xs font-semibold text-stone-400 underline hover:text-navy-700"
         >
-          Mot de passe oublié ?
+          {dt('Mot de passe oublié ?', 'Forgot password?')}
         </button>
 
         {error && <p className="mt-3 text-sm font-semibold text-red-500">{error}</p>}
@@ -177,13 +186,13 @@ export function LoginPage() {
           disabled={submitting}
           className="mt-6 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 disabled:opacity-60"
         >
-          {submitting ? 'Connexion...' : 'Se connecter'}
+          {submitting ? dt('Connexion...', 'Logging in...') : dt('Se connecter', 'Log in')}
         </button>
 
         <p className="mt-5 text-center text-sm text-stone-500">
-          Pas encore de compte ?{' '}
+          {dt('Pas encore de compte ?', 'No account yet?')}{' '}
           <Link to="/inscription" className="font-semibold text-navy-700">
-            Créer un compte
+            {dt('Créer un compte', 'Create an account')}
           </Link>
         </p>
       </form>

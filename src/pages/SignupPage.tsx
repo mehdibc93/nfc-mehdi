@@ -4,8 +4,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import logoHorizontal from '../assets/logo-horizontal.png';
 import { setPageMeta } from '../lib/seo';
+import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
+import { useDt } from '../lib/dashboardLocale';
 
 export function SignupPage() {
+  const dt = useDt();
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
@@ -25,7 +28,7 @@ export function SignupPage() {
     event.preventDefault();
     setError('');
     if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères.');
+      setError(dt('Le mot de passe doit contenir au moins 6 caractères.', 'The password must be at least 6 characters long.'));
       return;
     }
     setSubmitting(true);
@@ -46,23 +49,27 @@ export function SignupPage() {
   if (confirmationSent) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-4 py-14">
-        <Link
-          to="/"
-          className="mb-4 flex w-full max-w-sm items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
-        >
-          ← Retour à l'accueil
-        </Link>
+        <div className="mb-4 flex w-full max-w-sm items-center justify-between gap-3">
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
+          >
+            {dt("← Retour à l'accueil", '← Back to home')}
+          </Link>
+          <DashboardLanguageSwitch />
+        </div>
         <div className="w-full max-w-sm rounded-3xl border border-stone-200/70 bg-white p-8 text-center shadow-soft">
-          <h1 className="font-display text-2xl font-bold text-stone-900">Vérifiez votre email</h1>
+          <h1 className="font-display text-2xl font-bold text-stone-900">{dt('Vérifiez votre email', 'Check your email')}</h1>
           <p className="mt-3 text-sm text-stone-500">
-            Un email de confirmation a été envoyé à <span className="font-semibold text-stone-700">{email}</span>.
-            Cliquez sur le lien reçu puis connectez-vous.
+            {dt('Un email de confirmation a été envoyé à', 'A confirmation email has been sent to')}{' '}
+            <span className="font-semibold text-stone-700">{email}</span>.{' '}
+            {dt('Cliquez sur le lien reçu puis connectez-vous.', 'Click the link you received, then log in.')}
           </p>
           <Link
             to="/connexion"
             className="mt-6 inline-block w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5"
           >
-            Aller à la connexion
+            {dt('Aller à la connexion', 'Go to login')}
           </Link>
         </div>
       </div>
@@ -71,19 +78,22 @@ export function SignupPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-14">
-      <Link
-        to="/"
-        className="mb-4 flex w-full max-w-sm items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
-      >
-        ← Retour à l'accueil
-      </Link>
+      <div className="mb-4 flex w-full max-w-sm items-center justify-between gap-3">
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
+        >
+          {dt("← Retour à l'accueil", '← Back to home')}
+        </Link>
+        <DashboardLanguageSwitch />
+      </div>
       <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft">
         <img src={logoHorizontal} alt="Nourevo" className="h-7 w-auto" />
-        <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">Créer mon compte</h1>
-        <p className="mt-2 text-sm text-stone-500">Créez votre carte digitale en quelques minutes.</p>
+        <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">{dt('Créer mon compte', 'Create my account')}</h1>
+        <p className="mt-2 text-sm text-stone-500">{dt('Créez votre carte digitale en quelques minutes.', 'Create your digital menu in minutes.')}</p>
 
         <label className="mt-6 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-          Email
+          {dt('Email', 'Email')}
           <input
             type="email"
             required
@@ -94,7 +104,7 @@ export function SignupPage() {
           />
         </label>
         <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-          Mot de passe
+          {dt('Mot de passe', 'Password')}
           <input
             type="password"
             required
@@ -112,13 +122,13 @@ export function SignupPage() {
           disabled={submitting}
           className="mt-6 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 disabled:opacity-60"
         >
-          {submitting ? 'Création...' : 'Créer mon compte'}
+          {submitting ? dt('Création...', 'Creating...') : dt('Créer mon compte', 'Create my account')}
         </button>
 
         <p className="mt-5 text-center text-sm text-stone-500">
-          Déjà un compte ?{' '}
+          {dt('Déjà un compte ?', 'Already have an account?')}{' '}
           <Link to="/connexion" className="font-semibold text-navy-700">
-            Se connecter
+            {dt('Se connecter', 'Log in')}
           </Link>
         </p>
       </form>

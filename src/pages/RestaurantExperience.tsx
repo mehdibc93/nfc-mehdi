@@ -13,6 +13,7 @@ import { accentGradient, accentTextColor } from '../lib/color';
 import { getIntroVideo } from '../lib/introVideos';
 import { ChefCookingIllustration } from '../components/ChefCookingIllustration';
 import { FoodWaitAnimation } from '../components/FoodWaitAnimation';
+import { HourglassWaitAnimation } from '../components/HourglassWaitAnimation';
 import { getWaitAnimationId } from '../lib/waitAnimations';
 import { getActiveMenuServices } from '../lib/menuSlots';
 import { getOpenStatus } from '../lib/openingHours';
@@ -653,6 +654,72 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuDishes, activeMenuCategory, menuCategoryFilters, menuSearchQuery, language, dietFilters, allergenExclusions]);
+
+  // Les étapes "boisson suggérée" et "dessert suggéré" du modal ont la même structure
+  // (carton de suggestion + grille d'options + bouton valider/passer) — factorisées ici pour
+  // ne pas répéter deux fois un bloc identique à 90% avec juste les champs qui changent.
+  const renderSuggestionStep = (config: {
+    label: string;
+    value: string;
+    hint: string;
+    items: FlatDish[];
+    selected: FlatDish | null;
+    onSelect: (dish: FlatDish) => void;
+    gridCols: string;
+    imageHeightClass: string;
+    onAccept: () => void;
+    acceptLabel: string;
+    onSkip: () => void;
+    skipLabel: string;
+  }) => (
+    <div className="space-y-6 animate-slideUp">
+      <div className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-navy-700">{config.label}</p>
+        <h4 className="mt-3 text-2xl font-semibold text-stone-900">{config.value}</h4>
+        <p className="mt-2 text-sm leading-6 text-stone-500">{config.hint}</p>
+      </div>
+
+      <div className={`grid gap-4 ${config.gridCols}`}>
+        {config.items.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => config.onSelect(item)}
+            className={`overflow-hidden rounded-2xl border text-left transition-all duration-300 hover:-translate-y-1 ${
+              config.selected?.name === item.name ? 'border-navy-300/50 bg-navy-300/10' : 'border-stone-200 bg-white'
+            }`}
+          >
+            <img
+              src={item.image}
+              alt={localizedDishName(item)}
+              loading="lazy"
+              decoding="async"
+              className={`w-full object-cover ${config.imageHeightClass}`}
+            />
+            <div className="p-3.5">
+              <p className="font-semibold text-stone-900">{localizedDishName(item)}</p>
+              <p className="mt-1 text-xs text-stone-500">{localizedDishDescription(item)}</p>
+              <p className="mt-2 text-sm font-semibold text-navy-700">{money(item.price)}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={config.onAccept}
+          className="flex-1 rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-4 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5" style={accentButtonStyle}
+        >
+          {config.acceptLabel}
+        </button>
+        <button
+          onClick={config.onSkip}
+          className="flex-1 rounded-full border border-stone-200 bg-white px-5 py-4 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/30"
+        >
+          {config.skipLabel}
+        </button>
+      </div>
+    </div>
+  );
 
   const renderDishCard = (dish: FlatDish) => (
     <div
@@ -1526,6 +1593,8 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               />
             ) : getWaitAnimationId(restaurant.waitAnimation) === 'food' ? (
               <FoodWaitAnimation className="relative z-10 h-48 w-48 sm:h-64 sm:w-64" />
+            ) : getWaitAnimationId(restaurant.waitAnimation) === 'hourglass' ? (
+              <HourglassWaitAnimation className="relative z-10 h-48 w-48 sm:h-64 sm:w-64" />
             ) : (
               <ChefCookingIllustration className="relative z-10 h-48 w-48 sm:h-64 sm:w-64" />
             )}
@@ -1859,115 +1928,47 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                   </div>
                 )}
 
-                {modalStep === 'drink' && (
-                  <div className="space-y-6 animate-slideUp">
-                    <div className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
-                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-navy-700">{tr('modal.recommendedDrink')}</p>
-                      <h4 className="mt-3 text-2xl font-semibold text-stone-900">{selectedDish.drink}</h4>
-                      <p className="mt-2 text-sm leading-6 text-stone-500">{tr('modal.drinkHint')}</p>
-                    </div>
+                {modalStep === 'drink' &&
+                  renderSuggestionStep({
+                    label: tr('modal.recommendedDrink'),
+                    value: selectedDish.drink,
+                    hint: tr('modal.drinkHint'),
+                    items: drinkMenu,
+                    selected: selectedDrink,
+                    onSelect: setSelectedDrink,
+                    gridCols: 'sm:grid-cols-3',
+                    imageHeightClass: 'h-32',
+                    onAccept: acceptDrink,
+                    acceptLabel: tr('modal.addDrink'),
+                    onSkip: () => {
+                      if (dessertMenu.length > 0) {
+                        setModalStep('dessert');
+                      } else {
+                        setModalStep(null);
+                        setPhase('checkout');
+                      }
+                    },
+                    skipLabel: dessertMenu.length > 0 ? tr('modal.goToDessert') : tr('modal.goToPayment'),
+                  })}
 
-                    <div className="grid gap-4 sm:grid-cols-3">
-                      {drinkMenu.map((drink) => (
-                        <button
-                          key={drink.id}
-                          onClick={() => setSelectedDrink(drink)}
-                          className={`overflow-hidden rounded-2xl border text-left transition-all duration-300 hover:-translate-y-1 ${
-                            selectedDrink?.name === drink.name ? 'border-navy-300/50 bg-navy-300/10' : 'border-stone-200 bg-white'
-                          }`}
-                        >
-                          <img
-                            src={drink.image}
-                            alt={localizedDishName(drink)}
-                            loading="lazy"
-                            decoding="async"
-                            className="h-32 w-full object-cover"
-                          />
-                          <div className="p-3.5">
-                            <p className="font-semibold text-stone-900">{localizedDishName(drink)}</p>
-                            <p className="mt-1 text-xs text-stone-500">{localizedDishDescription(drink)}</p>
-                            <p className="mt-2 text-sm font-semibold text-navy-700">{money(drink.price)}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={acceptDrink}
-                        className="flex-1 rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-4 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5" style={accentButtonStyle}
-                      >
-                        {tr('modal.addDrink')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (dessertMenu.length > 0) {
-                            setModalStep('dessert');
-                          } else {
-                            setModalStep(null);
-                            setPhase('checkout');
-                          }
-                        }}
-                        className="flex-1 rounded-full border border-stone-200 bg-white px-5 py-4 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/30"
-                      >
-                        {dessertMenu.length > 0 ? tr('modal.goToDessert') : tr('modal.goToPayment')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {modalStep === 'dessert' && (
-                  <div className="space-y-6 animate-slideUp">
-                    <div className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
-                      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-navy-700">{tr('modal.suggestedDessert')}</p>
-                      <h4 className="mt-3 text-2xl font-semibold text-stone-900">{selectedDish.dessertSuggestion}</h4>
-                      <p className="mt-2 text-sm leading-6 text-stone-500">{tr('modal.dessertHint')}</p>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {dessertMenu.map((dessert) => (
-                        <button
-                          key={dessert.id}
-                          onClick={() => setSelectedDessert(dessert)}
-                          className={`overflow-hidden rounded-2xl border text-left transition-all duration-300 hover:-translate-y-1 ${
-                            selectedDessert?.name === dessert.name ? 'border-navy-300/50 bg-navy-300/10' : 'border-stone-200 bg-white'
-                          }`}
-                        >
-                          <img
-                            src={dessert.image}
-                            alt={localizedDishName(dessert)}
-                            loading="lazy"
-                            decoding="async"
-                            className="h-36 w-full object-cover"
-                          />
-                          <div className="p-3.5">
-                            <p className="font-semibold text-stone-900">{localizedDishName(dessert)}</p>
-                            <p className="mt-1 text-xs text-stone-500">{localizedDishDescription(dessert)}</p>
-                            <p className="mt-2 text-sm font-semibold text-navy-700">{money(dessert.price)}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={acceptDessert}
-                        className="flex-1 rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-4 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5" style={accentButtonStyle}
-                      >
-                        {tr('modal.addDessert')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setModalStep(null);
-                          setPhase('checkout');
-                        }}
-                        className="flex-1 rounded-full border border-stone-200 bg-white px-5 py-4 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/30"
-                      >
-                        {tr('modal.goToPayment')}
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {modalStep === 'dessert' &&
+                  renderSuggestionStep({
+                    label: tr('modal.suggestedDessert'),
+                    value: selectedDish.dessertSuggestion,
+                    hint: tr('modal.dessertHint'),
+                    items: dessertMenu,
+                    selected: selectedDessert,
+                    onSelect: setSelectedDessert,
+                    gridCols: 'sm:grid-cols-2',
+                    imageHeightClass: 'h-36',
+                    onAccept: acceptDessert,
+                    acceptLabel: tr('modal.addDessert'),
+                    onSkip: () => {
+                      setModalStep(null);
+                      setPhase('checkout');
+                    },
+                    skipLabel: tr('modal.goToPayment'),
+                  })}
 
                 {selectedDrink && (
                   <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4 text-sm text-stone-500">

@@ -7,12 +7,14 @@ import type { Order, OrderRow, OrderStatus, TableRequest, TableRequestRow } from
 import { money } from '../lib/format';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { PinSectionGate } from '../components/PinSectionGate';
+import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
+import { useDt } from '../lib/dashboardLocale';
 
-const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
-  new: 'Nouvelle',
-  confirmed: 'Confirmée',
-  served: 'Servie',
-  done: 'Terminée',
+const ORDER_STATUS_LABEL: Record<OrderStatus, { fr: string; en: string }> = {
+  new: { fr: 'Nouvelle', en: 'New' },
+  confirmed: { fr: 'Confirmée', en: 'Confirmed' },
+  served: { fr: 'Servie', en: 'Served' },
+  done: { fr: 'Terminée', en: 'Done' },
 };
 
 const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
@@ -22,11 +24,11 @@ const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
   done: null,
 };
 
-const NEXT_ACTION_LABEL: Record<OrderStatus, string> = {
-  new: 'Prise en compte',
-  confirmed: 'Marquer servie',
-  served: 'Terminer',
-  done: '',
+const NEXT_ACTION_LABEL: Record<OrderStatus, { fr: string; en: string }> = {
+  new: { fr: 'Prise en compte', en: 'Accept' },
+  confirmed: { fr: 'Marquer servie', en: 'Mark served' },
+  served: { fr: 'Terminer', en: 'Finish' },
+  done: { fr: '', en: '' },
 };
 
 function playChime() {
@@ -50,6 +52,7 @@ function playChime() {
 }
 
 export function ServicePage() {
+  const dt = useDt();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -203,12 +206,15 @@ export function ServicePage() {
       const allOrders = ((data ?? []) as OrderRow[]).map(mapOrder);
 
       const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
-      const header = ['Date', 'Table', 'Statut', 'Payé', 'Total (€)', 'Articles', 'Instructions'];
+      const header = dt(
+        ['Date', 'Table', 'Statut', 'Payé', 'Total (€)', 'Articles', 'Instructions'],
+        ['Date', 'Table', 'Status', 'Paid', 'Total (€)', 'Items', 'Instructions'],
+      );
       const rows = allOrders.map((order) => [
         new Date(order.createdAt).toLocaleString('fr-FR'),
         order.tableLabel,
-        ORDER_STATUS_LABEL[order.status],
-        order.paid ? 'Oui' : 'Non',
+        dt(ORDER_STATUS_LABEL[order.status].fr, ORDER_STATUS_LABEL[order.status].en),
+        order.paid ? dt('Oui', 'Yes') : dt('Non', 'No'),
         order.total.toFixed(2),
         order.items.map((item) => `${item.name} x${item.quantity}`).join(' | '),
         order.specialInstructions,
@@ -238,22 +244,23 @@ export function ServicePage() {
 
   const tableStatus = useMemo(() => {
     const map = new Map<string, { emoji: string; label: string }>();
-    tableLabels.forEach((label) => map.set(label, { emoji: '🟢', label: 'Rien à signaler' }));
+    tableLabels.forEach((label) => map.set(label, { emoji: '🟢', label: dt('Rien à signaler', 'Nothing to report') }));
     orders
       .filter((order) => order.status === 'new' || order.status === 'confirmed' || order.status === 'served')
       .forEach((order) => {
-        if (map.has(order.tableLabel)) map.set(order.tableLabel, { emoji: '🟡', label: 'Commande en cours' });
+        if (map.has(order.tableLabel)) map.set(order.tableLabel, { emoji: '🟡', label: dt('Commande en cours', 'Order in progress') });
       });
     requests.forEach((request) => {
       if (!map.has(request.tableLabel)) return;
       map.set(
         request.tableLabel,
         request.type === 'waiter'
-          ? { emoji: '🔔', label: 'Demande serveur' }
-          : { emoji: '💶', label: 'Demande addition' },
+          ? { emoji: '🔔', label: dt('Demande serveur', 'Waiter requested') }
+          : { emoji: '💶', label: dt('Demande addition', 'Bill requested') },
       );
     });
     return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, requests, tableLabels]);
 
   const activeOrders = useMemo(() => orders.filter((order) => order.status !== 'done'), [orders]);
@@ -266,7 +273,7 @@ export function ServicePage() {
   // Fait clignoter le titre de l'onglet quand du personnel a laissé la page en arrière-plan
   // avec une commande ou une demande en attente, pour ne pas rater d'activité en Mode Service.
   useEffect(() => {
-    const baseTitle = 'Mode Service — Nourevo';
+    const baseTitle = dt('Mode Service — Nourevo', 'Service Mode — Nourevo');
     if (pendingCount === 0) {
       document.title = baseTitle;
       return undefined;
@@ -275,7 +282,7 @@ export function ServicePage() {
     const interval = window.setInterval(() => {
       if (document.hidden) {
         flashOn = !flashOn;
-        document.title = flashOn ? `🔔 (${pendingCount}) Nouvelle activité !` : baseTitle;
+        document.title = flashOn ? dt(`🔔 (${pendingCount}) Nouvelle activité !`, `🔔 (${pendingCount}) New activity!`) : baseTitle;
       } else {
         document.title = baseTitle;
       }
@@ -298,13 +305,13 @@ export function ServicePage() {
   if (!restaurant) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-        <h1 className="font-display text-2xl font-bold text-stone-900">Aucun restaurant</h1>
-        <p className="text-stone-500">Créez votre restaurant avant d'utiliser le mode service.</p>
+        <h1 className="font-display text-2xl font-bold text-stone-900">{dt('Aucun restaurant', 'No restaurant')}</h1>
+        <p className="text-stone-500">{dt("Créez votre restaurant avant d'utiliser le mode service.", 'Create your restaurant before using Service Mode.')}</p>
         <Link
           to="/dashboard"
           className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-6 py-3 text-sm font-bold text-white"
         >
-          Aller au dashboard
+          {dt('Aller au dashboard', 'Go to dashboard')}
         </Link>
       </div>
     );
@@ -315,26 +322,29 @@ export function ServicePage() {
     <div className="min-h-screen bg-stone-50 pb-20">
       <header className="sticky top-0 z-40 border-b border-stone-900/5 bg-[#f6f8fb]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-5 sm:px-8">
-          <button
-            type="button"
-            onClick={handleLeaveClick}
-            className="w-fit text-xs font-semibold uppercase tracking-[0.3em] text-navy-700"
-          >
-            ← Retour au dashboard
-          </button>
-          <p className="font-display text-lg font-semibold text-stone-900">Mode Service — {restaurant.name}</p>
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={handleLeaveClick}
+              className="w-fit text-xs font-semibold uppercase tracking-[0.3em] text-navy-700"
+            >
+              {dt('← Retour au dashboard', '← Back to dashboard')}
+            </button>
+            <DashboardLanguageSwitch />
+          </div>
+          <p className="font-display text-lg font-semibold text-stone-900">{dt('Mode Service', 'Service Mode')} — {restaurant.name}</p>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-8">
         <section>
-          <h2 className="font-display text-xl font-bold text-stone-900">Vue rapide des tables</h2>
+          <h2 className="font-display text-xl font-bold text-stone-900">{dt('Vue rapide des tables', 'Quick table view')}</h2>
           <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
             {tableLabels.map((label) => {
               const status = tableStatus.get(label)!;
               return (
                 <div key={label} className="rounded-2xl border border-stone-200 bg-white p-4 text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Table {label}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{dt('Table', 'Table')} {label}</p>
                   <p className="mt-2 text-2xl">{status.emoji}</p>
                   <p className="mt-1 text-xs text-stone-500">{status.label}</p>
                 </div>
@@ -345,7 +355,7 @@ export function ServicePage() {
 
         {requests.length > 0 && (
           <section>
-            <h2 className="font-display text-xl font-bold text-stone-900">Demandes</h2>
+            <h2 className="font-display text-xl font-bold text-stone-900">{dt('Demandes', 'Requests')}</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {requests.map((request) => (
                 <div
@@ -354,10 +364,10 @@ export function ServicePage() {
                 >
                   <div>
                     <p className="font-semibold text-stone-900">
-                      {request.type === 'waiter' ? '🔔' : '💶'} Table {request.tableLabel}
+                      {request.type === 'waiter' ? '🔔' : '💶'} {dt('Table', 'Table')} {request.tableLabel}
                     </p>
                     <p className="text-sm text-stone-500">
-                      {request.type === 'waiter' ? 'Un client demande un serveur' : "Demande l'addition"}
+                      {request.type === 'waiter' ? dt('Un client demande un serveur', 'A customer is requesting a waiter') : dt("Demande l'addition", 'Requesting the bill')}
                     </p>
                   </div>
                   <button
@@ -365,7 +375,7 @@ export function ServicePage() {
                     onClick={() => handleRequest(request)}
                     className="shrink-0 rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-2 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5"
                   >
-                    Traiter
+                    {dt('Traiter', 'Handle')}
                   </button>
                 </div>
               ))}
@@ -375,26 +385,26 @@ export function ServicePage() {
 
         <section>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-xl font-bold text-stone-900">Commandes</h2>
+            <h2 className="font-display text-xl font-bold text-stone-900">{dt('Commandes', 'Orders')}</h2>
             <button
               type="button"
               onClick={handleExportOrders}
               disabled={exportingOrders}
               className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700 disabled:opacity-60"
             >
-              {exportingOrders ? 'Export...' : '⬇️ Exporter (CSV)'}
+              {exportingOrders ? dt('Export...', 'Exporting...') : dt('⬇️ Exporter (CSV)', '⬇️ Export (CSV)')}
             </button>
           </div>
           {activeOrders.length === 0 ? (
-            <p className="mt-4 text-sm text-stone-500">Aucune commande en cours.</p>
+            <p className="mt-4 text-sm text-stone-500">{dt('Aucune commande en cours.', 'No orders in progress.')}</p>
           ) : (
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {activeOrders.map((order) => (
                 <div key={order.id} className="rounded-3xl border border-stone-200 bg-white p-6 shadow-soft">
                   <div className="flex items-center justify-between">
-                    <p className="font-display text-lg font-bold text-stone-900">Table {order.tableLabel}</p>
+                    <p className="font-display text-lg font-bold text-stone-900">{dt('Table', 'Table')} {order.tableLabel}</p>
                     <span className="rounded-full bg-stone-900/5 px-3 py-1 text-xs font-semibold text-stone-500">
-                      {ORDER_STATUS_LABEL[order.status]}
+                      {dt(ORDER_STATUS_LABEL[order.status].fr, ORDER_STATUS_LABEL[order.status].en)}
                     </span>
                   </div>
                   <ul className="mt-3 space-y-1 text-sm text-stone-600">
@@ -410,9 +420,9 @@ export function ServicePage() {
                     </p>
                   )}
                   <div className="mt-3 flex items-center justify-between">
-                    <p className="font-semibold text-stone-900">Total : {money(order.total)}</p>
+                    <p className="font-semibold text-stone-900">{dt('Total :', 'Total:')} {money(order.total)}</p>
                     <span className={`text-xs font-semibold ${order.paid ? 'text-emerald-600' : 'text-stone-400'}`}>
-                      {order.paid ? '✅ Payé' : '⏳ À encaisser'}
+                      {order.paid ? dt('✅ Payé', '✅ Paid') : dt('⏳ À encaisser', '⏳ To collect')}
                     </span>
                   </div>
                   {NEXT_STATUS[order.status] && (
@@ -421,7 +431,7 @@ export function ServicePage() {
                       onClick={() => advanceOrder(order)}
                       className="mt-4 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-2.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5"
                     >
-                      {NEXT_ACTION_LABEL[order.status]}
+                      {dt(NEXT_ACTION_LABEL[order.status].fr, NEXT_ACTION_LABEL[order.status].en)}
                     </button>
                   )}
                 </div>
@@ -432,14 +442,14 @@ export function ServicePage() {
 
         {doneOrders.length > 0 && (
           <section>
-            <h2 className="font-display text-xl font-bold text-stone-900">Commandes terminées récemment</h2>
+            <h2 className="font-display text-xl font-bold text-stone-900">{dt('Commandes terminées récemment', 'Recently completed orders')}</h2>
             <div className="mt-4 space-y-2">
               {doneOrders.map((order) => (
                 <div
                   key={order.id}
                   className="flex items-center justify-between rounded-2xl border border-stone-200 bg-white px-5 py-3 text-sm text-stone-500"
                 >
-                  <span>Table {order.tableLabel}</span>
+                  <span>{dt('Table', 'Table')} {order.tableLabel}</span>
                   <span>{money(order.total)}</span>
                 </div>
               ))}
@@ -452,9 +462,9 @@ export function ServicePage() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
           <div className="w-full max-w-xs rounded-3xl bg-white p-8 text-center shadow-card">
             <p className="text-3xl">🔒</p>
-            <h2 className="mt-3 font-display text-lg font-bold text-stone-900">Code requis</h2>
+            <h2 className="mt-3 font-display text-lg font-bold text-stone-900">{dt('Code requis', 'Code required')}</h2>
             <p className="mt-2 text-sm text-stone-500">
-              Entrez le code à 4 chiffres pour retourner au dashboard complet.
+              {dt('Entrez le code à 4 chiffres pour retourner au dashboard complet.', 'Enter the 4-digit code to return to the full dashboard.')}
             </p>
             <input
               type="password"
@@ -474,14 +484,14 @@ export function ServicePage() {
               }`}
               placeholder="••••"
             />
-            {pinError && <p className="mt-2 text-xs font-semibold text-red-500">Code incorrect.</p>}
+            {pinError && <p className="mt-2 text-xs font-semibold text-red-500">{dt('Code incorrect.', 'Incorrect code.')}</p>}
             <div className="mt-5 flex gap-2">
               <button
                 type="button"
                 onClick={() => setShowPinModal(false)}
                 className="flex-1 rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
               >
-                Annuler
+                {dt('Annuler', 'Cancel')}
               </button>
               <button
                 type="button"
@@ -489,7 +499,7 @@ export function ServicePage() {
                 disabled={pinInput.length !== 4}
                 className="flex-1 rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-2.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
               >
-                Valider
+                {dt('Valider', 'Confirm')}
               </button>
             </div>
           </div>

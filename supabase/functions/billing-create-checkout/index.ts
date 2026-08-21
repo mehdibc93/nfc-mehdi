@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return json({ error: 'Non authentifié.' }, 401);
 
-    const { plan } = (await req.json()) as { plan?: string };
+    const { plan, promoCode } = (await req.json()) as { plan?: string; promoCode?: string };
     if (plan !== 'monthly' && plan !== 'annual_monthly' && plan !== 'annual_upfront') {
       return json({ error: 'Formule invalide.' }, 400);
     }
@@ -82,6 +82,19 @@ Deno.serve(async (req) => {
     // des essais gratuits à l'infini.
     const isFirstSubscription = !restaurant.stripe_subscription_id;
 
+    // Code promo saisi directement dans notre propre formulaire (facultatif). On le résout ici
+    // en son ID Stripe pour l'appliquer nous-mêmes à la session — plutôt que de se reposer
+    // uniquement sur le champ "Code promo" natif de la page Stripe Checkout (`allow_promotion_codes`,
+    // gardé comme repli si aucun code n'est fourni ici).
+    let discounts: { promotion_code: string }[] | undefined;
+    if (promoCode && promoCode.trim()) {
+      const matches = await stripe.promotionCodes.list({ code: promoCode.trim(), active: true, limit: 1 });
+      if (matches.data.length === 0) {
+        return json({ error: 'Code promo invalide ou expiré.' }, 400);
+      }
+      discounts = [{ promotion_code: matches.data[0].id }];
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
@@ -94,10 +107,8 @@ Deno.serve(async (req) => {
         metadata: { restaurant_id: restaurant.id, plan },
         ...(isFirstSubscription ? { trial_period_days: 7 } : {}),
       },
-      // Affiche un champ "Code promo" sur la page Stripe Checkout. Les codes eux-mêmes se
-      // créent et se gèrent entièrement côté Stripe Dashboard (Produits > Coupons > Codes
-      // promotionnels) — pas de logique de validation à coder ni de table à maintenir ici.
-      allow_promotion_codes: true,
+      // Stripe interdit de combiner `discounts` et `allow_promotion_codes` sur une même session.
+      ...(discounts ? { discounts } : { allow_promotion_codes: true }),
     });
 
     return json({ url: session.url });

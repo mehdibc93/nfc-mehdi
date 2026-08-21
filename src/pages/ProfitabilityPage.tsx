@@ -8,6 +8,8 @@ import type { DishEventRow } from '../lib/analytics';
 import { money } from '../lib/format';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { PinSectionGate } from '../components/PinSectionGate';
+import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
+import { useDt } from '../lib/dashboardLocale';
 import {
   PROFITABILITY_TIER_EMOJI,
   PROFITABILITY_TIER_LABEL,
@@ -29,6 +31,7 @@ type AnalyzedDish = {
 };
 
 export function ProfitabilityPage() {
+  const dt = useDt();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [restaurant, setRestaurant] = useState<RestaurantWithMenu | null>(null);
@@ -114,16 +117,25 @@ export function ProfitabilityPage() {
     const median = counts[Math.floor(counts.length / 2)];
     const messages: string[] = [];
     analyzed.forEach((item) => {
-      const name = item.dish.name || 'Ce plat';
+      const name = item.dish.name || dt('Ce plat', 'This dish');
       if (item.purchaseCount > median && item.tier === 'low') {
-        messages.push(`Votre plat "${name}" est populaire mais possède une marge faible — vérifiez son coût de fabrication.`);
+        messages.push(
+          dt(
+            `Votre plat "${name}" est populaire mais possède une marge faible — vérifiez son coût de fabrication.`,
+            `Your dish "${name}" is popular but has a low margin — check its production cost.`,
+          ),
+        );
       } else if (item.purchaseCount <= median && item.tier === 'high') {
         messages.push(
-          `Votre plat "${name}" possède une excellente rentabilité mais semble peu commandé. Le mettre davantage en avant (suggestion du chef, position en haut de carte) pourrait augmenter votre rentabilité.`,
+          dt(
+            `Votre plat "${name}" possède une excellente rentabilité mais semble peu commandé. Le mettre davantage en avant (suggestion du chef, position en haut de carte) pourrait augmenter votre rentabilité.`,
+            `Your dish "${name}" has excellent profitability but seems rarely ordered. Featuring it more (chef's suggestion, top-of-menu position) could increase your profitability.`,
+          ),
         );
       }
     });
     return messages.slice(0, 6);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analyzed]);
 
   if (loading) {
@@ -133,13 +145,13 @@ export function ProfitabilityPage() {
   if (!restaurant) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-        <h1 className="font-display text-2xl font-bold text-stone-900">Aucun restaurant</h1>
-        <p className="text-stone-500">Créez votre restaurant avant de consulter l'analyse de rentabilité.</p>
+        <h1 className="font-display text-2xl font-bold text-stone-900">{dt('Aucun restaurant', 'No restaurant')}</h1>
+        <p className="text-stone-500">{dt("Créez votre restaurant avant de consulter l'analyse de rentabilité.", 'Create your restaurant before viewing the profitability analysis.')}</p>
         <Link
           to="/dashboard"
           className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-6 py-3 text-sm font-bold text-white"
         >
-          Aller au dashboard
+          {dt('Aller au dashboard', 'Go to dashboard')}
         </Link>
       </div>
     );
@@ -150,10 +162,13 @@ export function ProfitabilityPage() {
     <div className="min-h-screen pb-20">
       <header className="sticky top-0 z-40 border-b border-stone-900/5 bg-[#f6f8fb]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-5 sm:px-8">
-          <Link to="/dashboard" className="text-xs font-semibold uppercase tracking-[0.3em] text-navy-700">
-            ← Retour au dashboard
-          </Link>
-          <p className="font-display text-lg font-semibold text-stone-900">Analyse de rentabilité — {restaurant.name}</p>
+          <div className="flex items-center justify-between gap-3">
+            <Link to="/dashboard" className="text-xs font-semibold uppercase tracking-[0.3em] text-navy-700">
+              {dt('← Retour au dashboard', '← Back to dashboard')}
+            </Link>
+            <DashboardLanguageSwitch />
+          </div>
+          <p className="font-display text-lg font-semibold text-stone-900">{dt('Analyse de rentabilité', 'Profitability analysis')} — {restaurant.name}</p>
         </div>
       </header>
 
@@ -162,18 +177,19 @@ export function ProfitabilityPage() {
           <div className="rounded-3xl border border-dashed border-stone-300 bg-stone-50/60 p-10 text-center">
             <p className="text-3xl">💰</p>
             <h1 className="mt-4 font-display text-xl font-bold text-stone-900">
-              Découvrez quels plats vous rapportent vraiment
+              {dt('Découvrez quels plats vous rapportent vraiment', 'Discover which dishes actually make you money')}
             </h1>
             <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-stone-500">
-              Cette fonctionnalité est facultative. Activez "Analyse de rentabilité" sur un ou plusieurs plats
-              (onglet Carte de votre dashboard) en renseignant leur coût de fabrication, et retrouvez ici votre
-              marge réelle, vos plats les plus rentables, et des recommandations simples.
+              {dt(
+                'Cette fonctionnalité est facultative. Activez "Analyse de rentabilité" sur un ou plusieurs plats (onglet Carte de votre dashboard) en renseignant leur coût de fabrication, et retrouvez ici votre marge réelle, vos plats les plus rentables, et des recommandations simples.',
+                'This feature is optional. Enable "Profitability analysis" on one or more dishes (Menu tab of your dashboard) by entering their production cost, and find here your real margin, your most profitable dishes, and simple recommendations.',
+              )}
             </p>
             <Link
               to="/dashboard"
               className="mt-6 inline-block rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-6 py-3 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5"
             >
-              Aller à ma carte
+              {dt('Aller à ma carte', 'Go to my menu')}
             </Link>
           </div>
         ) : (
@@ -181,15 +197,15 @@ export function ProfitabilityPage() {
             {overview && (
               <section className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-                  <p className="text-xs uppercase tracking-[0.28em] text-stone-400">Plats analysés</p>
+                  <p className="text-xs uppercase tracking-[0.28em] text-stone-400">{dt('Plats analysés', 'Dishes analyzed')}</p>
                   <p className="mt-2 text-3xl font-bold text-stone-900">{analyzed.length}</p>
                 </div>
                 <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-                  <p className="text-xs uppercase tracking-[0.28em] text-stone-400">Marge moyenne</p>
+                  <p className="text-xs uppercase tracking-[0.28em] text-stone-400">{dt('Marge moyenne', 'Average margin')}</p>
                   <p className="mt-2 text-3xl font-bold text-stone-900">{Math.round(overview.avgMarginRate * 100)}%</p>
                 </div>
                 <div className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
-                  <p className="text-xs uppercase tracking-[0.28em] text-navy-700">Bénéfice estimé (total)</p>
+                  <p className="text-xs uppercase tracking-[0.28em] text-navy-700">{dt('Bénéfice estimé (total)', 'Estimated profit (total)')}</p>
                   <p className="mt-2 text-3xl font-bold text-navy-700">{money(overview.totalProfit)}</p>
                 </div>
               </section>
@@ -197,13 +213,13 @@ export function ProfitabilityPage() {
 
             <section className="grid gap-6 lg:grid-cols-2">
               <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-                <h2 className="font-display text-lg font-bold text-stone-900">🏆 Plats les plus rentables</h2>
+                <h2 className="font-display text-lg font-bold text-stone-900">{dt('🏆 Plats les plus rentables', '🏆 Most profitable dishes')}</h2>
                 <div className="mt-4 space-y-2">
                   {mostProfitable.map((item) => (
                     <div key={item.dish.id} className="flex items-center justify-between gap-3 rounded-2xl bg-stone-50/70 px-4 py-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-stone-900">{item.dish.name || 'Sans nom'}</p>
-                        <p className="text-xs text-stone-400">Marge {Math.round(item.marginRate * 100)}%</p>
+                        <p className="truncate text-sm font-semibold text-stone-900">{item.dish.name || dt('Sans nom', 'Unnamed')}</p>
+                        <p className="text-xs text-stone-400">{dt('Marge', 'Margin')} {Math.round(item.marginRate * 100)}%</p>
                       </div>
                       <span className="shrink-0 text-lg">{PROFITABILITY_TIER_EMOJI[item.tier]}</span>
                     </div>
@@ -211,13 +227,13 @@ export function ProfitabilityPage() {
                 </div>
               </div>
               <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-                <h2 className="font-display text-lg font-bold text-stone-900">📉 Plats les moins rentables</h2>
+                <h2 className="font-display text-lg font-bold text-stone-900">{dt('📉 Plats les moins rentables', '📉 Least profitable dishes')}</h2>
                 <div className="mt-4 space-y-2">
                   {leastProfitable.map((item) => (
                     <div key={item.dish.id} className="flex items-center justify-between gap-3 rounded-2xl bg-stone-50/70 px-4 py-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-stone-900">{item.dish.name || 'Sans nom'}</p>
-                        <p className="text-xs text-stone-400">Marge {Math.round(item.marginRate * 100)}%</p>
+                        <p className="truncate text-sm font-semibold text-stone-900">{item.dish.name || dt('Sans nom', 'Unnamed')}</p>
+                        <p className="text-xs text-stone-400">{dt('Marge', 'Margin')} {Math.round(item.marginRate * 100)}%</p>
                       </div>
                       <span className="shrink-0 text-lg">{PROFITABILITY_TIER_EMOJI[item.tier]}</span>
                     </div>
@@ -228,7 +244,7 @@ export function ProfitabilityPage() {
 
             {recommendations.length > 0 && (
               <section className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
-                <h2 className="font-display text-lg font-bold text-stone-900">💡 Recommandations</h2>
+                <h2 className="font-display text-lg font-bold text-stone-900">{dt('💡 Recommandations', '💡 Recommendations')}</h2>
                 <ul className="mt-4 space-y-2">
                   {recommendations.map((message, index) => (
                     <li key={index} className="text-sm leading-6 text-stone-700">
@@ -240,26 +256,26 @@ export function ProfitabilityPage() {
             )}
 
             <section>
-              <h2 className="font-display text-xl font-bold text-stone-900">Détail par plat</h2>
+              <h2 className="font-display text-xl font-bold text-stone-900">{dt('Détail par plat', 'Detail by dish')}</h2>
               <div className="mt-4 overflow-x-auto rounded-3xl border border-stone-200/70 bg-white shadow-soft">
                 <table className="w-full min-w-[760px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-stone-200 text-xs uppercase tracking-[0.2em] text-stone-400">
-                      <th className="px-5 py-4">Plat</th>
-                      <th className="px-5 py-4">Prix</th>
-                      <th className="px-5 py-4">Coût</th>
-                      <th className="px-5 py-4">Marge</th>
-                      <th className="px-5 py-4">Taux</th>
-                      <th className="px-5 py-4">Rentabilité</th>
-                      <th className="px-5 py-4">Commandé</th>
-                      <th className="px-5 py-4">Bénéfice estimé</th>
+                      <th className="px-5 py-4">{dt('Plat', 'Dish')}</th>
+                      <th className="px-5 py-4">{dt('Prix', 'Price')}</th>
+                      <th className="px-5 py-4">{dt('Coût', 'Cost')}</th>
+                      <th className="px-5 py-4">{dt('Marge', 'Margin')}</th>
+                      <th className="px-5 py-4">{dt('Taux', 'Rate')}</th>
+                      <th className="px-5 py-4">{dt('Rentabilité', 'Profitability')}</th>
+                      <th className="px-5 py-4">{dt('Commandé', 'Ordered')}</th>
+                      <th className="px-5 py-4">{dt('Bénéfice estimé', 'Estimated profit')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortedByProfit.map((item) => (
                       <tr key={item.dish.id} className="border-b border-stone-100 last:border-0">
                         <td className="px-5 py-4 font-semibold text-stone-900">
-                          {item.dish.name || 'Sans nom'}
+                          {item.dish.name || dt('Sans nom', 'Unnamed')}
                           <p className="text-xs font-normal text-stone-400">{item.categoryName}</p>
                         </td>
                         <td className="px-5 py-4 text-stone-600">{money(item.dish.price)}</td>
@@ -267,7 +283,7 @@ export function ProfitabilityPage() {
                         <td className="px-5 py-4 font-semibold text-stone-900">{money(item.margin)}</td>
                         <td className="px-5 py-4 text-stone-600">{Math.round(item.marginRate * 100)}%</td>
                         <td className="px-5 py-4">
-                          {PROFITABILITY_TIER_EMOJI[item.tier]} {PROFITABILITY_TIER_LABEL[item.tier]}
+                          {PROFITABILITY_TIER_EMOJI[item.tier]} {dt(PROFITABILITY_TIER_LABEL[item.tier].fr, PROFITABILITY_TIER_LABEL[item.tier].en)}
                         </td>
                         <td className="px-5 py-4 text-stone-600">{item.purchaseCount}</td>
                         <td className="px-5 py-4 font-semibold text-navy-700">{money(item.estimatedProfit)}</td>
@@ -277,8 +293,10 @@ export function ProfitabilityPage() {
                 </table>
               </div>
               <p className="mt-3 text-xs text-stone-400">
-                "Commandé" est basé sur les achats enregistrés depuis votre carte publique. "Bénéfice estimé" = marge
-                × nombre de fois commandé.
+                {dt(
+                  '"Commandé" est basé sur les achats enregistrés depuis votre carte publique. "Bénéfice estimé" = marge × nombre de fois commandé.',
+                  '"Ordered" is based on purchases recorded from your public menu. "Estimated profit" = margin × number of times ordered.',
+                )}
               </p>
             </section>
           </>

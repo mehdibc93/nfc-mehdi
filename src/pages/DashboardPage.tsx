@@ -28,17 +28,20 @@ import {
   getProfitabilityTier,
 } from '../lib/profitability';
 import { LoadingScreen } from '../components/LoadingScreen';
+import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
+import { useDt } from '../lib/dashboardLocale';
 
 const TARGET_LOCALES = LOCALES.filter((locale) => locale.code !== 'fr');
 const DEFAULT_CATEGORY_NAMES = ['Entrées', 'Plats', 'Desserts', 'Boissons'];
 const ACCENT_PRESETS = ['#1c2f47', '#6b2737', '#2f5233', '#a5522d', '#4a2545', '#1f2328'];
-const SUBSCRIPTION_PLAN_LABELS: Record<'monthly' | 'annual_monthly' | 'annual_upfront', string> = {
-  monthly: '59€/mois',
-  annual_monthly: '54€/mois (engagement 1 an)',
-  annual_upfront: '588€/an',
+const SUBSCRIPTION_PLAN_LABELS: Record<'monthly' | 'annual_monthly' | 'annual_upfront', { fr: string; en: string }> = {
+  monthly: { fr: '59€/mois', en: '€59/month' },
+  annual_monthly: { fr: '54€/mois (engagement 1 an)', en: '€54/month (12-month commitment)' },
+  annual_upfront: { fr: '588€/an', en: '€588/year' },
 };
 
 export function DashboardPage() {
+  const dt = useDt();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -84,6 +87,7 @@ export function DashboardPage() {
   const [subscribingPlan, setSubscribingPlan] = useState<'monthly' | 'annual_monthly' | 'annual_upfront' | null>(
     null,
   );
+  const [promoCode, setPromoCode] = useState('');
   const [managingBilling, setManagingBilling] = useState(false);
   const [checklistDismissed, setChecklistDismissed] = useState(false);
   const [nfcMarkedDone, setNfcMarkedDone] = useState(false);
@@ -152,9 +156,12 @@ export function DashboardPage() {
           if (!error && data) {
             setRestaurant(mapRestaurantWithMenu(data));
             setToast(
-              data.stripe_onboarded
-                ? 'Compte Stripe connecté !'
-                : 'Configuration Stripe enregistrée — vérification en cours.',
+              dt(
+                data.stripe_onboarded
+                  ? 'Compte Stripe connecté !'
+                  : 'Configuration Stripe enregistrée — vérification en cours.',
+                data.stripe_onboarded ? 'Stripe account connected!' : 'Stripe setup saved — verification in progress.',
+              ),
             );
           }
         });
@@ -170,7 +177,7 @@ export function DashboardPage() {
     if (billing !== 'success' && billing !== 'cancel') return;
     window.history.replaceState(null, '', '/dashboard');
     if (billing === 'cancel') {
-      setToast('Abonnement annulé.');
+      setToast(dt('Abonnement annulé.', 'Subscription cancelled.'));
       return;
     }
     supabase
@@ -182,7 +189,10 @@ export function DashboardPage() {
         if (!error && data) {
           setRestaurant(mapRestaurantWithMenu(data));
           setToast(
-            data.subscription_status === 'active' ? 'Abonnement activé !' : 'Paiement en cours de confirmation...',
+            dt(
+              data.subscription_status === 'active' ? 'Abonnement activé !' : 'Paiement en cours de confirmation...',
+              data.subscription_status === 'active' ? 'Subscription activated!' : 'Payment confirmation in progress...',
+            ),
           );
         }
       });
@@ -260,13 +270,13 @@ export function DashboardPage() {
         'stripe-connect-onboarding',
       );
       if (error || !data?.url) {
-        setToast(`Échec de la connexion Stripe : ${data?.error ?? error?.message ?? 'erreur inconnue'}`);
+        setToast(dt(`Échec de la connexion Stripe : ${data?.error ?? error?.message ?? 'erreur inconnue'}`, `Stripe connection failed: ${data?.error ?? error?.message ?? 'unknown error'}`));
         setConnectingStripe(false);
         return;
       }
       window.location.href = data.url;
     } catch (err) {
-      setToast(`Échec de la connexion Stripe : ${err instanceof Error ? err.message : 'erreur inconnue'}`);
+      setToast(dt(`Échec de la connexion Stripe : ${err instanceof Error ? err.message : 'erreur inconnue'}`, `Stripe connection failed: ${err instanceof Error ? err.message : 'unknown error'}`));
       setConnectingStripe(false);
     }
   };
@@ -283,7 +293,7 @@ export function DashboardPage() {
         .maybeSingle();
       if (!error && data) {
         setRestaurant(mapRestaurantWithMenu(data));
-        setToast(data.stripe_onboarded ? 'Compte Stripe connecté !' : "Toujours en attente côté Stripe.");
+        setToast(dt(data.stripe_onboarded ? 'Compte Stripe connecté !' : 'Toujours en attente côté Stripe.', data.stripe_onboarded ? 'Stripe account connected!' : 'Still pending on the Stripe side.'));
       }
     } finally {
       setRefreshingStripeStatus(false);
@@ -309,7 +319,7 @@ export function DashboardPage() {
 
   const submitStripeConfirm = () => {
     if (!restaurant || stripeConfirmValue !== restaurant.servicePin) {
-      setStripeConfirmError('Code incorrect.');
+      setStripeConfirmError(dt('Code incorrect.', 'Incorrect code.'));
       setStripeConfirmValue('');
       return;
     }
@@ -326,25 +336,25 @@ export function DashboardPage() {
         'stripe-account-login-link',
       );
       if (error || !data?.url) {
-        setToast(`Échec : ${data?.error ?? error?.message ?? 'erreur inconnue'}`);
+        setToast(dt(`Échec : ${data?.error ?? error?.message ?? 'erreur inconnue'}`, `Failed: ${data?.error ?? error?.message ?? 'unknown error'}`));
         setManagingStripeAccount(false);
         return;
       }
       window.location.href = data.url;
     } catch (err) {
-      setToast(`Échec : ${err instanceof Error ? err.message : 'erreur inconnue'}`);
+      setToast(dt(`Échec : ${err instanceof Error ? err.message : 'erreur inconnue'}`, `Failed: ${err instanceof Error ? err.message : 'unknown error'}`));
       setManagingStripeAccount(false);
     }
   };
 
   const handleDisconnectStripe = async () => {
     if (!user) return;
-    if (!window.confirm('Déconnecter ce compte Stripe ? Vous pourrez en reconnecter un autre ensuite.')) return;
+    if (!window.confirm(dt('Déconnecter ce compte Stripe ? Vous pourrez en reconnecter un autre ensuite.', 'Disconnect this Stripe account? You can connect another one afterwards.'))) return;
     setDisconnectingStripe(true);
     try {
       const { error } = await supabase.functions.invoke('stripe-disconnect-account');
       if (error) {
-        setToast(`Échec de la déconnexion : ${error.message}`);
+        setToast(dt(`Échec de la déconnexion : ${error.message}`, `Disconnect failed: ${error.message}`));
         return;
       }
       const { data } = await supabase
@@ -353,7 +363,7 @@ export function DashboardPage() {
         .eq('owner_id', user.id)
         .maybeSingle();
       if (data) setRestaurant(mapRestaurantWithMenu(data));
-      setToast('Compte Stripe déconnecté.');
+      setToast(dt('Compte Stripe déconnecté.', 'Stripe account disconnected.'));
     } finally {
       setDisconnectingStripe(false);
     }
@@ -364,16 +374,16 @@ export function DashboardPage() {
     try {
       const { data, error } = await supabase.functions.invoke<{ url?: string; error?: string }>(
         'billing-create-checkout',
-        { body: { plan } },
+        { body: { plan, promoCode: promoCode.trim() || undefined } },
       );
       if (error || !data?.url) {
-        setToast(`Échec : ${data?.error ?? error?.message ?? 'erreur inconnue'}`);
+        setToast(dt(`Échec : ${data?.error ?? error?.message ?? 'erreur inconnue'}`, `Failed: ${data?.error ?? error?.message ?? 'unknown error'}`));
         setSubscribingPlan(null);
         return;
       }
       window.location.href = data.url;
     } catch (err) {
-      setToast(`Échec : ${err instanceof Error ? err.message : 'erreur inconnue'}`);
+      setToast(dt(`Échec : ${err instanceof Error ? err.message : 'erreur inconnue'}`, `Failed: ${err instanceof Error ? err.message : 'unknown error'}`));
       setSubscribingPlan(null);
     }
   };
@@ -383,13 +393,13 @@ export function DashboardPage() {
     try {
       const { data, error } = await supabase.functions.invoke<{ url?: string; error?: string }>('billing-portal');
       if (error || !data?.url) {
-        setToast(`Échec : ${data?.error ?? error?.message ?? 'erreur inconnue'}`);
+        setToast(dt(`Échec : ${data?.error ?? error?.message ?? 'erreur inconnue'}`, `Failed: ${data?.error ?? error?.message ?? 'unknown error'}`));
         setManagingBilling(false);
         return;
       }
       window.location.href = data.url;
     } catch (err) {
-      setToast(`Échec : ${err instanceof Error ? err.message : 'erreur inconnue'}`);
+      setToast(dt(`Échec : ${err instanceof Error ? err.message : 'erreur inconnue'}`, `Failed: ${err instanceof Error ? err.message : 'unknown error'}`));
       setManagingBilling(false);
     }
   };
@@ -400,7 +410,7 @@ export function DashboardPage() {
   };
 
   const handleFinishEditing = () => {
-    if (hasUnsavedChanges && !window.confirm('Des modifications ne sont pas enregistrées. Quitter sans les sauvegarder ?')) {
+    if (hasUnsavedChanges && !window.confirm(dt('Des modifications ne sont pas enregistrées. Quitter sans les sauvegarder ?', 'You have unsaved changes. Leave without saving?'))) {
       return;
     }
     navigate('/dashboard');
@@ -487,7 +497,7 @@ export function DashboardPage() {
     try {
       const translations = await translateRestaurantFields(restaurant.name, restaurant.address, restaurant.tags);
       await updateRestaurantField({ translations });
-      setToast('Traduction du restaurant mise à jour !');
+      setToast(dt('Traduction du restaurant mise à jour !', 'Restaurant translation updated!'));
     } finally {
       setTranslatingRestaurant(false);
     }
@@ -505,7 +515,7 @@ export function DashboardPage() {
       .select('*')
       .single();
     if (error || !data) {
-      setToast(`Échec de l'ajout de la catégorie : ${error?.message ?? 'erreur inconnue'}`);
+      setToast(dt(`Échec de l'ajout de la catégorie : ${error?.message ?? 'erreur inconnue'}`, `Failed to add category: ${error?.message ?? 'unknown error'}`));
       return;
     }
     const category = mapCategory({ ...data, dishes: [] });
@@ -529,12 +539,12 @@ export function DashboardPage() {
   };
 
   const deleteCategory = async (categoryId: string) => {
-    if (!window.confirm('Supprimer cette catégorie et tous ses plats ?')) return;
+    if (!window.confirm(dt('Supprimer cette catégorie et tous ses plats ?', 'Delete this category and all its dishes?'))) return;
     setRestaurant((current) =>
       current ? { ...current, categories: current.categories.filter((category) => category.id !== categoryId) } : current,
     );
     const { error } = await supabase.from('categories').delete().eq('id', categoryId);
-    if (error) setToast(`Échec de la suppression : ${error.message}`);
+    if (error) setToast(dt(`Échec de la suppression : ${error.message}`, `Delete failed: ${error.message}`));
   };
 
   const addDish = async (categoryId: string) => {
@@ -557,7 +567,7 @@ export function DashboardPage() {
       .select('*')
       .single();
     if (error || !data) {
-      setToast(`Échec de l'ajout du plat : ${error?.message ?? 'erreur inconnue'}`);
+      setToast(dt(`Échec de l'ajout du plat : ${error?.message ?? 'erreur inconnue'}`, `Failed to add dish: ${error?.message ?? 'unknown error'}`));
       return;
     }
     const dish = mapDish(data);
@@ -618,7 +628,7 @@ export function DashboardPage() {
       .single();
     setDuplicatingDishId(null);
     if (error || !data) {
-      setToast(`Échec de la duplication : ${error?.message ?? 'erreur inconnue'}`);
+      setToast(dt(`Échec de la duplication : ${error?.message ?? 'erreur inconnue'}`, `Duplication failed: ${error?.message ?? 'unknown error'}`));
       return;
     }
     const newDish = mapDish(data);
@@ -632,7 +642,7 @@ export function DashboardPage() {
           }
         : current,
     );
-    setToast('Plat dupliqué !');
+    setToast(dt('Plat dupliqué !', 'Dish duplicated!'));
   };
 
   const updateDish = (dishId: string, patch: Partial<Dish>) => {
@@ -680,7 +690,11 @@ export function DashboardPage() {
 
     setSavingChanges(false);
     setHasUnsavedChanges(false);
-    setToast(failures > 0 ? `Échec de l'enregistrement de ${failures} changement(s).` : '✓ Modifications enregistrées !');
+    setToast(
+      failures > 0
+        ? dt(`Échec de l'enregistrement de ${failures} changement(s).`, `Failed to save ${failures} change(s).`)
+        : dt('✓ Modifications enregistrées !', '✓ Changes saved!'),
+    );
   };
 
   const toggleDietTag = (dish: Dish, key: string) => {
@@ -730,7 +744,10 @@ export function DashboardPage() {
     const newTotal = getDishTotalCost({ ...dish, ...patch });
     if (newTotal > oldTotal) {
       setToast(
-        `⚠️ Coût de "${dish.name}" en hausse : ${money(oldTotal)} → ${money(newTotal)}. Votre marge a diminué.`,
+        dt(
+          `⚠️ Coût de "${dish.name}" en hausse : ${money(oldTotal)} → ${money(newTotal)}. Votre marge a diminué.`,
+          `⚠️ Cost of "${dish.name}" increased: ${money(oldTotal)} → ${money(newTotal)}. Your margin has decreased.`,
+        ),
       );
     }
     updateDish(dish.id, patch);
@@ -741,7 +758,7 @@ export function DashboardPage() {
     try {
       const translations = await translateDishFields(dish.name, dish.description);
       await updateDish(dish.id, { translations });
-      setToast('Traduction du plat mise à jour !');
+      setToast(dt('Traduction du plat mise à jour !', 'Dish translation updated!'));
     } finally {
       setTranslatingDishId(null);
     }
@@ -766,7 +783,7 @@ export function DashboardPage() {
       };
     });
     const { error } = await supabase.from('dishes').update({ category_id: categoryId }).eq('id', dishId);
-    if (error) setToast(`Échec du déplacement : ${error.message}`);
+    if (error) setToast(dt(`Échec du déplacement : ${error.message}`, `Move failed: ${error.message}`));
   };
 
   const reorderCategories = async (fromId: string, toId: string) => {
@@ -783,7 +800,7 @@ export function DashboardPage() {
       reindexed.map((c) => supabase.from('categories').update({ position: c.position }).eq('id', c.id)),
     );
     const failed = results.find((r) => r.error);
-    if (failed?.error) setToast(`Échec de la réorganisation : ${failed.error.message}`);
+    if (failed?.error) setToast(dt(`Échec de la réorganisation : ${failed.error.message}`, `Reordering failed: ${failed.error.message}`));
   };
 
   const reorderDishes = async (categoryId: string, fromId: string, toId: string) => {
@@ -806,11 +823,11 @@ export function DashboardPage() {
       reindexed.map((d) => supabase.from('dishes').update({ position: d.position }).eq('id', d.id)),
     );
     const failed = results.find((r) => r.error);
-    if (failed?.error) setToast(`Échec de la réorganisation : ${failed.error.message}`);
+    if (failed?.error) setToast(dt(`Échec de la réorganisation : ${failed.error.message}`, `Reordering failed: ${failed.error.message}`));
   };
 
   const deleteDish = async (dishId: string) => {
-    if (!window.confirm('Supprimer ce plat de la carte ?')) return;
+    if (!window.confirm(dt('Supprimer ce plat de la carte ?', 'Delete this dish from the menu?'))) return;
     setRestaurant((current) =>
       current
         ? {
@@ -823,7 +840,7 @@ export function DashboardPage() {
         : current,
     );
     const { error } = await supabase.from('dishes').delete().eq('id', dishId);
-    if (error) setToast(`Échec de la suppression : ${error.message}`);
+    if (error) setToast(dt(`Échec de la suppression : ${error.message}`, `Delete failed: ${error.message}`));
   };
 
   const handleNewHeroUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -835,7 +852,7 @@ export function DashboardPage() {
       const url = await uploadPhoto(file, user.id);
       setNewHeroImage(url);
     } catch {
-      setToast("Échec de l'envoi de la photo.");
+      setToast(dt("Échec de l'envoi de la photo.", 'Photo upload failed.'));
     } finally {
       setUploadingNewHero(false);
     }
@@ -849,9 +866,9 @@ export function DashboardPage() {
     try {
       const url = await uploadPhoto(file, user.id);
       await updateRestaurantField({ heroImage: url });
-      setToast('Photo mise à jour !');
+      setToast(dt('Photo mise à jour !', 'Photo updated!'));
     } catch {
-      setToast("Échec de l'envoi de la photo.");
+      setToast(dt("Échec de l'envoi de la photo.", 'Photo upload failed.'));
     } finally {
       setUploadingHero(false);
     }
@@ -865,9 +882,9 @@ export function DashboardPage() {
     try {
       const url = await uploadVideo(file, user.id);
       await updateRestaurantField({ customIntroVideo: url });
-      setToast('Vidéo d\'introduction mise à jour !');
+      setToast(dt("Vidéo d'introduction mise à jour !", 'Intro video updated!'));
     } catch (err) {
-      setToast(err instanceof Error ? err.message : "Échec de l'envoi de la vidéo.");
+      setToast(err instanceof Error ? err.message : dt("Échec de l'envoi de la vidéo.", 'Video upload failed.'));
     } finally {
       setUploadingIntroVideo(false);
     }
@@ -881,9 +898,9 @@ export function DashboardPage() {
     try {
       const url = await uploadVideo(file, user.id);
       await updateRestaurantField({ customWaitVideo: url });
-      setToast('Animation d\'attente mise à jour !');
+      setToast(dt("Animation d'attente mise à jour !", 'Wait animation updated!'));
     } catch (err) {
-      setToast(err instanceof Error ? err.message : "Échec de l'envoi de la vidéo.");
+      setToast(err instanceof Error ? err.message : dt("Échec de l'envoi de la vidéo.", 'Video upload failed.'));
     } finally {
       setUploadingWaitVideo(false);
     }
@@ -897,9 +914,9 @@ export function DashboardPage() {
     try {
       const url = await uploadPhoto(file, user.id);
       await updateDish(dishId, { image: url });
-      setToast('Photo mise à jour !');
+      setToast(dt('Photo mise à jour !', 'Photo updated!'));
     } catch {
-      setToast("Échec de l'envoi de la photo.");
+      setToast(dt("Échec de l'envoi de la photo.", 'Photo upload failed.'));
     } finally {
       setUploadingDishImageId(null);
     }
@@ -913,9 +930,9 @@ export function DashboardPage() {
     try {
       const url = await uploadPhoto(file, user.id);
       await updateDish(dish.id, { images: [...(dish.images ?? []), url] });
-      setToast('Photo ajoutée !');
+      setToast(dt('Photo ajoutée !', 'Photo added!'));
     } catch {
-      setToast("Échec de l'envoi de la photo.");
+      setToast(dt("Échec de l'envoi de la photo.", 'Photo upload failed.'));
     } finally {
       setUploadingGalleryDishId(null);
     }
@@ -937,27 +954,28 @@ export function DashboardPage() {
           onSubmit={handleCreateRestaurant}
           className="w-full max-w-lg rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-navy-700">Bienvenue</p>
-          <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">Créez votre restaurant</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-navy-700">{dt('Bienvenue', 'Welcome')}</p>
+          <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">{dt('Créez votre restaurant', 'Create your restaurant')}</h1>
           <p className="mt-2 text-sm text-stone-500">
-            Juste le nom pour commencer — le reste est facultatif et modifiable à tout moment. On crée pour vous
-            4 catégories de départ (Entrées, Plats, Desserts, Boissons) que vous pourrez renommer, supprimer ou
-            compléter juste après.
+            {dt(
+              "Juste le nom pour commencer — le reste est facultatif et modifiable à tout moment. On crée pour vous 4 catégories de départ (Entrées, Plats, Desserts, Boissons) que vous pourrez renommer, supprimer ou compléter juste après.",
+              "Just the name to get started — everything else is optional and can be changed later. We'll create 4 starter categories for you (Starters, Mains, Desserts, Drinks) that you can rename, delete, or fill in afterwards.",
+            )}
           </p>
 
           <label className="mt-6 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-            Nom du restaurant
+            {dt('Nom du restaurant', 'Restaurant name')}
             <input
               required
               autoFocus
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
-              placeholder="Ex : Le Jardin Parisien"
+              placeholder={dt('Ex : Le Jardin Parisien', 'E.g. The Parisian Garden')}
               className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-normal normal-case tracking-normal text-stone-700 outline-none transition-colors duration-300 focus:border-navy-300"
             />
           </label>
           <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-            Adresse <span className="font-normal normal-case tracking-normal text-stone-400">(facultatif)</span>
+            {dt('Adresse', 'Address')} <span className="font-normal normal-case tracking-normal text-stone-400">({dt('facultatif', 'optional')})</span>
             <input
               value={newAddress}
               onChange={(event) => setNewAddress(event.target.value)}
@@ -967,12 +985,12 @@ export function DashboardPage() {
           </label>
           <div className="mt-4">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-              Photo <span className="font-normal normal-case tracking-normal text-stone-400">(facultatif — vous pourrez en ajouter une plus tard)</span>
+              {dt('Photo', 'Photo')} <span className="font-normal normal-case tracking-normal text-stone-400">({dt('facultatif — vous pourrez en ajouter une plus tard', "optional — you can add one later")})</span>
             </p>
             <div className="mt-1.5 flex items-center gap-3">
               {newHeroImage && <img src={newHeroImage} alt="" className="h-14 w-14 rounded-xl object-cover" />}
               <label className="cursor-pointer rounded-full border border-stone-200 bg-white px-4 py-2.5 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40">
-                {uploadingNewHero ? 'Envoi...' : newHeroImage ? 'Changer la photo' : 'Choisir une photo'}
+                {uploadingNewHero ? dt('Envoi...', 'Uploading...') : newHeroImage ? dt('Changer la photo', 'Change photo') : dt('Choisir une photo', 'Choose a photo')}
                 <input
                   type="file"
                   accept="image/*"
@@ -984,11 +1002,11 @@ export function DashboardPage() {
             </div>
           </div>
           <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-            Tags <span className="font-normal normal-case tracking-normal text-stone-400">(facultatif, séparés par des virgules)</span>
+            {dt('Tags', 'Tags')} <span className="font-normal normal-case tracking-normal text-stone-400">({dt('facultatif, séparés par des virgules', 'optional, comma-separated')})</span>
             <input
               value={newTags}
               onChange={(event) => setNewTags(event.target.value)}
-              placeholder="Cuisine de saison, Produits frais"
+              placeholder={dt('Cuisine de saison, Produits frais', 'Seasonal cuisine, Fresh produce')}
               className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-normal normal-case tracking-normal text-stone-700 outline-none transition-colors duration-300 focus:border-navy-300"
             />
           </label>
@@ -1000,7 +1018,7 @@ export function DashboardPage() {
             disabled={creating || !newName.trim()}
             className="mt-6 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 disabled:opacity-60"
           >
-            {creating ? 'Création...' : 'Créer mon restaurant'}
+            {creating ? dt('Création...', 'Creating...') : dt('Créer mon restaurant', 'Create my restaurant')}
           </button>
         </form>
       </div>
@@ -1013,12 +1031,15 @@ export function DashboardPage() {
         <header className="border-b border-stone-900/5 bg-[#f6f8fb]/80 px-4 py-5 backdrop-blur-xl sm:px-8">
           <div className="mx-auto flex max-w-3xl items-center justify-between">
             <img src={logoHorizontal} alt="Nourevo" className="h-7 w-auto" />
-            <button
-              onClick={handleLogout}
-              className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
-            >
-              Déconnexion
-            </button>
+            <div className="flex items-center gap-3">
+              <DashboardLanguageSwitch />
+              <button
+                onClick={handleLogout}
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
+              >
+                {dt('Déconnexion', 'Log out')}
+              </button>
+            </div>
           </div>
         </header>
         <div className="flex min-h-[calc(100vh-88px)] items-center justify-center px-4 py-14">
@@ -1026,13 +1047,19 @@ export function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-navy-700">{restaurant.name}</p>
             <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">
               {restaurant.subscriptionStatus === 'past_due'
-                ? 'Paiement en retard'
-                : 'Activez votre abonnement pour continuer'}
+                ? dt('Paiement en retard', 'Payment overdue')
+                : dt('Activez votre abonnement pour continuer', 'Activate your subscription to continue')}
             </h1>
             <p className="mt-3 text-sm leading-6 text-stone-500">
               {restaurant.subscriptionStatus === 'past_due'
-                ? "Votre dernier paiement n'a pas abouti. Mettez à jour votre moyen de paiement pour réactiver l'accès à votre carte, à sa gestion, et à votre carte NFC."
-                : "L'accès au dashboard (gestion de la carte, personnalisation, Mode Service) et l'affichage de votre carte NFC auprès de vos clients nécessitent un abonnement actif."}
+                ? dt(
+                    "Votre dernier paiement n'a pas abouti. Mettez à jour votre moyen de paiement pour réactiver l'accès à votre carte, à sa gestion, et à votre carte NFC.",
+                    "Your last payment didn't go through. Update your payment method to restore access to your menu, its management, and your NFC card.",
+                  )
+                : dt(
+                    "L'accès au dashboard (gestion de la carte, personnalisation, Mode Service) et l'affichage de votre carte NFC auprès de vos clients nécessitent un abonnement actif.",
+                    'An active subscription is required for dashboard access (menu management, customization, Service Mode) and to display your NFC card to your customers.',
+                  )}
             </p>
 
             {restaurant.subscriptionStatus === 'past_due' ? (
@@ -1042,13 +1069,16 @@ export function DashboardPage() {
                 disabled={managingBilling}
                 className="mt-6 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
               >
-                {managingBilling ? 'Redirection...' : 'Mettre à jour mon paiement'}
+                {managingBilling ? dt('Redirection...', 'Redirecting...') : dt('Mettre à jour mon paiement', 'Update my payment method')}
               </button>
             ) : (
               <div className="mt-6 space-y-2.5">
                 {!restaurant.stripeSubscriptionId && (
                   <p className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-700">
-                    🎉 7 jours d'essai gratuit, quel que soit le plan choisi — annulable avant la fin de l'essai.
+                    {dt(
+                      "🎉 7 jours d'essai gratuit, quel que soit le plan choisi — annulable avant la fin de l'essai.",
+                      '🎉 7-day free trial on any plan — cancel any time before the trial ends.',
+                    )}
                   </p>
                 )}
                 <button
@@ -1057,7 +1087,7 @@ export function DashboardPage() {
                   disabled={subscribingPlan !== null}
                   className="w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
                 >
-                  {subscribingPlan === 'monthly' ? 'Redirection...' : "S'abonner — 59€/mois"}
+                  {subscribingPlan === 'monthly' ? dt('Redirection...', 'Redirecting...') : dt("S'abonner — 59€/mois", 'Subscribe — €59/month')}
                 </button>
                 <button
                   type="button"
@@ -1065,7 +1095,7 @@ export function DashboardPage() {
                   disabled={subscribingPlan !== null}
                   className="w-full rounded-full border border-navy-400 bg-navy-300/10 px-5 py-3.5 text-sm font-bold text-navy-700 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
                 >
-                  {subscribingPlan === 'annual_monthly' ? 'Redirection...' : "S'abonner — 54€/mois (engagement 1 an)"}
+                  {subscribingPlan === 'annual_monthly' ? dt('Redirection...', 'Redirecting...') : dt("S'abonner — 54€/mois (engagement 1 an)", 'Subscribe — €54/month (12-month commitment)')}
                 </button>
                 <button
                   type="button"
@@ -1073,8 +1103,15 @@ export function DashboardPage() {
                   disabled={subscribingPlan !== null}
                   className="w-full rounded-full border border-navy-400 bg-navy-300/10 px-5 py-3.5 text-sm font-bold text-navy-700 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
                 >
-                  {subscribingPlan === 'annual_upfront' ? 'Redirection...' : "S'abonner — 588€/an (payé en une fois)"}
+                  {subscribingPlan === 'annual_upfront' ? dt('Redirection...', 'Redirecting...') : dt("S'abonner — 588€/an (payé en une fois)", 'Subscribe — €588/year (paid upfront)')}
                 </button>
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(event) => setPromoCode(event.target.value)}
+                  placeholder={dt('Code promo (facultatif)', 'Promo code (optional)')}
+                  className="w-full rounded-full border border-stone-200 bg-white px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-stone-600 placeholder:normal-case placeholder:font-normal placeholder:text-stone-400 focus:border-navy-400 focus:outline-none"
+                />
               </div>
             )}
           </div>
@@ -1100,21 +1137,21 @@ export function DashboardPage() {
 
   const checklistItems = [
     {
-      label: 'Ajoutez vos premiers plats',
+      label: dt('Ajoutez vos premiers plats', 'Add your first dishes'),
       done: totalDishes > 0,
-      actionLabel: 'Aller à la carte',
+      actionLabel: dt('Aller à la carte', 'Go to menu'),
       onAction: () => navigate('/dashboard/carte'),
     },
     {
-      label: 'Connectez votre compte bancaire (Stripe)',
+      label: dt('Connectez votre compte bancaire (Stripe)', 'Connect your bank account (Stripe)'),
       done: restaurant.stripeOnboarded,
-      actionLabel: 'Connecter',
+      actionLabel: dt('Connecter', 'Connect'),
       onAction: () => navigate('/dashboard/paiements'),
     },
     {
-      label: 'Programmez votre première carte NFC',
+      label: dt('Programmez votre première carte NFC', 'Program your first NFC card'),
       done: nfcMarkedDone,
-      actionLabel: "J'ai terminé",
+      actionLabel: dt("J'ai terminé", 'Done'),
       onAction: markNfcDone,
     },
   ];
@@ -1134,25 +1171,26 @@ export function DashboardPage() {
                   <img src={logoHorizontal} alt="Nourevo" className="h-5 w-auto" />
                 </Link>
                 <p className="font-display text-lg font-semibold leading-tight text-stone-900">
-                  Bonjour {ownerDisplayName} 👋
+                  {dt('Bonjour', 'Hello')} {ownerDisplayName} 👋
                 </p>
                 <p className="text-xs text-stone-400">{restaurant.name}</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <DashboardLanguageSwitch />
               <a
                 href={`/r/${restaurant.slug}`}
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
               >
-                Voir ma page publique ↗
+                {dt('Voir ma page publique ↗', 'View my public page ↗')}
               </a>
               <button
                 onClick={handleLogout}
                 className="rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
               >
-                Déconnexion
+                {dt('Déconnexion', 'Log out')}
               </button>
             </div>
           </div>
@@ -1160,16 +1198,23 @@ export function DashboardPage() {
       ) : (
         <header className="sticky top-0 z-40 border-b border-stone-900/5 bg-[#f6f8fb]/80 backdrop-blur-xl">
           <div className="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-5 sm:px-8">
-            <button
-              type="button"
-              onClick={handleFinishEditing}
-              className="w-fit text-xs font-semibold uppercase tracking-[0.3em] text-navy-700"
-            >
-              ← Retour au dashboard
-            </button>
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={handleFinishEditing}
+                className="w-fit text-xs font-semibold uppercase tracking-[0.3em] text-navy-700"
+              >
+                {dt('← Retour au dashboard', '← Back to dashboard')}
+              </button>
+              <DashboardLanguageSwitch />
+            </div>
             <p className="font-display text-lg font-semibold text-stone-900">
-              {routeTab === 'menu' ? 'Carte' : routeTab === 'restaurant' ? 'Restaurant' : 'Paiements'} —{' '}
-              {restaurant.name}
+              {routeTab === 'menu'
+                ? dt('Carte', 'Menu')
+                : routeTab === 'restaurant'
+                  ? dt('Restaurant', 'Restaurant')
+                  : dt('Paiements', 'Payments')}{' '}
+              — {restaurant.name}
             </p>
           </div>
         </header>
@@ -1187,13 +1232,13 @@ export function DashboardPage() {
         {showOnboardingChecklist && (
           <section className="rounded-3xl border border-navy-300/25 bg-navy-300/5 p-6">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="font-display text-lg font-bold text-stone-900">Bien démarrer</h2>
+              <h2 className="font-display text-lg font-bold text-stone-900">{dt('Bien démarrer', 'Get started')}</h2>
               <button
                 type="button"
                 onClick={dismissChecklist}
                 className="text-xs font-semibold text-stone-400 transition-colors duration-300 hover:text-stone-600"
               >
-                Masquer
+                {dt('Masquer', 'Hide')}
               </button>
             </div>
             <div className="mt-4 space-y-3">
@@ -1222,29 +1267,29 @@ export function DashboardPage() {
 
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
-            Vue d'ensemble — aujourd'hui
+            {dt("Vue d'ensemble — aujourd'hui", 'Overview — today')}
           </h2>
           <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <div className="rounded-3xl border border-stone-200/70 bg-white p-5 shadow-soft">
               <p className="text-2xl">👀</p>
               <p className="mt-2 text-2xl font-bold text-stone-900">{overview ? overview.views : '—'}</p>
-              <p className="text-xs text-stone-400">Vues du menu</p>
+              <p className="text-xs text-stone-400">{dt('Vues du menu', 'Menu views')}</p>
             </div>
             <div className="rounded-3xl border border-stone-200/70 bg-white p-5 shadow-soft">
               <p className="text-2xl">🍽️</p>
               <p className="mt-2 text-2xl font-bold text-stone-900">{overview ? overview.orders : '—'}</p>
-              <p className="text-xs text-stone-400">Commandes</p>
+              <p className="text-xs text-stone-400">{dt('Commandes', 'Orders')}</p>
             </div>
             <div className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-5">
               <p className="text-2xl">💰</p>
               <p className="mt-2 text-2xl font-bold text-navy-700">{overview ? money(overview.revenue) : '—'}</p>
-              <p className="text-xs text-navy-700/70">Chiffre d'affaires</p>
+              <p className="text-xs text-navy-700/70">{dt("Chiffre d'affaires", 'Revenue')}</p>
             </div>
             <Link to="/dashboard/configuration" className="rounded-3xl border border-stone-200/70 bg-white p-5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-navy-300/40">
               <p className="text-2xl">🔐</p>
-              <p className="mt-2 text-sm font-semibold text-stone-900">Configuration</p>
+              <p className="mt-2 text-sm font-semibold text-stone-900">{dt('Configuration', 'Settings')}</p>
               <p className="text-xs text-stone-400">
-                {restaurant.servicePin ? '🔒 PIN activé' : 'Code PIN, NFC, avis'}
+                {restaurant.servicePin ? dt('🔒 PIN activé', '🔒 PIN enabled') : dt('Code PIN, NFC, avis', 'PIN code, NFC, reviews')}
               </p>
             </Link>
           </div>
@@ -1253,42 +1298,47 @@ export function DashboardPage() {
         <nav className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Link to="/dashboard/carte" className={navCardClass}>
             <span className="text-2xl">📋</span>
-            <p className="mt-2 font-semibold text-stone-900">Carte</p>
+            <p className="mt-2 font-semibold text-stone-900">{dt('Carte', 'Menu')}</p>
             <p className="text-xs text-stone-400">
-              {totalCategories} catégorie{totalCategories > 1 ? 's' : ''} · {totalDishes} plat
-              {totalDishes > 1 ? 's' : ''}
+              {dt(
+                `${totalCategories} catégorie${totalCategories > 1 ? 's' : ''} · ${totalDishes} plat${totalDishes > 1 ? 's' : ''}`,
+                `${totalCategories} categor${totalCategories > 1 ? 'ies' : 'y'} · ${totalDishes} dish${totalDishes > 1 ? 'es' : ''}`,
+              )}
             </p>
           </Link>
           <Link to="/dashboard/restaurant" className={navCardClass}>
             <span className="text-2xl">🏠</span>
-            <p className="mt-2 font-semibold text-stone-900">Restaurant</p>
-            <p className="text-xs text-stone-400">Infos, photo, traductions</p>
+            <p className="mt-2 font-semibold text-stone-900">{dt('Restaurant', 'Restaurant')}</p>
+            <p className="text-xs text-stone-400">{dt('Infos, photo, traductions', 'Info, photo, translations')}</p>
           </Link>
           <Link to="/dashboard/paiements" className={navCardClass}>
             <span className="text-2xl">{restaurant.stripeOnboarded ? '✅' : '💳'}</span>
-            <p className="mt-2 font-semibold text-stone-900">Paiements</p>
-            <p className="text-xs text-stone-400">{restaurant.stripeOnboarded ? 'Stripe connecté' : 'Non connecté'}</p>
+            <p className="mt-2 font-semibold text-stone-900">{dt('Paiements', 'Payments')}</p>
+            <p className="text-xs text-stone-400">{restaurant.stripeOnboarded ? dt('Stripe connecté', 'Stripe connected') : dt('Non connecté', 'Not connected')}</p>
           </Link>
           <Link to="/dashboard/stats" className={navCardClass}>
             <span className="text-2xl">📊</span>
-            <p className="mt-2 font-semibold text-stone-900">Statistiques</p>
-            <p className="text-xs text-stone-400">Vues, paniers, conversions</p>
+            <p className="mt-2 font-semibold text-stone-900">{dt('Statistiques', 'Statistics')}</p>
+            <p className="text-xs text-stone-400">{dt('Vues, paniers, conversions', 'Views, carts, conversions')}</p>
           </Link>
           <Link to="/dashboard/rentabilite" className={navCardClass}>
             <span className="text-2xl">💰</span>
-            <p className="mt-2 font-semibold text-stone-900">Rentabilité</p>
-            <p className="text-xs text-stone-400">Marge et plats les plus rentables</p>
+            <p className="mt-2 font-semibold text-stone-900">{dt('Rentabilité', 'Profitability')}</p>
+            <p className="text-xs text-stone-400">{dt('Marge et plats les plus rentables', 'Margin and most profitable dishes')}</p>
           </Link>
           <Link to="/service" className={`relative ${navCardClass}`}>
             {pendingRequestsCount > 0 && (
               <span className="absolute right-5 top-5 h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
             )}
             <span className="text-2xl">🔔</span>
-            <p className="mt-2 font-semibold text-stone-900">Mode Service</p>
+            <p className="mt-2 font-semibold text-stone-900">{dt('Mode Service', 'Service Mode')}</p>
             <p className={`text-xs ${pendingRequestsCount > 0 ? 'font-semibold text-red-600' : 'text-stone-400'}`}>
               {pendingRequestsCount > 0
-                ? `${pendingRequestsCount} demande${pendingRequestsCount > 1 ? 's' : ''} en attente`
-                : 'Aucune demande en attente'}
+                ? dt(
+                    `${pendingRequestsCount} demande${pendingRequestsCount > 1 ? 's' : ''} en attente`,
+                    `${pendingRequestsCount} pending request${pendingRequestsCount > 1 ? 's' : ''}`,
+                  )
+                : dt('Aucune demande en attente', 'No pending requests')}
             </p>
           </Link>
         </nav>
@@ -1299,18 +1349,19 @@ export function DashboardPage() {
         <PinSectionGate restaurant={restaurant} section="payments">
         <>
         <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-          <h2 className="font-display text-xl font-bold text-stone-900">Paiements</h2>
+          <h2 className="font-display text-xl font-bold text-stone-900">{dt('Paiements', 'Payments')}</h2>
           <p className="mt-2 text-sm text-stone-500">
-            Connectez votre compte bancaire pour encaisser directement les paiements par carte, Apple Pay et
-            Google Pay de vos clients — l'argent arrive sur votre compte, sans commission prélevée par
-            Nourevo.
+            {dt(
+              "Connectez votre compte bancaire pour encaisser directement les paiements par carte, Apple Pay et Google Pay de vos clients — l'argent arrive sur votre compte, sans commission prélevée par Nourevo.",
+              "Connect your bank account to accept card, Apple Pay and Google Pay payments from your customers directly — the money lands in your account, with no commission taken by Nourevo.",
+            )}
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             {restaurant.stripeOnboarded ? (
               <>
                 <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
-                  ✓ Compte Stripe connecté
+                  {dt('✓ Compte Stripe connecté', '✓ Stripe account connected')}
                 </span>
                 <button
                   type="button"
@@ -1318,7 +1369,7 @@ export function DashboardPage() {
                   disabled={managingStripeAccount}
                   className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700 disabled:opacity-60"
                 >
-                  {managingStripeAccount ? 'Redirection...' : 'Modifier mes infos bancaires'}
+                  {managingStripeAccount ? dt('Redirection...', 'Redirecting...') : dt('Modifier mes infos bancaires', 'Update my bank details')}
                 </button>
                 <button
                   type="button"
@@ -1326,13 +1377,13 @@ export function DashboardPage() {
                   disabled={disconnectingStripe}
                   className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-500 transition-all duration-300 hover:border-red-300/50 hover:text-red-600 disabled:opacity-60"
                 >
-                  {disconnectingStripe ? 'Déconnexion...' : 'Déconnecter'}
+                  {disconnectingStripe ? dt('Déconnexion...', 'Disconnecting...') : dt('Déconnecter', 'Disconnect')}
                 </button>
               </>
             ) : restaurant.stripeAccountId ? (
               <>
                 <span className="inline-flex items-center gap-2 rounded-full border border-navy-300/50 bg-navy-300/10 px-4 py-2 text-sm font-semibold text-navy-700">
-                  Vérification Stripe en cours...
+                  {dt('Vérification Stripe en cours...', 'Stripe verification in progress...')}
                 </span>
                 <button
                   type="button"
@@ -1340,7 +1391,7 @@ export function DashboardPage() {
                   disabled={refreshingStripeStatus}
                   className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700 disabled:opacity-60"
                 >
-                  {refreshingStripeStatus ? 'Vérification...' : 'Vérifier maintenant'}
+                  {refreshingStripeStatus ? dt('Vérification...', 'Checking...') : dt('Vérifier maintenant', 'Check now')}
                 </button>
                 <button
                   type="button"
@@ -1348,7 +1399,7 @@ export function DashboardPage() {
                   disabled={connectingStripe}
                   className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700 disabled:opacity-60"
                 >
-                  {connectingStripe ? 'Redirection...' : 'Reprendre la configuration'}
+                  {connectingStripe ? dt('Redirection...', 'Redirecting...') : dt('Reprendre la configuration', 'Resume setup')}
                 </button>
               </>
             ) : (
@@ -1358,7 +1409,7 @@ export function DashboardPage() {
                 disabled={connectingStripe}
                 className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-2.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-60"
               >
-                {connectingStripe ? 'Redirection...' : 'Connecter mon compte bancaire'}
+                {connectingStripe ? dt('Redirection...', 'Redirecting...') : dt('Connecter mon compte bancaire', 'Connect my bank account')}
               </button>
             )}
           </div>
@@ -1366,8 +1417,8 @@ export function DashboardPage() {
           {stripeConfirmAction !== null && (
             <div className="mt-3 rounded-2xl border border-stone-200 bg-white p-3">
               <p className="text-xs font-semibold text-stone-600">
-                Entrez le code PIN pour{' '}
-                {stripeConfirmAction === 'manage' ? 'modifier les infos bancaires' : 'déconnecter le compte'}
+                {dt('Entrez le code PIN pour', 'Enter the PIN code to')}{' '}
+                {stripeConfirmAction === 'manage' ? dt('modifier les infos bancaires', 'update the bank details') : dt('déconnecter le compte', 'disconnect the account')}
               </p>
               <div className="mt-1.5 flex items-center gap-2">
                 <input
@@ -1388,14 +1439,14 @@ export function DashboardPage() {
                   onClick={submitStripeConfirm}
                   className="rounded-full bg-navy-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-navy-800"
                 >
-                  Valider
+                  {dt('Valider', 'Confirm')}
                 </button>
                 <button
                   type="button"
                   onClick={cancelStripeConfirm}
                   className="rounded-full px-3 py-2 text-xs font-semibold text-stone-400 transition hover:text-stone-600"
                 >
-                  Annuler
+                  {dt('Annuler', 'Cancel')}
                 </button>
               </div>
               {stripeConfirmError && <p className="mt-1.5 text-xs text-red-600">{stripeConfirmError}</p>}
@@ -1404,15 +1455,21 @@ export function DashboardPage() {
         </div>
 
         <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-          <h2 className="font-display text-xl font-bold text-stone-900">Abonnement Nourevo</h2>
+          <h2 className="font-display text-xl font-bold text-stone-900">{dt('Abonnement Nourevo', 'Nourevo subscription')}</h2>
           <p className="mt-2 text-sm text-stone-500">
-            L'abonnement à la plateforme (accès au dashboard, à la carte digitale et au Mode Service) — à ne pas
-            confondre avec le compte Stripe ci-dessus, qui sert uniquement à encaisser vos propres clients.
+            {dt(
+              "L'abonnement à la plateforme (accès au dashboard, à la carte digitale et au Mode Service) — à ne pas confondre avec le compte Stripe ci-dessus, qui sert uniquement à encaisser vos propres clients.",
+              'The subscription to the platform (dashboard access, digital menu and Service Mode) — not to be confused with the Stripe account above, which is only used to charge your own customers.',
+            )}
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
-              ✓ Abonnement actif — {SUBSCRIPTION_PLAN_LABELS[restaurant.subscriptionPlan ?? 'monthly']}
+              {dt('✓ Abonnement actif —', '✓ Active subscription —')}{' '}
+              {dt(
+                SUBSCRIPTION_PLAN_LABELS[restaurant.subscriptionPlan ?? 'monthly'].fr,
+                SUBSCRIPTION_PLAN_LABELS[restaurant.subscriptionPlan ?? 'monthly'].en,
+              )}
             </span>
             <button
               type="button"
@@ -1420,7 +1477,7 @@ export function DashboardPage() {
               disabled={managingBilling}
               className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700 disabled:opacity-60"
             >
-              {managingBilling ? 'Redirection...' : 'Gérer mon abonnement'}
+              {managingBilling ? dt('Redirection...', 'Redirecting...') : dt('Gérer mon abonnement', 'Manage my subscription')}
             </button>
           </div>
         </div>
@@ -1432,13 +1489,17 @@ export function DashboardPage() {
         <PinSectionGate restaurant={restaurant} section="restaurant">
         <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-xl font-bold text-stone-900">Informations du restaurant</h2>
+            <h2 className="font-display text-xl font-bold text-stone-900">{dt('Informations du restaurant', 'Restaurant information')}</h2>
             <div className="flex items-center gap-2">
               <div className="flex -space-x-1">
                 {TARGET_LOCALES.map((locale) => (
                   <span
                     key={locale.code}
-                    title={restaurant.translations[locale.code] ? `Traduit en ${locale.label}` : `Pas encore traduit en ${locale.label}`}
+                    title={
+                      restaurant.translations[locale.code]
+                        ? dt(`Traduit en ${locale.label}`, `Translated to ${locale.label}`)
+                        : dt(`Pas encore traduit en ${locale.label}`, `Not yet translated to ${locale.label}`)
+                    }
                     className={`flex h-6 w-6 items-center justify-center rounded-full border border-white bg-stone-100 text-xs ${
                       restaurant.translations[locale.code] ? '' : 'opacity-30 grayscale'
                     }`}
@@ -1453,13 +1514,13 @@ export function DashboardPage() {
                 disabled={translatingRestaurant}
                 className="rounded-full border border-navy-300/50 bg-navy-300/10 px-4 py-2 text-xs font-semibold text-navy-700 transition-all duration-300 hover:bg-navy-300/20 disabled:opacity-60"
               >
-                {translatingRestaurant ? 'Traduction...' : 'Traduire automatiquement'}
+                {translatingRestaurant ? dt('Traduction...', 'Translating...') : dt('Traduire automatiquement', 'Auto-translate')}
               </button>
             </div>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-              Nom
+              {dt('Nom', 'Name')}
               <input
                 value={restaurant.name}
                 onChange={(event) => updateRestaurantField({ name: event.target.value })}
@@ -1467,7 +1528,7 @@ export function DashboardPage() {
               />
             </label>
             <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-              Adresse
+              {dt('Adresse', 'Address')}
               <input
                 value={restaurant.address}
                 onChange={(event) => updateRestaurantField({ address: event.target.value })}
@@ -1475,13 +1536,13 @@ export function DashboardPage() {
               />
             </label>
             <div className="sm:col-span-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">Photo d'en-tête</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">{dt("Photo d'en-tête", 'Header photo')}</p>
               <div className="mt-1.5 flex items-center gap-3">
                 {restaurant.heroImage && (
                   <img src={restaurant.heroImage} alt="" className="h-16 w-16 rounded-xl object-cover" />
                 )}
                 <label className="cursor-pointer rounded-full border border-stone-200 bg-white px-4 py-2.5 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40">
-                  {uploadingHero ? 'Envoi...' : restaurant.heroImage ? 'Changer la photo' : 'Choisir une photo'}
+                  {uploadingHero ? dt('Envoi...', 'Uploading...') : restaurant.heroImage ? dt('Changer la photo', 'Change photo') : dt('Choisir une photo', 'Choose a photo')}
                   <input
                     type="file"
                     accept="image/*"
@@ -1492,7 +1553,7 @@ export function DashboardPage() {
                 </label>
               </div>
               <p className="mt-3 text-xs font-normal normal-case tracking-normal text-stone-400">
-                Pas encore vos propres photos ? Choisissez-en une parmi cette sélection :
+                {dt('Pas encore vos propres photos ? Choisissez-en une parmi cette sélection :', "Don't have your own photos yet? Pick one from this selection:")}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {HERO_PRESETS.map((preset) => (
@@ -1513,7 +1574,7 @@ export function DashboardPage() {
               </div>
             </div>
             <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400 sm:col-span-2">
-              Tags (séparés par des virgules)
+              {dt('Tags (séparés par des virgules)', 'Tags (comma-separated)')}
               <input
                 value={restaurant.tags.join(', ')}
                 onChange={(event) =>
@@ -1525,7 +1586,7 @@ export function DashboardPage() {
               />
             </label>
             <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-              Nombre de tables
+              {dt('Nombre de tables', 'Number of tables')}
               <input
                 type="number"
                 min={1}
@@ -1540,14 +1601,14 @@ export function DashboardPage() {
                 className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-normal normal-case tracking-normal text-stone-700 outline-none focus:border-navy-300"
               />
               <span className="mt-1 block text-xs font-normal normal-case tracking-normal text-stone-400">
-                Détermine les numéros proposés à vos clients et la vue du Mode Service.
+                {dt('Détermine les numéros proposés à vos clients et la vue du Mode Service.', 'Determines the table numbers offered to your customers and the Service Mode view.')}
               </span>
             </label>
             <div className="sm:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                Horaires d'ouverture{' '}
+                {dt("Horaires d'ouverture", 'Opening hours')}{' '}
                 <span className="font-normal normal-case tracking-normal text-stone-400">
-                  (facultatif — affiché à vos clients sur la page menu)
+                  ({dt('facultatif — affiché à vos clients sur la page menu', 'optional — shown to your customers on the menu page')})
                 </span>
               </p>
               <div className="mt-2 space-y-1.5">
@@ -1567,7 +1628,7 @@ export function DashboardPage() {
                           checked={hours.closed}
                           onChange={(event) => updateDayHours(day, { closed: event.target.checked })}
                         />
-                        Fermé
+                        {dt('Fermé', 'Closed')}
                       </label>
                       {!hours.closed && (
                         <>
@@ -1596,21 +1657,21 @@ export function DashboardPage() {
                   onClick={() => updateRestaurantField({ openingHours: null })}
                   className="mt-2 text-xs font-semibold normal-case tracking-normal text-stone-400 underline hover:text-red-600"
                 >
-                  Retirer les horaires (ne plus afficher aux clients)
+                  {dt('Retirer les horaires (ne plus afficher aux clients)', 'Remove hours (stop showing to customers)')}
                 </button>
               )}
             </div>
             <div className="sm:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                Horaires menu midi / menu soir{' '}
+                {dt('Horaires menu midi / menu soir', 'Lunch menu / dinner menu hours')}{' '}
                 <span className="font-normal normal-case tracking-normal text-stone-500">
-                  (facultatif — laissez vide pour proposer la carte toute la journée)
+                  ({dt('facultatif — laissez vide pour proposer la carte toute la journée', 'optional — leave blank to offer the menu all day')})
                 </span>
               </p>
               <div className="mt-2 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-stone-200 bg-white p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-stone-700">🥗 Menu midi</p>
+                    <p className="text-sm font-semibold text-stone-700">{dt('🥗 Menu midi', '🥗 Lunch menu')}</p>
                     <button
                       type="button"
                       role="switch"
@@ -1650,13 +1711,13 @@ export function DashboardPage() {
                       onClick={() => updateRestaurantField({ lunchStart: null, lunchEnd: null })}
                       className="mt-2 text-xs font-semibold text-stone-400 underline hover:text-red-600"
                     >
-                      Réinitialiser (vider les horaires)
+                      {dt('Réinitialiser (vider les horaires)', 'Reset (clear hours)')}
                     </button>
                   )}
                 </div>
                 <div className="rounded-2xl border border-stone-200 bg-white p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-stone-700">🌙 Menu soir</p>
+                    <p className="text-sm font-semibold text-stone-700">{dt('🌙 Menu soir', '🌙 Dinner menu')}</p>
                     <button
                       type="button"
                       role="switch"
@@ -1696,19 +1757,21 @@ export function DashboardPage() {
                       onClick={() => updateRestaurantField({ dinnerStart: null, dinnerEnd: null })}
                       className="mt-2 text-xs font-semibold text-stone-400 underline hover:text-red-600"
                     >
-                      Réinitialiser (vider les horaires)
+                      {dt('Réinitialiser (vider les horaires)', 'Reset (clear hours)')}
                     </button>
                   )}
                 </div>
               </div>
               <p className="mt-2 text-xs text-stone-500">
-                Un plat marqué "Menu midi" ou "Menu soir" (dans l'édition de chaque plat, onglet Carte) n'apparaît
-                à vos clients que pendant cette plage horaire. Les plats "Toute la journée" restent toujours visibles.
+                {dt(
+                  'Un plat marqué "Menu midi" ou "Menu soir" (dans l\'édition de chaque plat, onglet Carte) n\'apparaît à vos clients que pendant cette plage horaire. Les plats "Toute la journée" restent toujours visibles.',
+                  'A dish marked "Lunch menu" or "Dinner menu" (in each dish\'s edit screen, Menu tab) only shows to your customers during that time window. "All day" dishes are always visible.',
+                )}
               </p>
             </div>
             <div className="sm:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                Couleur des boutons (page client)
+                {dt('Couleur des boutons (page client)', 'Button color (customer page)')}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 {ACCENT_PRESETS.map((color) => (
@@ -1722,12 +1785,12 @@ export function DashboardPage() {
                         : 'shadow-soft hover:scale-105'
                     }`}
                     style={{ backgroundColor: color }}
-                    aria-label={`Couleur ${color}`}
+                    aria-label={dt(`Couleur ${color}`, `Color ${color}`)}
                   />
                 ))}
                 <label
                   className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-dashed border-stone-300 text-xs text-stone-400 hover:border-navy-300/50"
-                  title="Choisir une couleur personnalisée"
+                  title={dt('Choisir une couleur personnalisée', 'Choose a custom color')}
                 >
                   🎨
                   <input
@@ -1743,17 +1806,17 @@ export function DashboardPage() {
                     onClick={() => updateRestaurantField({ accentColor: null })}
                     className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-500 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
                   >
-                    Réinitialiser
+                    {dt('Réinitialiser', 'Reset')}
                   </button>
                 )}
               </div>
               <p className="mt-1.5 text-xs text-stone-400">
-                S'applique aux boutons vus par vos clients sur votre carte publique.
+                {dt('S\'applique aux boutons vus par vos clients sur votre carte publique.', 'Applies to the buttons your customers see on your public menu.')}
               </p>
             </div>
             <div className="sm:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                Vidéo d'introduction
+                {dt("Vidéo d'introduction", 'Intro video')}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {INTRO_VIDEOS.map((video) => (
@@ -1777,7 +1840,7 @@ export function DashboardPage() {
                       : 'border-stone-200 bg-white text-stone-500 hover:border-navy-300/40'
                   }`}
                 >
-                  {uploadingIntroVideo ? 'Envoi...' : restaurant.customIntroVideo ? '✓ Ma vidéo' : '📤 Ma propre vidéo'}
+                  {uploadingIntroVideo ? dt('Envoi...', 'Uploading...') : restaurant.customIntroVideo ? dt('✓ Ma vidéo', '✓ My video') : dt('📤 Ma propre vidéo', '📤 My own video')}
                   <input
                     type="file"
                     accept="video/*"
@@ -1792,18 +1855,20 @@ export function DashboardPage() {
                     onClick={() => updateRestaurantField({ customIntroVideo: null })}
                     className="rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-400 transition-all duration-300 hover:border-red-300 hover:text-red-600"
                   >
-                    Retirer
+                    {dt('Retirer', 'Remove')}
                   </button>
                 )}
               </div>
               <p className="mt-1.5 text-xs text-stone-400">
-                La vidéo jouée à l'ouverture de votre carte, avant l'affichage du menu. Format vertical conseillé,
-                courte et en boucle, {MAX_VIDEO_SIZE_MB} Mo max.
+                {dt(
+                  `La vidéo jouée à l'ouverture de votre carte, avant l'affichage du menu. Format vertical conseillé, courte et en boucle, ${MAX_VIDEO_SIZE_MB} Mo max.`,
+                  `The video played when your menu opens, before the dishes are shown. Vertical format recommended, short and looping, ${MAX_VIDEO_SIZE_MB} MB max.`,
+                )}
               </p>
             </div>
             <div className="sm:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                Animation « commande en préparation »
+                {dt('Animation « commande en préparation »', '"Order in progress" animation')}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {WAIT_ANIMATIONS.map((animation) => (
@@ -1827,7 +1892,7 @@ export function DashboardPage() {
                       : 'border-stone-200 bg-white text-stone-500 hover:border-navy-300/40'
                   }`}
                 >
-                  {uploadingWaitVideo ? 'Envoi...' : restaurant.customWaitVideo ? '✓ Ma vidéo' : '📤 Ma propre vidéo'}
+                  {uploadingWaitVideo ? dt('Envoi...', 'Uploading...') : restaurant.customWaitVideo ? dt('✓ Ma vidéo', '✓ My video') : dt('📤 Ma propre vidéo', '📤 My own video')}
                   <input
                     type="file"
                     accept="video/*"
@@ -1842,13 +1907,15 @@ export function DashboardPage() {
                     onClick={() => updateRestaurantField({ customWaitVideo: null })}
                     className="rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-400 transition-all duration-300 hover:border-red-300 hover:text-red-600"
                   >
-                    Retirer
+                    {dt('Retirer', 'Remove')}
                   </button>
                 )}
               </div>
               <p className="mt-1.5 text-xs text-stone-400">
-                Affichée à l'écran une fois la commande validée, pendant que le client patiente. Vidéo courte en
-                boucle, {MAX_VIDEO_SIZE_MB} Mo max.
+                {dt(
+                  `Affichée à l'écran une fois la commande validée, pendant que le client patiente. Vidéo courte en boucle, ${MAX_VIDEO_SIZE_MB} Mo max.`,
+                  `Shown on screen once the order is confirmed, while the customer waits. Short looping video, ${MAX_VIDEO_SIZE_MB} MB max.`,
+                )}
               </p>
             </div>
           </div>
@@ -1878,7 +1945,7 @@ export function DashboardPage() {
                   onDragStart={() => setDraggedCategoryId(category.id)}
                   onDragEnd={() => setDraggedCategoryId(null)}
                   className="shrink-0 cursor-grab select-none text-lg text-stone-300 hover:text-stone-500 active:cursor-grabbing"
-                  title="Glisser pour réordonner"
+                  title={dt('Glisser pour réordonner', 'Drag to reorder')}
                 >
                   ⠿
                 </span>
@@ -1893,7 +1960,7 @@ export function DashboardPage() {
                 onClick={() => deleteCategory(category.id)}
                 className="shrink-0 text-xs font-semibold text-red-500 hover:text-red-600"
               >
-                Supprimer la catégorie
+                {dt('Supprimer la catégorie', 'Delete category')}
               </button>
             </div>
 
@@ -1921,18 +1988,18 @@ export function DashboardPage() {
                         onDragEnd={() => setDraggedDishId(null)}
                         onClick={(event) => event.preventDefault()}
                         className="shrink-0 cursor-grab select-none text-lg text-stone-300 hover:text-stone-500 active:cursor-grabbing"
-                        title="Glisser pour réordonner"
+                        title={dt('Glisser pour réordonner', 'Drag to reorder')}
                       >
                         ⠿
                       </span>
-                      <span className="truncate font-semibold text-stone-900">{dish.name || 'Sans nom'}</span>
+                      <span className="truncate font-semibold text-stone-900">{dish.name || dt('Sans nom', 'Unnamed')}</span>
                     </span>
                     <span className="shrink-0 text-sm text-stone-500">{money(dish.price)}</span>
                   </summary>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                      Nom
+                      {dt('Nom', 'Name')}
                       <input
                         value={dish.name}
                         onChange={(event) => updateDish(dish.id, { name: event.target.value })}
@@ -1940,7 +2007,7 @@ export function DashboardPage() {
                       />
                     </label>
                     <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                      Prix (€)
+                      {dt('Prix (€)', 'Price (€)')}
                       <input
                         type="number"
                         step="0.5"
@@ -1951,7 +2018,7 @@ export function DashboardPage() {
                       />
                     </label>
                     <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400 sm:col-span-2">
-                      Description
+                      {dt('Description', 'Description')}
                       <textarea
                         value={dish.description}
                         onChange={(event) => updateDish(dish.id, { description: event.target.value })}
@@ -1960,11 +2027,11 @@ export function DashboardPage() {
                       />
                     </label>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">Photo principale</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">{dt('Photo principale', 'Main photo')}</p>
                       <div className="mt-1.5 flex items-center gap-3">
                         {dish.image && <img src={dish.image} alt="" className="h-14 w-14 rounded-xl object-cover" />}
                         <label className="cursor-pointer rounded-full border border-stone-200 bg-white px-4 py-2.5 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40">
-                          {uploadingDishImageId === dish.id ? 'Envoi...' : dish.image ? 'Changer' : 'Choisir une photo'}
+                          {uploadingDishImageId === dish.id ? dt('Envoi...', 'Uploading...') : dish.image ? dt('Changer', 'Change') : dt('Choisir une photo', 'Choose a photo')}
                           <input
                             type="file"
                             accept="image/*"
@@ -1976,7 +2043,7 @@ export function DashboardPage() {
                       </div>
                     </div>
                     <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                      Catégorie
+                      {dt('Catégorie', 'Category')}
                       <select
                         value={category.id}
                         onChange={(event) => moveDishToCategory(dish.id, event.target.value)}
@@ -1990,7 +2057,7 @@ export function DashboardPage() {
                       </select>
                     </label>
                     <div className="sm:col-span-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">Galerie de photos</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">{dt('Galerie de photos', 'Photo gallery')}</p>
                       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
                         {(dish.images ?? []).map((photo, index) => (
                           <div
@@ -2002,14 +2069,14 @@ export function DashboardPage() {
                               type="button"
                               onClick={() => removeGalleryPhoto(dish, index)}
                               className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[11px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                              aria-label="Supprimer cette photo"
+                              aria-label={dt('Supprimer cette photo', 'Delete this photo')}
                             >
                               ✕
                             </button>
                           </div>
                         ))}
                         <label className="flex h-20 cursor-pointer items-center justify-center rounded-xl border border-dashed border-stone-300 bg-stone-50/60 text-center text-xs font-semibold text-stone-500 transition-all duration-300 hover:border-navy-300/50 hover:text-navy-700">
-                          {uploadingGalleryDishId === dish.id ? 'Envoi...' : '+ Ajouter'}
+                          {uploadingGalleryDishId === dish.id ? dt('Envoi...', 'Uploading...') : dt('+ Ajouter', '+ Add')}
                           <input
                             type="file"
                             accept="image/*"
@@ -2027,7 +2094,7 @@ export function DashboardPage() {
                           checked={dish.recommended}
                           onChange={(event) => updateDish(dish.id, { recommended: event.target.checked })}
                         />
-                        Suggestion du chef
+                        {dt('Suggestion du chef', "Chef's suggestion")}
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -2035,7 +2102,7 @@ export function DashboardPage() {
                           checked={dish.bestSeller}
                           onChange={(event) => updateDish(dish.id, { bestSeller: event.target.checked })}
                         />
-                        Best seller
+                        {dt('Best seller', 'Best seller')}
                       </label>
                       <label className="flex items-center gap-2 text-red-600">
                         <input
@@ -2043,7 +2110,7 @@ export function DashboardPage() {
                           checked={dish.outOfStock}
                           onChange={(event) => updateDish(dish.id, { outOfStock: event.target.checked })}
                         />
-                        Rupture de stock
+                        {dt('Rupture de stock', 'Out of stock')}
                       </label>
                     </div>
 
@@ -2054,15 +2121,18 @@ export function DashboardPage() {
                         className="text-xs font-semibold text-navy-700 hover:text-navy-800"
                       >
                         {advancedOpenIds.has(dish.id)
-                          ? 'Masquer les options avancées ▲'
-                          : 'Options avancées (créneau, stock, temps de prépa, rentabilité, régime, allergènes, piment, calories, suppléments) ▾'}
+                          ? dt('Masquer les options avancées ▲', 'Hide advanced options ▲')
+                          : dt(
+                              'Options avancées (créneau, stock, temps de prépa, rentabilité, régime, allergènes, piment, calories, suppléments) ▾',
+                              'Advanced options (time slot, stock, prep time, profitability, diet, allergens, spice, calories, extras) ▾',
+                            )}
                       </button>
                     </div>
 
                     {advancedOpenIds.has(dish.id) && (
                       <>
                     <div className="sm:col-span-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">Créneau</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">{dt('Créneau', 'Time slot')}</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {MENU_SERVICES.map((service) => (
                           <button
@@ -2090,7 +2160,7 @@ export function DashboardPage() {
                             updateDish(dish.id, { stockQuantity: event.target.checked ? 0 : null })
                           }
                         />
-                        📦 Suivre le stock de ce plat
+                        {dt('📦 Suivre le stock de ce plat', '📦 Track stock for this dish')}
                       </label>
                       {dish.stockQuantity !== null ? (
                         <div className="mt-2 flex items-center gap-2">
@@ -2106,13 +2176,15 @@ export function DashboardPage() {
                             className="w-28 rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 outline-none focus:border-navy-300"
                           />
                           <span className="text-xs normal-case text-stone-400">
-                            en stock — le plat disparaît automatiquement de la carte une fois à 0.
+                            {dt('en stock — le plat disparaît automatiquement de la carte une fois à 0.', 'in stock — the dish disappears from the menu automatically once it reaches 0.')}
                           </span>
                         </div>
                       ) : (
                         <p className="mt-1 text-xs normal-case text-stone-400">
-                          Stock illimité (par défaut). Le plat baisse tout seul à chaque commande une fois le suivi
-                          activé — vous pouvez aussi corriger le chiffre manuellement à tout moment.
+                          {dt(
+                            "Stock illimité (par défaut). Le plat baisse tout seul à chaque commande une fois le suivi activé — vous pouvez aussi corriger le chiffre manuellement à tout moment.",
+                            'Unlimited stock (default). The count goes down automatically with each order once tracking is on — you can also correct the number manually at any time.',
+                          )}
                         </p>
                       )}
                     </div>
@@ -2126,7 +2198,7 @@ export function DashboardPage() {
                             updateDish(dish.id, { prepTimeMinutes: event.target.checked ? 10 : null })
                           }
                         />
-                        ⏱️ Indiquer un temps de préparation
+                        {dt('⏱️ Indiquer un temps de préparation', '⏱️ Set a preparation time')}
                       </label>
                       {dish.prepTimeMinutes !== null ? (
                         <div className="mt-2 flex items-center gap-2">
@@ -2141,18 +2213,20 @@ export function DashboardPage() {
                             }
                             className="w-28 rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 outline-none focus:border-navy-300"
                           />
-                          <span className="text-xs normal-case text-stone-400">minutes</span>
+                          <span className="text-xs normal-case text-stone-400">{dt('minutes', 'minutes')}</span>
                         </div>
                       ) : (
                         <p className="mt-1 text-xs normal-case text-stone-400">
-                          Facultatif — dès qu'au moins un plat a un temps renseigné, le temps d'attente affiché au
-                          client se base sur les plats réellement commandés au lieu d'une estimation générique.
+                          {dt(
+                            "Facultatif — dès qu'au moins un plat a un temps renseigné, le temps d'attente affiché au client se base sur les plats réellement commandés au lieu d'une estimation générique.",
+                            "Optional — as soon as at least one dish has a time set, the wait time shown to customers is based on the dishes actually ordered instead of a generic estimate.",
+                          )}
                         </p>
                       )}
                     </div>
 
                     <div className="sm:col-span-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">Régime</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">{dt('Régime', 'Diet')}</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {DIET_TAGS.map((tag) => (
                           <button
@@ -2172,7 +2246,7 @@ export function DashboardPage() {
                     </div>
 
                     <div className="sm:col-span-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">Allergènes</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">{dt('Allergènes', 'Allergens')}</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {ALLERGENS.map((allergen) => (
                           <button
@@ -2192,7 +2266,7 @@ export function DashboardPage() {
                     </div>
 
                     <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                      Piment
+                      {dt('Piment', 'Spice level')}
                       <div className="mt-1.5 flex gap-2">
                         {[0, 1, 2, 3].map((level) => (
                           <button
@@ -2205,14 +2279,14 @@ export function DashboardPage() {
                                 : 'border-stone-200 bg-white text-stone-500 hover:border-navy-300/40'
                             }`}
                           >
-                            {level === 0 ? 'Aucun' : '🌶️'.repeat(level)}
+                            {level === 0 ? dt('Aucun', 'None') : '🌶️'.repeat(level)}
                           </button>
                         ))}
                       </div>
                     </label>
 
                     <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                      Calories <span className="font-normal normal-case tracking-normal text-stone-400">(facultatif)</span>
+                      {dt('Calories', 'Calories')} <span className="font-normal normal-case tracking-normal text-stone-400">({dt('facultatif', 'optional')})</span>
                       <input
                         type="number"
                         min="0"
@@ -2222,14 +2296,14 @@ export function DashboardPage() {
                             calories: event.target.value === '' ? null : Number.parseInt(event.target.value, 10),
                           })
                         }
-                        placeholder="Ex : 450"
+                        placeholder={dt('Ex : 450', 'E.g. 450')}
                         className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-normal normal-case tracking-normal text-stone-700 outline-none focus:border-navy-300"
                       />
                     </label>
 
                     <div className="sm:col-span-2">
                       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                        Suppléments <span className="font-normal normal-case tracking-normal text-stone-400">(facultatif, ex : Sauce fromage — 2€)</span>
+                        {dt('Suppléments', 'Extras')} <span className="font-normal normal-case tracking-normal text-stone-400">({dt('facultatif, ex : Sauce fromage — 2€', 'optional, e.g. Cheese sauce — €2')})</span>
                       </p>
                       <div className="mt-2 space-y-2">
                         {dish.extras.map((extra, index) => (
@@ -2237,7 +2311,7 @@ export function DashboardPage() {
                             <input
                               value={extra.name}
                               onChange={(event) => updateExtra(dish, index, { name: event.target.value })}
-                              placeholder="Nom (ex : Sauce fromage)"
+                              placeholder={dt('Nom (ex : Sauce fromage)', 'Name (e.g. Cheese sauce)')}
                               className="flex-1 rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 outline-none focus:border-navy-300"
                             />
                             <input
@@ -2248,14 +2322,14 @@ export function DashboardPage() {
                               onChange={(event) =>
                                 updateExtra(dish, index, { price: Number.parseFloat(event.target.value) || 0 })
                               }
-                              placeholder="Prix"
+                              placeholder={dt('Prix', 'Price')}
                               className="w-24 rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 outline-none focus:border-navy-300"
                             />
                             <button
                               type="button"
                               onClick={() => removeExtra(dish, index)}
                               className="shrink-0 text-xs font-semibold text-red-500 hover:text-red-600"
-                              aria-label="Supprimer ce supplément"
+                              aria-label={dt('Supprimer ce supplément', 'Delete this extra')}
                             >
                               ✕
                             </button>
@@ -2266,7 +2340,7 @@ export function DashboardPage() {
                           onClick={() => addExtra(dish)}
                           className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
                         >
-                          + Ajouter un supplément
+                          {dt('+ Ajouter un supplément', '+ Add an extra')}
                         </button>
                       </div>
                     </div>
@@ -2282,17 +2356,20 @@ export function DashboardPage() {
                         checked={dish.costEnabled}
                         onChange={(event) => updateDish(dish.id, { costEnabled: event.target.checked })}
                       />
-                      💰 Activer l'analyse de rentabilité pour ce plat
+                      {dt("💰 Activer l'analyse de rentabilité pour ce plat", '💰 Enable profitability analysis for this dish')}
                     </label>
                     <p className="mt-1 text-xs normal-case text-stone-400">
-                      Facultatif — renseignez le coût de fabrication pour connaître votre marge réelle sur ce plat.
+                      {dt(
+                        'Facultatif — renseignez le coût de fabrication pour connaître votre marge réelle sur ce plat.',
+                        'Optional — enter the production cost to see your real margin on this dish.',
+                      )}
                     </p>
 
                     {dish.costEnabled && (
                       <div className="mt-4 space-y-4">
                         <div className="grid gap-3 sm:grid-cols-2">
                           <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                            Coût matières premières (€)
+                            {dt('Coût matières premières (€)', 'Ingredient cost (€)')}
                             <input
                               type="number"
                               step="0.1"
@@ -2306,12 +2383,12 @@ export function DashboardPage() {
                             />
                             {dish.costBreakdown.length > 0 && (
                               <span className="mt-1 block text-[10px] font-normal normal-case tracking-normal text-stone-400">
-                                Calculé depuis le détail par ingrédient ci-dessous.
+                                {dt('Calculé depuis le détail par ingrédient ci-dessous.', 'Calculated from the per-ingredient breakdown below.')}
                               </span>
                             )}
                           </label>
                           <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                            Coût préparation / emballage (€)
+                            {dt('Coût préparation / emballage (€)', 'Prep / packaging cost (€)')}
                             <input
                               type="number"
                               step="0.1"
@@ -2327,9 +2404,9 @@ export function DashboardPage() {
 
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
-                            Détail par ingrédient{' '}
+                            {dt('Détail par ingrédient', 'Per-ingredient breakdown')}{' '}
                             <span className="font-normal normal-case tracking-normal text-stone-400">
-                              (optionnel, avancé)
+                              ({dt('optionnel, avancé', 'optional, advanced')})
                             </span>
                           </p>
                           <div className="mt-2 space-y-2">
@@ -2340,7 +2417,7 @@ export function DashboardPage() {
                                   onChange={(event) =>
                                     updateCostBreakdownItem(dish, index, { name: event.target.value })
                                   }
-                                  placeholder="Ingrédient (ex : Steak haché 150g)"
+                                  placeholder={dt('Ingrédient (ex : Steak haché 150g)', 'Ingredient (e.g. Ground beef 150g)')}
                                   className="flex-1 rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 outline-none focus:border-navy-300"
                                 />
                                 <input
@@ -2353,14 +2430,14 @@ export function DashboardPage() {
                                       cost: Number.parseFloat(event.target.value) || 0,
                                     })
                                   }
-                                  placeholder="Coût"
+                                  placeholder={dt('Coût', 'Cost')}
                                   className="w-24 rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 outline-none focus:border-navy-300"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => removeCostBreakdownItem(dish, index)}
                                   className="shrink-0 text-xs font-semibold text-red-500 hover:text-red-600"
-                                  aria-label="Supprimer cet ingrédient"
+                                  aria-label={dt('Supprimer cet ingrédient', 'Delete this ingredient')}
                                 >
                                   ✕
                                 </button>
@@ -2371,7 +2448,7 @@ export function DashboardPage() {
                               onClick={() => addCostBreakdownItem(dish)}
                               className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
                             >
-                              + Ajouter un ingrédient
+                              {dt('+ Ajouter un ingrédient', '+ Add an ingredient')}
                             </button>
                           </div>
                         </div>
@@ -2385,28 +2462,28 @@ export function DashboardPage() {
                             <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-navy-300/25 bg-navy-300/8 p-4">
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-stone-400">
-                                  Coût total
+                                  {dt('Coût total', 'Total cost')}
                                 </p>
                                 <p className="text-sm font-bold text-stone-900">{money(totalCost)}</p>
                               </div>
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-stone-400">
-                                  Marge brute
+                                  {dt('Marge brute', 'Gross margin')}
                                 </p>
                                 <p className="text-sm font-bold text-stone-900">{money(margin)}</p>
                               </div>
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-stone-400">
-                                  Taux de marge
+                                  {dt('Taux de marge', 'Margin rate')}
                                 </p>
                                 <p className="text-sm font-bold text-stone-900">{Math.round(marginRate * 100)}%</p>
                               </div>
                               <div>
                                 <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-stone-400">
-                                  Rentabilité
+                                  {dt('Rentabilité', 'Profitability')}
                                 </p>
                                 <p className="text-sm font-bold text-stone-900">
-                                  {PROFITABILITY_TIER_EMOJI[tier]} {PROFITABILITY_TIER_LABEL[tier]}
+                                  {PROFITABILITY_TIER_EMOJI[tier]} {dt(PROFITABILITY_TIER_LABEL[tier].fr, PROFITABILITY_TIER_LABEL[tier].en)}
                                 </p>
                               </div>
                             </div>
@@ -2424,7 +2501,7 @@ export function DashboardPage() {
                         onClick={() => deleteDish(dish.id)}
                         className="text-xs font-semibold text-red-500 hover:text-red-600"
                       >
-                        Supprimer ce plat
+                        {dt('Supprimer ce plat', 'Delete this dish')}
                       </button>
                       <button
                         type="button"
@@ -2432,7 +2509,7 @@ export function DashboardPage() {
                         disabled={duplicatingDishId === dish.id}
                         className="text-xs font-semibold text-stone-500 hover:text-navy-700 disabled:opacity-60"
                       >
-                        {duplicatingDishId === dish.id ? 'Duplication...' : '⧉ Dupliquer'}
+                        {duplicatingDishId === dish.id ? dt('Duplication...', 'Duplicating...') : dt('⧉ Dupliquer', '⧉ Duplicate')}
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -2440,7 +2517,11 @@ export function DashboardPage() {
                         {TARGET_LOCALES.map((locale) => (
                           <span
                             key={locale.code}
-                            title={dish.translations[locale.code] ? `Traduit en ${locale.label}` : `Pas encore traduit en ${locale.label}`}
+                            title={
+                              dish.translations[locale.code]
+                                ? dt(`Traduit en ${locale.label}`, `Translated to ${locale.label}`)
+                                : dt(`Pas encore traduit en ${locale.label}`, `Not yet translated to ${locale.label}`)
+                            }
                             className={`flex h-6 w-6 items-center justify-center rounded-full border border-white bg-stone-100 text-xs ${
                               dish.translations[locale.code] ? '' : 'opacity-30 grayscale'
                             }`}
@@ -2455,7 +2536,7 @@ export function DashboardPage() {
                         disabled={translatingDishId === dish.id}
                         className="rounded-full border border-navy-300/50 bg-navy-300/10 px-4 py-2 text-xs font-semibold text-navy-700 transition-all duration-300 hover:bg-navy-300/20 disabled:opacity-60"
                       >
-                        {translatingDishId === dish.id ? 'Traduction...' : 'Traduire automatiquement'}
+                        {translatingDishId === dish.id ? dt('Traduction...', 'Translating...') : dt('Traduire automatiquement', 'Auto-translate')}
                       </button>
                     </div>
                   </div>
@@ -2468,7 +2549,7 @@ export function DashboardPage() {
               onClick={() => addDish(category.id)}
               className="mt-4 rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
             >
-              + Ajouter un plat
+              {dt('+ Ajouter un plat', '+ Add a dish')}
             </button>
           </div>
         ))}
@@ -2477,7 +2558,7 @@ export function DashboardPage() {
           <input
             value={newCategoryName}
             onChange={(event) => setNewCategoryName(event.target.value)}
-            placeholder="Nouvelle catégorie (ex : Boissons)"
+            placeholder={dt('Nouvelle catégorie (ex : Boissons)', 'New category (e.g. Drinks)')}
             className="flex-1 rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 outline-none transition-colors duration-300 focus:border-navy-300"
           />
           <button
@@ -2485,7 +2566,7 @@ export function DashboardPage() {
             onClick={addCategory}
             className="shrink-0 rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-2.5 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5"
           >
-            Ajouter
+            {dt('Ajouter', 'Add')}
           </button>
         </div>
         </>
@@ -2496,8 +2577,8 @@ export function DashboardPage() {
           <div className="sticky bottom-4 z-30 flex flex-col items-center gap-3 rounded-3xl border border-stone-200/70 bg-white p-8 text-center shadow-card">
             <p className="text-sm text-stone-500">
               {hasUnsavedChanges
-                ? '● Modifications non enregistrées — cliquez sur "Sauvegarder" pour les valider.'
-                : 'Tout est enregistré.'}
+                ? dt('● Modifications non enregistrées — cliquez sur "Sauvegarder" pour les valider.', '● Unsaved changes — click "Save" to confirm them.')
+                : dt('Tout est enregistré.', 'Everything is saved.')}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button
@@ -2506,14 +2587,14 @@ export function DashboardPage() {
                 disabled={!hasUnsavedChanges || savingChanges}
                 className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-6 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50"
               >
-                {savingChanges ? 'Enregistrement...' : '💾 Sauvegarder'}
+                {savingChanges ? dt('Enregistrement...', 'Saving...') : dt('💾 Sauvegarder', '💾 Save')}
               </button>
               <button
                 type="button"
                 onClick={handleFinishEditing}
                 className="rounded-full border border-stone-200 bg-white px-6 py-3.5 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
               >
-                ✓ Terminé
+                {dt('✓ Terminé', '✓ Done')}
               </button>
               <a
                 href={`/r/${restaurant.slug}`}
@@ -2521,7 +2602,7 @@ export function DashboardPage() {
                 rel="noreferrer"
                 className="rounded-full border border-stone-200 bg-white px-6 py-3.5 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
               >
-                Voir ma carte publique ↗
+                {dt('Voir ma carte publique ↗', 'View my public menu ↗')}
               </a>
             </div>
           </div>

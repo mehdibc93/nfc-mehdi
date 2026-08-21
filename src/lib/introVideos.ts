@@ -10,6 +10,7 @@ export type IntroVideo = {
 
 export const INTRO_VIDEOS: IntroVideo[] = [
   { id: 'bistro', label: 'Bistro traditionnel', file: '/video/kling_20260729_VIDEO_genere_une_1130_0.mp4' },
+  { id: 'maneki-neko', label: 'Chat porte-bonheur (cuisine asiatique)', file: '/video/chat-maneki-neko-intro.mp4' },
 ];
 
 export const DEFAULT_INTRO_VIDEO = INTRO_VIDEOS[0];
