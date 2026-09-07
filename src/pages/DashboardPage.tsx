@@ -30,6 +30,7 @@ import {
 import { LoadingScreen } from '../components/LoadingScreen';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
+import { useOrderNotifications } from '../hooks/useOrderNotifications';
 
 const TARGET_LOCALES = LOCALES.filter((locale) => locale.code !== 'fr');
 const DEFAULT_CATEGORY_NAMES = ['Entrées', 'Plats', 'Desserts', 'Boissons'];
@@ -942,6 +943,8 @@ export function DashboardPage() {
     const updated = (dish.images ?? []).filter((_, i) => i !== index);
     updateDish(dish.id, { images: updated });
   };
+
+  useOrderNotifications(restaurant);
 
   if (loading) {
     return <LoadingScreen />;

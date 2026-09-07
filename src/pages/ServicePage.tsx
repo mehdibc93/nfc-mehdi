@@ -9,6 +9,9 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { PinSectionGate } from '../components/PinSectionGate';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
+import { playChime } from '../lib/notificationSound';
+import { requestNotificationPermission, showBrowserNotification } from '../lib/browserNotify';
+import { areNotificationsEnabled } from '../lib/notificationPrefs';
 
 const ORDER_STATUS_LABEL: Record<OrderStatus, { fr: string; en: string }> = {
   new: { fr: 'Nouvelle', en: 'New' },
@@ -31,26 +34,6 @@ const NEXT_ACTION_LABEL: Record<OrderStatus, { fr: string; en: string }> = {
   done: { fr: '', en: '' },
 };
 
-function playChime() {
-  try {
-    const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new AudioCtx();
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.value = 880;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
-    oscillator.connect(gain);
-    gain.connect(ctx.destination);
-    oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.4);
-  } catch {
-    // le son n'est pas essentiel au fonctionnement
-  }
-}
-
 export function ServicePage() {
   const dt = useDt();
   const { user } = useAuth();
@@ -69,6 +52,10 @@ export function ServicePage() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
+
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -125,8 +112,12 @@ export function ServicePage() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurant.id}` },
         (payload) => {
-          setOrders((current) => [mapOrder(payload.new as unknown as OrderRow), ...current]);
-          playChime();
+          const order = mapOrder(payload.new as unknown as OrderRow);
+          setOrders((current) => [order, ...current]);
+          if (areNotificationsEnabled()) {
+            playChime();
+            showBrowserNotification(dt('Nouvelle commande', 'New order'), `${dt('Table', 'Table')} ${order.tableLabel} — ${restaurant.name}`);
+          }
         },
       )
       .on(
@@ -144,7 +135,13 @@ export function ServicePage() {
           const created = mapTableRequest(payload.new as unknown as TableRequestRow);
           if (created.status === 'pending') {
             setRequests((current) => [created, ...current]);
-            playChime();
+            if (areNotificationsEnabled()) {
+              playChime();
+              showBrowserNotification(
+                created.type === 'waiter' ? dt('Un client demande un serveur', 'A customer is requesting a waiter') : dt("Demande l'addition", 'Bill requested'),
+                `${dt('Table', 'Table')} ${created.tableLabel} — ${restaurant.name}`,
+              );
+            }
           }
         },
       )
@@ -274,7 +271,7 @@ export function ServicePage() {
   // avec une commande ou une demande en attente, pour ne pas rater d'activité en Mode Service.
   useEffect(() => {
     const baseTitle = dt('Mode Service — Nourevo', 'Service Mode — Nourevo');
-    if (pendingCount === 0) {
+    if (pendingCount === 0 || !areNotificationsEnabled()) {
       document.title = baseTitle;
       return undefined;
     }

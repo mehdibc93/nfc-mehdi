@@ -8,6 +8,8 @@ import { STAFF_SECTIONS } from '../lib/staffMode';
 import { slugify } from '../lib/slug';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
+import { useOrderNotifications } from '../hooks/useOrderNotifications';
+import { areNotificationsEnabled, setNotificationsEnabled } from '../lib/notificationPrefs';
 
 type ConfigRestaurant = {
   id: string;
@@ -41,6 +43,13 @@ export function ConfigurationPage() {
   const [slugInput, setSlugInput] = useState('');
   const [savingSlug, setSavingSlug] = useState(false);
   const [slugError, setSlugError] = useState('');
+
+  const [notificationsEnabled, setNotificationsEnabledState] = useState(areNotificationsEnabled);
+  const toggleNotifications = () => {
+    const next = !notificationsEnabled;
+    setNotificationsEnabledState(next);
+    setNotificationsEnabled(next);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -221,6 +230,8 @@ export function ConfigurationPage() {
     }
   };
 
+  useOrderNotifications(restaurant);
+
   if (loading) {
     return <LoadingScreen />;
   }
@@ -337,6 +348,43 @@ export function ConfigurationPage() {
                 </span>
               )}
             </div>
+          </div>
+
+          {/* Notifications */}
+          <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-xl font-bold text-stone-900">{dt('🔔 Notifications', '🔔 Notifications')}</h2>
+                <p className="mt-2 text-sm text-stone-500">
+                  {dt(
+                    "Son et notification affichés dès qu'une commande ou une demande client arrive, tant qu'une page du dashboard reste ouverte quelque part.",
+                    'Sound and popup shown as soon as an order or customer request comes in, as long as a dashboard page stays open somewhere.',
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={notificationsEnabled}
+                onClick={toggleNotifications}
+                className={`flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors duration-300 ${
+                  notificationsEnabled ? 'justify-end bg-emerald-500' : 'justify-start bg-stone-300'
+                }`}
+              >
+                <span className="h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300" />
+              </button>
+            </div>
+            {notificationsEnabled &&
+              typeof window !== 'undefined' &&
+              'Notification' in window &&
+              Notification.permission === 'denied' && (
+                <p className="mt-3 text-xs text-red-500">
+                  {dt(
+                    "Les notifications sont bloquées au niveau de votre navigateur — le son restera actif, mais la popup système n'apparaîtra pas tant que vous ne l'autorisez pas dans les réglages du site (icône à côté de l'adresse).",
+                    "Notifications are blocked at the browser level — the sound will still play, but the system popup won't show until you allow it in the site settings (icon next to the address bar).",
+                  )}
+                </p>
+              )}
           </div>
 
           {/* Code PIN */}

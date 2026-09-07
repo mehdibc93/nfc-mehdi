@@ -9,6 +9,7 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { PinSectionGate } from '../components/PinSectionGate';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
+import { useOrderNotifications } from '../hooks/useOrderNotifications';
 
 type DishStat = {
   key: string;
@@ -108,6 +109,8 @@ export function StatsPage() {
       ),
     [stats],
   );
+
+  useOrderNotifications(restaurant);
 
   if (loading) {
     return <LoadingScreen />;

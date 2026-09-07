@@ -10,6 +10,7 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { PinSectionGate } from '../components/PinSectionGate';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
+import { useOrderNotifications } from '../hooks/useOrderNotifications';
 import {
   PROFITABILITY_TIER_EMOJI,
   PROFITABILITY_TIER_LABEL,
@@ -137,6 +138,8 @@ export function ProfitabilityPage() {
     return messages.slice(0, 6);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analyzed]);
+
+  useOrderNotifications(restaurant);
 
   if (loading) {
     return <LoadingScreen />;
