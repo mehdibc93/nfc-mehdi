@@ -79,6 +79,17 @@ export function DashboardPage() {
   const [draggedCategoryId, setDraggedCategoryId] = useState<string | null>(null);
   const [draggedDishId, setDraggedDishId] = useState<string | null>(null);
   const [advancedOpenIds, setAdvancedOpenIds] = useState<Set<string>>(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedDishIds, setSelectedDishIds] = useState<Set<string>>(new Set());
+  const [bulkCategoryTarget, setBulkCategoryTarget] = useState('');
+  const [bulkPriceOp, setBulkPriceOp] = useState<'set' | 'increase_amt' | 'decrease_amt' | 'increase_pct' | 'decrease_pct'>(
+    'set',
+  );
+  const [bulkPriceValue, setBulkPriceValue] = useState('');
+  const [bulkAddCategoryId, setBulkAddCategoryId] = useState<string | null>(null);
+  const [bulkAddText, setBulkAddText] = useState('');
+  const [bulkAddPhotos, setBulkAddPhotos] = useState<File[]>([]);
+  const [addingBulkDishes, setAddingBulkDishes] = useState(false);
   const [duplicatingDishId, setDuplicatingDishId] = useState<string | null>(null);
   const [overview, setOverview] = useState<{ views: number; orders: number; revenue: number } | null>(null);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
@@ -541,9 +552,17 @@ export function DashboardPage() {
 
   const deleteCategory = async (categoryId: string) => {
     if (!window.confirm(dt('Supprimer cette catégorie et tous ses plats ?', 'Delete this category and all its dishes?'))) return;
+    const removedDishIds = restaurant?.categories.find((category) => category.id === categoryId)?.dishes.map((dish) => dish.id) ?? [];
     setRestaurant((current) =>
       current ? { ...current, categories: current.categories.filter((category) => category.id !== categoryId) } : current,
     );
+    if (removedDishIds.length > 0) {
+      setSelectedDishIds((current) => {
+        const next = new Set(current);
+        removedDishIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    }
     const { error } = await supabase.from('categories').delete().eq('id', categoryId);
     if (error) setToast(dt(`Échec de la suppression : ${error.message}`, `Delete failed: ${error.message}`));
   };
@@ -582,6 +601,76 @@ export function DashboardPage() {
           }
         : current,
     );
+  };
+
+  // Création groupée : une ligne du textarea = un plat, au format "Nom;Prix;Description"
+  // (prix et description optionnels). Les photos sélectionnées sont associées aux plats dans
+  // le même ordre, uploadées avant l'insert pour n'écrire chaque plat qu'une seule fois.
+  const submitBulkAddDishes = async (categoryId: string) => {
+    const lines = bulkAddText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (lines.length === 0 || !user) return;
+    setAddingBulkDishes(true);
+
+    let photoUrls: (string | undefined)[] = [];
+    if (bulkAddPhotos.length > 0) {
+      const results = await Promise.allSettled(bulkAddPhotos.map((file) => uploadPhoto(file, user.id)));
+      photoUrls = results.map((result) => (result.status === 'fulfilled' ? result.value : undefined));
+      const failedCount = results.filter((result) => result.status === 'rejected').length;
+      if (failedCount > 0) {
+        setToast(
+          dt(
+            `${failedCount} photo(s) n'ont pas pu être envoyées — les plats concernés seront créés sans photo.`,
+            `${failedCount} photo(s) failed to upload — the affected dishes will be created without a photo.`,
+          ),
+        );
+      }
+    }
+
+    const rows = lines.map((line, index) => {
+      const [namePart, pricePart, ...descParts] = line.split(';');
+      const name = (namePart ?? '').trim() || dt('Nouveau plat', 'New dish');
+      const parsedPrice = pricePart !== undefined ? Number.parseFloat(pricePart.replace(',', '.')) : 0;
+      return {
+        category_id: categoryId,
+        name,
+        description: descParts.join(';').trim(),
+        price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
+        image: photoUrls[index] ?? '',
+        recommended: false,
+        best_seller: false,
+        ingredients: [],
+        accompaniments: [],
+        drink: '',
+        dessert_suggestion: '',
+        position: 0,
+      };
+    });
+    const { data, error } = await supabase.from('dishes').insert(rows).select('*');
+    setAddingBulkDishes(false);
+    if (error || !data) {
+      setToast(
+        dt(`Échec de l'ajout des plats : ${error?.message ?? 'erreur inconnue'}`, `Failed to add dishes: ${error?.message ?? 'unknown error'}`),
+      );
+      return;
+    }
+    const dishes = data.map(mapDish);
+    setRestaurant((current) =>
+      current
+        ? {
+            ...current,
+            categories: current.categories.map((category) =>
+              category.id === categoryId ? { ...category, dishes: [...category.dishes, ...dishes] } : category,
+            ),
+          }
+        : current,
+    );
+    setBulkAddText('');
+    setBulkAddPhotos([]);
+    setBulkAddCategoryId(null);
+    setToast(dt(`${dishes.length} plat(s) ajouté(s) !`, `${dishes.length} dish(es) added!`));
   };
 
   const toggleAdvanced = (dishId: string) => {
@@ -842,6 +931,121 @@ export function DashboardPage() {
     );
     const { error } = await supabase.from('dishes').delete().eq('id', dishId);
     if (error) setToast(dt(`Échec de la suppression : ${error.message}`, `Delete failed: ${error.message}`));
+    setSelectedDishIds((current) => {
+      if (!current.has(dishId)) return current;
+      const next = new Set(current);
+      next.delete(dishId);
+      return next;
+    });
+  };
+
+  const exitBulkMode = () => {
+    setBulkMode(false);
+    setSelectedDishIds(new Set());
+    setBulkCategoryTarget('');
+    setBulkPriceValue('');
+  };
+
+  const toggleDishSelection = (dishId: string) => {
+    setSelectedDishIds((current) => {
+      const next = new Set(current);
+      if (next.has(dishId)) next.delete(dishId);
+      else next.add(dishId);
+      return next;
+    });
+  };
+
+  const toggleCategorySelection = (dishes: Dish[]) => {
+    const allSelected = dishes.length > 0 && dishes.every((dish) => selectedDishIds.has(dish.id));
+    setSelectedDishIds((current) => {
+      const next = new Set(current);
+      dishes.forEach((dish) => {
+        if (allSelected) next.delete(dish.id);
+        else next.add(dish.id);
+      });
+      return next;
+    });
+  };
+
+  // Applique le même patch à tous les plats sélectionnés en réutilisant updateDish : les
+  // changements restent "en attente" et ne partent en base qu'au clic sur "Sauvegarder".
+  const bulkApplyPatch = (patch: Partial<Dish>, message: string) => {
+    selectedDishIds.forEach((dishId) => updateDish(dishId, patch));
+    setToast(message);
+  };
+
+  const bulkAdjustPrice = () => {
+    const value = Number.parseFloat(bulkPriceValue);
+    if (Number.isNaN(value) || !restaurant) return;
+    const dishById = new Map(restaurant.categories.flatMap((category) => category.dishes).map((dish) => [dish.id, dish]));
+    selectedDishIds.forEach((dishId) => {
+      const dish = dishById.get(dishId);
+      if (!dish) return;
+      let newPrice = dish.price;
+      if (bulkPriceOp === 'set') newPrice = value;
+      else if (bulkPriceOp === 'increase_amt') newPrice = dish.price + value;
+      else if (bulkPriceOp === 'decrease_amt') newPrice = dish.price - value;
+      else if (bulkPriceOp === 'increase_pct') newPrice = dish.price * (1 + value / 100);
+      else if (bulkPriceOp === 'decrease_pct') newPrice = dish.price * (1 - value / 100);
+      updateDish(dishId, { price: Math.max(0, Math.round(newPrice * 100) / 100) });
+    });
+    setToast(dt(`Prix mis à jour pour ${selectedDishIds.size} plat(s).`, `Price updated for ${selectedDishIds.size} dish(es).`));
+    setBulkPriceValue('');
+  };
+
+  const bulkMoveToCategory = async (categoryId: string) => {
+    if (!categoryId || selectedDishIds.size === 0) return;
+    const ids = Array.from(selectedDishIds);
+    setRestaurant((current) => {
+      if (!current) return current;
+      let moved: Dish[] = [];
+      const withoutDishes = current.categories.map((category) => {
+        const found = category.dishes.filter((dish) => ids.includes(dish.id));
+        if (found.length) moved = moved.concat(found);
+        return { ...category, dishes: category.dishes.filter((dish) => !ids.includes(dish.id)) };
+      });
+      const movedDishes = moved.map((dish) => ({ ...dish, categoryId }));
+      return {
+        ...current,
+        categories: withoutDishes.map((category) =>
+          category.id === categoryId ? { ...category, dishes: [...category.dishes, ...movedDishes] } : category,
+        ),
+      };
+    });
+    const { error } = await supabase.from('dishes').update({ category_id: categoryId }).in('id', ids);
+    if (error) {
+      setToast(dt(`Échec du déplacement : ${error.message}`, `Move failed: ${error.message}`));
+    } else {
+      setToast(dt(`${ids.length} plat(s) déplacé(s).`, `${ids.length} dish(es) moved.`));
+      setBulkCategoryTarget('');
+    }
+  };
+
+  const bulkDeleteDishes = async () => {
+    const ids = Array.from(selectedDishIds);
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(
+        dt(`Supprimer ${ids.length} plat(s) de la carte ?`, `Delete ${ids.length} dish(es) from the menu?`),
+      )
+    )
+      return;
+    setRestaurant((current) =>
+      current
+        ? {
+            ...current,
+            categories: current.categories.map((category) => ({
+              ...category,
+              dishes: category.dishes.filter((dish) => !ids.includes(dish.id)),
+            })),
+          }
+        : current,
+    );
+    ids.forEach((id) => pendingDishPatchesRef.current.delete(id));
+    setSelectedDishIds(new Set());
+    const { error } = await supabase.from('dishes').delete().in('id', ids);
+    if (error) setToast(dt(`Échec de la suppression : ${error.message}`, `Delete failed: ${error.message}`));
+    else setToast(dt(`${ids.length} plat(s) supprimé(s).`, `${ids.length} dish(es) deleted.`));
   };
 
   const handleNewHeroUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -1929,6 +2133,164 @@ export function DashboardPage() {
         {routeTab === 'menu' && (
         <PinSectionGate restaurant={restaurant} section="menu">
         <>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-stone-200/70 bg-white p-4 shadow-soft">
+          <div>
+            <p className="font-display text-sm font-bold text-stone-900">{dt('Modification groupée', 'Bulk editing')}</p>
+            <p className="text-xs text-stone-500">
+              {dt(
+                'Sélectionnez plusieurs plats pour les modifier tous en une seule fois.',
+                'Select several dishes to edit them all at once.',
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => (bulkMode ? exitBulkMode() : setBulkMode(true))}
+            className={`shrink-0 rounded-full px-5 py-2.5 text-xs font-bold transition-all duration-300 ${
+              bulkMode
+                ? 'border border-navy-300 bg-navy-50 text-navy-700'
+                : 'bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 text-white hover:-translate-y-0.5'
+            }`}
+          >
+            {bulkMode ? dt('✕ Quitter la sélection', '✕ Exit selection') : dt('☑ Sélection multiple', '☑ Bulk select')}
+          </button>
+        </div>
+
+        {bulkMode && selectedDishIds.size > 0 && (
+          <div className="sticky top-4 z-40 flex flex-col gap-4 rounded-3xl border border-navy-300/60 bg-white p-5 shadow-card">
+            <p className="text-sm font-semibold text-stone-900">
+              {dt(`${selectedDishIds.size} plat(s) sélectionné(s)`, `${selectedDishIds.size} dish(es) selected`)}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  bulkApplyPatch(
+                    { outOfStock: true },
+                    dt('Plats marqués en rupture de stock.', 'Dishes marked out of stock.'),
+                  )
+                }
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
+              >
+                {dt('Marquer en rupture', 'Mark out of stock')}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  bulkApplyPatch({ outOfStock: false }, dt('Plats marqués disponibles.', 'Dishes marked available.'))
+                }
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
+              >
+                {dt('Marquer disponible', 'Mark available')}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  bulkApplyPatch({ recommended: true }, dt('Suggestion du chef ajoutée.', 'Chef suggestion added.'))
+                }
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
+              >
+                {dt('+ Suggestion du chef', '+ Chef suggestion')}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  bulkApplyPatch({ recommended: false }, dt('Suggestion du chef retirée.', 'Chef suggestion removed.'))
+                }
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
+              >
+                {dt('− Suggestion du chef', '− Chef suggestion')}
+              </button>
+              <button
+                type="button"
+                onClick={() => bulkApplyPatch({ bestSeller: true }, dt('Best-seller ajouté.', 'Best-seller added.'))}
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
+              >
+                {dt('+ Best-seller', '+ Best-seller')}
+              </button>
+              <button
+                type="button"
+                onClick={() => bulkApplyPatch({ bestSeller: false }, dt('Best-seller retiré.', 'Best-seller removed.'))}
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40"
+              >
+                {dt('− Best-seller', '− Best-seller')}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={bulkCategoryTarget}
+                onChange={(event) => setBulkCategoryTarget(event.target.value)}
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs text-stone-700 outline-none focus:border-navy-300"
+              >
+                <option value="">{dt('Déplacer vers...', 'Move to...')}</option>
+                {restaurant.categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={!bulkCategoryTarget}
+                onClick={() => bulkMoveToCategory(bulkCategoryTarget)}
+                className="rounded-full bg-navy-700 px-4 py-2 text-xs font-bold text-white transition-all duration-300 disabled:opacity-40"
+              >
+                {dt('Déplacer', 'Move')}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={bulkPriceOp}
+                onChange={(event) => setBulkPriceOp(event.target.value as typeof bulkPriceOp)}
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs text-stone-700 outline-none focus:border-navy-300"
+              >
+                <option value="set">{dt('Fixer le prix à (€)', 'Set price to (€)')}</option>
+                <option value="increase_amt">{dt('Augmenter de (€)', 'Increase by (€)')}</option>
+                <option value="decrease_amt">{dt('Diminuer de (€)', 'Decrease by (€)')}</option>
+                <option value="increase_pct">{dt('Augmenter de (%)', 'Increase by (%)')}</option>
+                <option value="decrease_pct">{dt('Diminuer de (%)', 'Decrease by (%)')}</option>
+              </select>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                value={bulkPriceValue}
+                onChange={(event) => setBulkPriceValue(event.target.value)}
+                placeholder="0"
+                className="w-24 rounded-full border border-stone-200 bg-white px-4 py-2 text-xs text-stone-700 outline-none focus:border-navy-300"
+              />
+              <button
+                type="button"
+                disabled={!bulkPriceValue}
+                onClick={bulkAdjustPrice}
+                className="rounded-full bg-navy-700 px-4 py-2 text-xs font-bold text-white transition-all duration-300 disabled:opacity-40"
+              >
+                {dt('Appliquer', 'Apply')}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setSelectedDishIds(new Set())}
+                className="text-xs font-semibold text-stone-500 hover:text-stone-700"
+              >
+                {dt('Désélectionner tout', 'Clear selection')}
+              </button>
+              <button
+                type="button"
+                onClick={bulkDeleteDishes}
+                className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 transition-all duration-300 hover:bg-red-100"
+              >
+                {dt('🗑 Supprimer la sélection', '🗑 Delete selection')}
+              </button>
+            </div>
+          </div>
+        )}
+
         {restaurant.categories.map((category) => (
           <div
             key={category.id}
@@ -1958,6 +2320,17 @@ export function DashboardPage() {
                   className="min-w-0 flex-1 font-display text-xl font-bold text-stone-900 outline-none focus:border-b focus:border-navy-300"
                 />
               </div>
+              {bulkMode && (
+                <label className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-stone-500">
+                  <input
+                    type="checkbox"
+                    checked={category.dishes.length > 0 && category.dishes.every((dish) => selectedDishIds.has(dish.id))}
+                    onChange={() => toggleCategorySelection(category.dishes)}
+                    className="h-4 w-4 rounded border-stone-300"
+                  />
+                  {dt('Tout sélectionner', 'Select all')}
+                </label>
+              )}
               <button
                 type="button"
                 onClick={() => deleteCategory(category.id)}
@@ -1982,6 +2355,16 @@ export function DashboardPage() {
                 >
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                     <span className="flex min-w-0 items-center gap-2">
+                      {bulkMode && (
+                        <span onClick={(event) => event.stopPropagation()} className="shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={selectedDishIds.has(dish.id)}
+                            onChange={() => toggleDishSelection(dish.id)}
+                            className="h-4 w-4 rounded border-stone-300"
+                          />
+                        </span>
+                      )}
                       <span
                         draggable
                         onDragStart={(event) => {
@@ -2547,13 +2930,103 @@ export function DashboardPage() {
               ))}
             </div>
 
-            <button
-              type="button"
-              onClick={() => addDish(category.id)}
-              className="mt-4 rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
-            >
-              {dt('+ Ajouter un plat', '+ Add a dish')}
-            </button>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => addDish(category.id)}
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
+              >
+                {dt('+ Ajouter un plat', '+ Add a dish')}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setBulkAddCategoryId((current) => (current === category.id ? null : category.id))
+                }
+                className={`rounded-full border px-4 py-2 text-xs font-semibold transition-all duration-300 ${
+                  bulkAddCategoryId === category.id
+                    ? 'border-navy-300 bg-navy-50 text-navy-700'
+                    : 'border-stone-200 bg-white text-stone-600 hover:border-navy-300/40 hover:text-navy-700'
+                }`}
+              >
+                {dt('+ Ajouter plusieurs plats', '+ Add several dishes')}
+              </button>
+            </div>
+
+            {bulkAddCategoryId === category.id && (
+              <div className="mt-3 rounded-2xl border border-dashed border-navy-300/60 bg-navy-300/5 p-4">
+                <p className="text-xs font-semibold text-stone-500">
+                  {dt(
+                    'Un plat par ligne, au format "Nom;Prix;Description" (prix et description facultatifs).',
+                    'One dish per line, as "Name;Price;Description" (price and description optional).',
+                  )}
+                </p>
+                <textarea
+                  value={bulkAddText}
+                  onChange={(event) => setBulkAddText(event.target.value)}
+                  rows={5}
+                  placeholder={dt('Salade César;12\nTiramisu;7;Fait maison\nCroque monsieur', 'Caesar salad;12\nTiramisu;7;Homemade\nGrilled cheese')}
+                  className="mt-2 w-full resize-y rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-700 outline-none focus:border-navy-300"
+                />
+                <div className="mt-3">
+                  <p className="text-xs font-semibold text-stone-500">
+                    {dt(
+                      'Photos (optionnel) — sélectionnez-les dans le même ordre que les plats ci-dessus.',
+                      'Photos (optional) — select them in the same order as the dishes above.',
+                    )}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                    <label className="cursor-pointer rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40">
+                      {dt('Choisir des photos', 'Choose photos')}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(event) => setBulkAddPhotos(Array.from(event.target.files ?? []))}
+                      />
+                    </label>
+                    {bulkAddPhotos.length > 0 && (
+                      <>
+                        <span className="text-xs text-stone-500">
+                          {dt(`${bulkAddPhotos.length} photo(s) sélectionnée(s)`, `${bulkAddPhotos.length} photo(s) selected`)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setBulkAddPhotos([])}
+                          className="text-xs font-semibold text-stone-500 hover:text-stone-700"
+                        >
+                          {dt('Retirer', 'Remove')}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={!bulkAddText.trim() || addingBulkDishes}
+                    onClick={() => submitBulkAddDishes(category.id)}
+                    className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-2.5 text-xs font-bold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    {addingBulkDishes
+                      ? dt('Création...', 'Creating...')
+                      : dt('Créer les plats', 'Create dishes')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBulkAddCategoryId(null);
+                      setBulkAddText('');
+                      setBulkAddPhotos([]);
+                    }}
+                    className="text-xs font-semibold text-stone-500 hover:text-stone-700"
+                  >
+                    {dt('Annuler', 'Cancel')}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
 

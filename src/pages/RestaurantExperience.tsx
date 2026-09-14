@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { mapRestaurantWithMenu } from '../lib/mappers';
-import type { Dish, RestaurantWithMenu } from '../lib/types';
+import { mapRestaurantWithMenu, mapDiscountRule } from '../lib/mappers';
+import type { Dish, DiscountRule, RestaurantWithMenu } from '../lib/types';
+import { applyDiscount, getActiveDiscountPercent } from '../lib/discounts';
 import { money, formatCountdown } from '../lib/format';
 import { LOCALES, t } from '../lib/i18n';
 import type { Locale } from '../lib/i18n';
@@ -128,6 +129,40 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const accentButtonStyle = restaurant.accentColor
     ? { backgroundImage: accentGradient(restaurant.accentColor), color: accentTextColor(restaurant.accentColor) }
     : undefined;
+
+  // Réductions automatiques par jour/horaire (voir lib/discounts.ts) — s'appliquent sur le
+  // prix des plats, pas sur les suppléments. Le montant réellement facturé est recalculé côté
+  // serveur dans create-payment-intent ; ceci ne sert qu'à afficher/estimer côté client.
+  const [discountRules, setDiscountRules] = useState<DiscountRule[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from('discount_rules')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .eq('active', true)
+      .then(({ data }) => {
+        if (!cancelled && data) setDiscountRules(data.map(mapDiscountRule));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurant.id]);
+
+  // Force une réévaluation périodique de la règle active, puisqu'elle dépend de l'heure
+  // actuelle et non d'une donnée React — sans ça, une règle qui démarre/s'arrête pendant que
+  // le client a la page ouverte ne se mettrait à jour qu'au prochain re-render.
+  const [discountTick, setDiscountTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setDiscountTick(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const activeDiscountPercent = useMemo(
+    () => getActiveDiscountPercent(discountRules),
+    [discountRules, discountTick],
+  );
+  const discountedPrice = (price: number) => applyDiscount(price, activeDiscountPercent);
 
   const localizedDishName = (dish: FlatDish) =>
     language === 'fr' ? dish.name : dish.translations[language]?.name || dish.name;
@@ -485,7 +520,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         : localizedDishName(dishToOrder);
     addToCart(
       composedName,
-      dishToOrder.price + extrasTotal,
+      discountedPrice(dishToOrder.price) + extrasTotal,
       dishToOrder.id,
       chosenExtras.length > 0 ? chosenExtras.map((extra) => extra.name) : undefined,
     );
@@ -497,14 +532,14 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
 
   const acceptDrink = () => {
     if (!selectedDrink) return;
-    addToCart(localizedDishName(selectedDrink), selectedDrink.price, selectedDrink.id);
+    addToCart(localizedDishName(selectedDrink), discountedPrice(selectedDrink.price), selectedDrink.id);
     logDishEvent(restaurant.id, selectedDrink.id, selectedDrink.name, 'add_to_cart');
     setModalStep('drink-added');
   };
 
   const acceptDessert = () => {
     if (!selectedDessert) return;
-    addToCart(localizedDishName(selectedDessert), selectedDessert.price, selectedDessert.id);
+    addToCart(localizedDishName(selectedDessert), discountedPrice(selectedDessert.price), selectedDessert.id);
     logDishEvent(restaurant.id, selectedDessert.id, selectedDessert.name, 'add_to_cart');
     setModalStep('dessert-added');
   };
@@ -769,7 +804,14 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
       <div className="p-6">
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-lg font-semibold text-stone-900">{localizedDishName(dish)}</h3>
-          <span className="text-sm font-bold text-stone-900">{money(dish.price)}</span>
+          {activeDiscountPercent > 0 ? (
+            <span className="flex shrink-0 items-baseline gap-1.5">
+              <span className="text-xs font-medium text-stone-400 line-through">{money(dish.price)}</span>
+              <span className="text-sm font-bold text-emerald-600">{money(discountedPrice(dish.price))}</span>
+            </span>
+          ) : (
+            <span className="text-sm font-bold text-stone-900">{money(dish.price)}</span>
+          )}
         </div>
         <p className="mt-2 text-sm leading-6 text-stone-500">{localizedDishDescription(dish)}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1001,6 +1043,11 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                   <span>ⓘ</span> {restaurantTags.join(' · ')}
                 </p>
               )}
+              {activeDiscountPercent > 0 && (
+                <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+                  {tr('menu.discountBanner', { percent: activeDiscountPercent })}
+                </p>
+              )}
             </div>
 
             <div className="relative">
@@ -1155,7 +1202,14 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                             <span className="text-[11px] uppercase tracking-[0.2em] text-stone-400">{dish.category}</span>
                           </div>
                           <h3 className="mt-3 text-2xl font-semibold text-stone-900">{localizedDishName(dish)}</h3>
-                          <p className="mt-1.5 text-base font-bold text-stone-900">{money(dish.price)}</p>
+                          {activeDiscountPercent > 0 ? (
+                            <p className="mt-1.5 flex items-baseline gap-1.5">
+                              <span className="text-sm font-medium text-stone-400 line-through">{money(dish.price)}</span>
+                              <span className="text-base font-bold text-emerald-600">{money(discountedPrice(dish.price))}</span>
+                            </p>
+                          ) : (
+                            <p className="mt-1.5 text-base font-bold text-stone-900">{money(dish.price)}</p>
+                          )}
                           <div className="mt-5 flex justify-end">
                             <button
                               type="button"
@@ -1819,7 +1873,14 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                   <h3 className="mt-4 font-display text-4xl font-bold text-white sm:text-5xl">{localizedDishName(selectedDish)}</h3>
                   <p className="mt-3 max-w-2xl text-stone-300">{localizedDishDescription(selectedDish)}</p>
                   <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-stone-200">
-                    <span className="rounded-full border border-white/10 bg-black/45 px-3 py-1">{money(selectedDish.price)}</span>
+                    <span className="flex items-baseline gap-1.5 rounded-full border border-white/10 bg-black/45 px-3 py-1">
+                      {activeDiscountPercent > 0 && (
+                        <span className="text-stone-400 line-through">{money(selectedDish.price)}</span>
+                      )}
+                      <span className={activeDiscountPercent > 0 ? 'font-semibold text-emerald-400' : undefined}>
+                        {money(discountedPrice(selectedDish.price))}
+                      </span>
+                    </span>
                     <span className="rounded-full border border-white/10 bg-black/45 px-3 py-1">{selectedDish.category}</span>
                     {selectedDish.spiceLevel > 0 && (
                       <span className="rounded-full border border-white/10 bg-black/45 px-3 py-1">

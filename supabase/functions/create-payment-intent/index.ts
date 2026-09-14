@@ -29,6 +29,56 @@ type CartRequestItem = {
   extraNames?: string[];
 };
 
+type DiscountRuleRow = {
+  percent: number;
+  days_of_week: number[];
+  start_time: string | null;
+  end_time: string | null;
+};
+
+// Même logique que src/lib/discounts.ts côté client (dupliquée : cette fonction tourne dans un
+// runtime Deno séparé, sans accès au code du bundle Vite) — toujours évaluée en heure de Paris,
+// c'est elle qui fait foi pour le montant réellement facturé.
+const RESTAURANT_TIMEZONE = 'Europe/Paris';
+const WEEKDAY_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+function getParisNow(): { weekday: number; minutes: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: RESTAURANT_TIMEZONE,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  const weekdayShort = parts.find((part) => part.type === 'weekday')?.value ?? 'Sun';
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? '0') % 24;
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value ?? '0');
+  return { weekday: WEEKDAY_INDEX[weekdayShort] ?? 0, minutes: hour * 60 + minute };
+}
+
+function parseTimeToMinutes(value: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function isRuleActiveNow(rule: DiscountRuleRow, weekday: number, minutes: number): boolean {
+  if (!rule.days_of_week.includes(weekday)) return false;
+  if (!rule.start_time || !rule.end_time) return true;
+  const start = parseTimeToMinutes(rule.start_time);
+  const end = parseTimeToMinutes(rule.end_time);
+  if (start === null || end === null) return true;
+  if (start <= end) return minutes >= start && minutes < end;
+  return minutes >= start || minutes < end;
+}
+
+function getActiveDiscountPercent(rules: DiscountRuleRow[]): number {
+  const { weekday, minutes } = getParisNow();
+  const active = rules.filter((rule) => isRuleActiveNow(rule, weekday, minutes));
+  if (active.length === 0) return 0;
+  return Math.max(...active.map((rule) => rule.percent));
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -55,6 +105,13 @@ Deno.serve(async (req) => {
       return json({ error: "Ce restaurant n'accepte pas encore le paiement en ligne." }, 400);
     }
 
+    const { data: discountRules } = await supabase
+      .from('discount_rules')
+      .select('percent, days_of_week, start_time, end_time')
+      .eq('restaurant_id', restaurantId)
+      .eq('active', true);
+    const discountPercent = getActiveDiscountPercent((discountRules ?? []) as DiscountRuleRow[]);
+
     let amount = 0;
     for (const item of items) {
       if (!item.dishId) continue;
@@ -67,7 +124,12 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (!dish) continue;
 
+      // La réduction s'applique uniquement au prix du plat, pas aux suppléments — voir
+      // discountedPrice() côté client (RestaurantExperience.tsx) pour la même règle.
       let unitPrice = Number(dish.price) || 0;
+      if (discountPercent > 0) {
+        unitPrice = Math.round(unitPrice * (1 - discountPercent / 100) * 100) / 100;
+      }
       const dishExtras: { name: string; price: number }[] = Array.isArray(dish.extras) ? dish.extras : [];
       const requestedExtraNames = Array.isArray(item.extraNames) ? item.extraNames : [];
       for (const extraName of requestedExtraNames) {

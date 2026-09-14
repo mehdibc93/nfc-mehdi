@@ -10,6 +10,11 @@ import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
 import { useOrderNotifications } from '../hooks/useOrderNotifications';
 import { areNotificationsEnabled, setNotificationsEnabled } from '../lib/notificationPrefs';
+import { getPushSubscriptionState, isPushSupported, subscribeToPush, unsubscribeFromPush } from '../lib/pushNotifications';
+import type { PushState } from '../lib/pushNotifications';
+import { DAY_LABELS_SHORT } from '../lib/discounts';
+import { mapDiscountRule } from '../lib/mappers';
+import type { DiscountRule } from '../lib/types';
 
 type ConfigRestaurant = {
   id: string;
@@ -39,6 +44,15 @@ export function ConfigurationPage() {
   const [savingReview, setSavingReview] = useState(false);
   const [reviewSaved, setReviewSaved] = useState(false);
 
+  const [discountRules, setDiscountRulesState] = useState<DiscountRule[]>([]);
+  const [newDiscountLabel, setNewDiscountLabel] = useState('');
+  const [newDiscountPercent, setNewDiscountPercent] = useState('10');
+  const [newDiscountDays, setNewDiscountDays] = useState<Set<number>>(new Set());
+  const [newDiscountAllDay, setNewDiscountAllDay] = useState(true);
+  const [newDiscountStart, setNewDiscountStart] = useState('17:00');
+  const [newDiscountEnd, setNewDiscountEnd] = useState('19:00');
+  const [savingDiscount, setSavingDiscount] = useState(false);
+
   const [editingSlug, setEditingSlug] = useState(false);
   const [slugInput, setSlugInput] = useState('');
   const [savingSlug, setSavingSlug] = useState(false);
@@ -49,6 +63,39 @@ export function ConfigurationPage() {
     const next = !notificationsEnabled;
     setNotificationsEnabledState(next);
     setNotificationsEnabled(next);
+  };
+
+  const [pushState, setPushState] = useState<PushState>('unsupported');
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => {
+    getPushSubscriptionState().then(setPushState);
+  }, []);
+  const togglePush = async () => {
+    if (!restaurant || pushBusy) return;
+    setPushBusy(true);
+    try {
+      if (pushState === 'subscribed') {
+        await unsubscribeFromPush(restaurant.id);
+        setPushState('unsubscribed');
+      } else {
+        await subscribeToPush(restaurant.id);
+        setPushState('subscribed');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      if (message === 'permission-denied') {
+        setToast(
+          dt(
+            'Notifications bloquées par le navigateur — autorisez-les dans les réglages du site (icône à côté de l\'adresse).',
+            'Notifications blocked by the browser — allow them in the site settings (icon next to the address bar).',
+          ),
+        );
+      } else {
+        setToast(dt('Échec de l\'activation des notifications push.', 'Failed to enable push notifications.'));
+      }
+    } finally {
+      setPushBusy(false);
+    }
   };
 
   useEffect(() => {
@@ -86,6 +133,79 @@ export function ConfigurationPage() {
     const timer = window.setTimeout(() => setToast(''), 2200);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    if (!restaurant) return undefined;
+    let cancelled = false;
+    supabase
+      .from('discount_rules')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .order('created_at', { ascending: true })
+      .then(({ data }) => {
+        if (!cancelled && data) setDiscountRulesState(data.map(mapDiscountRule));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurant?.id]);
+
+  const toggleNewDiscountDay = (day: number) => {
+    setNewDiscountDays((current) => {
+      const next = new Set(current);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  };
+
+  const createDiscountRule = async () => {
+    if (!restaurant || newDiscountDays.size === 0) return;
+    const percent = Number.parseFloat(newDiscountPercent);
+    if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
+      setToast(dt('Pourcentage invalide.', 'Invalid percentage.'));
+      return;
+    }
+    setSavingDiscount(true);
+    const { data, error } = await supabase
+      .from('discount_rules')
+      .insert({
+        restaurant_id: restaurant.id,
+        label: newDiscountLabel.trim(),
+        percent,
+        days_of_week: Array.from(newDiscountDays),
+        start_time: newDiscountAllDay ? null : newDiscountStart,
+        end_time: newDiscountAllDay ? null : newDiscountEnd,
+      })
+      .select('*')
+      .single();
+    setSavingDiscount(false);
+    if (error || !data) {
+      setToast(
+        dt(`Échec de la création : ${error?.message ?? 'erreur inconnue'}`, `Failed to create: ${error?.message ?? 'unknown error'}`),
+      );
+      return;
+    }
+    setDiscountRulesState((current) => [...current, mapDiscountRule(data)]);
+    setNewDiscountLabel('');
+    setNewDiscountPercent('10');
+    setNewDiscountDays(new Set());
+    setNewDiscountAllDay(true);
+    setToast(dt('Réduction créée !', 'Discount created!'));
+  };
+
+  const toggleDiscountActive = async (rule: DiscountRule) => {
+    setDiscountRulesState((current) => current.map((r) => (r.id === rule.id ? { ...r, active: !r.active } : r)));
+    const { error } = await supabase.from('discount_rules').update({ active: !rule.active }).eq('id', rule.id);
+    if (error) setToast(dt(`Échec : ${error.message}`, `Failed: ${error.message}`));
+  };
+
+  const deleteDiscountRule = async (ruleId: string) => {
+    if (!window.confirm(dt('Supprimer cette réduction ?', 'Delete this discount?'))) return;
+    setDiscountRulesState((current) => current.filter((r) => r.id !== ruleId));
+    const { error } = await supabase.from('discount_rules').delete().eq('id', ruleId);
+    if (error) setToast(dt(`Échec de la suppression : ${error.message}`, `Delete failed: ${error.message}`));
+  };
 
   const updateRestaurantField = async (patch: Partial<Pick<ConfigRestaurant, 'servicePin' | 'pinProtectedSections'>>) => {
     if (!restaurant) return;
@@ -387,6 +507,37 @@ export function ConfigurationPage() {
               )}
           </div>
 
+          {/* Notifications push */}
+          {isPushSupported() && (
+            <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-xl font-bold text-stone-900">
+                    {dt('🔔 Notifications push', '🔔 Push notifications')}
+                  </h2>
+                  <p className="mt-2 text-sm text-stone-500">
+                    {dt(
+                      "Reçues sur cet appareil même si le dashboard n'est pas ouvert dans un onglet — utile sur votre téléphone pour ne rater aucune commande ni demande client.",
+                      "Received on this device even when the dashboard isn't open in a tab — handy on your phone so you never miss an order or customer request.",
+                    )}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={pushState === 'subscribed'}
+                  disabled={pushBusy}
+                  onClick={togglePush}
+                  className={`flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors duration-300 disabled:opacity-50 ${
+                    pushState === 'subscribed' ? 'justify-end bg-emerald-500' : 'justify-start bg-stone-300'
+                  }`}
+                >
+                  <span className="h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Code PIN */}
           <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
             <h2 className="font-display text-xl font-bold text-stone-900">{dt('🔒 Code PIN — Mode Service', '🔒 PIN code — Service Mode')}</h2>
@@ -601,6 +752,152 @@ export function ConfigurationPage() {
                 {savingReview ? dt('Enregistrement...', 'Saving...') : dt('Enregistrer', 'Save')}
               </button>
               {reviewSaved && <span className="text-sm font-semibold text-emerald-600">{dt('✓ Enregistré', '✓ Saved')}</span>}
+            </div>
+          </div>
+
+          {/* Réductions automatiques */}
+          <div className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
+            <h2 className="font-display text-xl font-bold text-stone-900">{dt('🏷️ Réductions automatiques', '🏷️ Automatic discounts')}</h2>
+            <p className="mt-2 text-sm text-stone-500">
+              {dt(
+                "Réduction appliquée automatiquement sur tout le menu selon le jour et l'horaire — aucune action requise du client (ex : -10% tous les mardis, ou -20% de 17h à 19h). Si plusieurs réductions sont actives en même temps, la plus avantageuse pour le client s'applique.",
+                'Discount applied automatically to the whole menu based on day and time — no action needed from the customer (e.g. -10% every Tuesday, or -20% from 5pm to 7pm). If several discounts are active at once, the best one for the customer applies.',
+              )}
+            </p>
+
+            {discountRules.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {discountRules.map((rule) => (
+                  <div
+                    key={rule.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-stone-50/60 p-3.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-stone-900">
+                        {rule.label || dt('Réduction', 'Discount')} — {rule.percent}%
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        {DAY_LABELS_SHORT.filter((day) => rule.daysOfWeek.includes(day.value))
+                          .map((day) => dt(day.fr, day.en))
+                          .join(', ')}
+                        {' · '}
+                        {rule.startTime && rule.endTime
+                          ? `${rule.startTime}–${rule.endTime}`
+                          : dt('Toute la journée', 'All day')}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={rule.active}
+                        onClick={() => toggleDiscountActive(rule)}
+                        className={`flex h-6 w-11 items-center rounded-full p-1 transition-colors duration-300 ${
+                          rule.active ? 'justify-end bg-emerald-500' : 'justify-start bg-stone-300'
+                        }`}
+                      >
+                        <span className="h-4 w-4 rounded-full bg-white shadow-sm" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteDiscountRule(rule.id)}
+                        className="text-xs font-semibold text-red-500 hover:text-red-600"
+                      >
+                        {dt('Supprimer', 'Delete')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-5 rounded-2xl border border-dashed border-navy-300/60 bg-navy-300/5 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
+                {dt('Nouvelle réduction', 'New discount')}
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs font-semibold text-stone-500">
+                  {dt('Nom (facultatif)', 'Name (optional)')}
+                  <input
+                    value={newDiscountLabel}
+                    onChange={(event) => setNewDiscountLabel(event.target.value)}
+                    placeholder={dt('Ex : Happy hour', 'E.g.: Happy hour')}
+                    className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-normal text-stone-700 outline-none focus:border-navy-300"
+                  />
+                </label>
+                <label className="block text-xs font-semibold text-stone-500">
+                  {dt('Réduction (%)', 'Discount (%)')}
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={newDiscountPercent}
+                    onChange={(event) => setNewDiscountPercent(event.target.value)}
+                    className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-normal text-stone-700 outline-none focus:border-navy-300"
+                  />
+                </label>
+              </div>
+
+              <p className="mt-3 text-xs font-semibold text-stone-500">{dt('Jours', 'Days')}</p>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {DAY_LABELS_SHORT.map((day) => (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() => toggleNewDiscountDay(day.value)}
+                    className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-300 ${
+                      newDiscountDays.has(day.value)
+                        ? 'border-navy-400 bg-navy-300/15 text-navy-700'
+                        : 'border-stone-200 bg-white text-stone-500 hover:border-navy-300/40'
+                    }`}
+                  >
+                    {dt(day.fr, day.en)}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setNewDiscountDays(new Set(DAY_LABELS_SHORT.map((day) => day.value)))}
+                  className="rounded-full border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-stone-500 transition-all duration-300 hover:border-navy-300/40"
+                >
+                  {dt('Tous les jours', 'Every day')}
+                </button>
+              </div>
+
+              <label className="mt-3 flex items-center gap-2 text-xs font-semibold text-stone-500">
+                <input
+                  type="checkbox"
+                  checked={newDiscountAllDay}
+                  onChange={(event) => setNewDiscountAllDay(event.target.checked)}
+                  className="h-4 w-4 rounded border-stone-300"
+                />
+                {dt('Toute la journée', 'All day')}
+              </label>
+              {!newDiscountAllDay && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <input
+                    type="time"
+                    value={newDiscountStart}
+                    onChange={(event) => setNewDiscountStart(event.target.value)}
+                    className="rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700 outline-none focus:border-navy-300"
+                  />
+                  <span className="text-xs text-stone-400">{dt('à', 'to')}</span>
+                  <input
+                    type="time"
+                    value={newDiscountEnd}
+                    onChange={(event) => setNewDiscountEnd(event.target.value)}
+                    className="rounded-2xl border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700 outline-none focus:border-navy-300"
+                  />
+                </div>
+              )}
+
+              <button
+                type="button"
+                disabled={newDiscountDays.size === 0 || savingDiscount}
+                onClick={createDiscountRule}
+                className="mt-4 rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-6 py-3 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50"
+              >
+                {savingDiscount ? dt('Création...', 'Creating...') : dt('+ Créer la réduction', '+ Create discount')}
+              </button>
             </div>
           </div>
         </main>

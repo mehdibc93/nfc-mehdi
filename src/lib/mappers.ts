@@ -2,6 +2,8 @@ import type {
   CategoryRow,
   Dish,
   DishRow,
+  DiscountRule,
+  DiscountRuleRow,
   Order,
   OrderRow,
   Restaurant,
@@ -10,6 +12,19 @@ import type {
   TableRequest,
   TableRequestRow,
 } from './types';
+
+export function mapDiscountRule(row: DiscountRuleRow): DiscountRule {
+  return {
+    id: row.id,
+    restaurantId: row.restaurant_id,
+    label: row.label,
+    percent: row.percent,
+    daysOfWeek: row.days_of_week,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    active: row.active,
+  };
+}
 
 export function toDishRowPatch(patch: Partial<Dish>): Record<string, unknown> {
   const out: Record<string, unknown> = {};

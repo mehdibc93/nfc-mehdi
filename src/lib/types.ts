@@ -39,6 +39,17 @@ export type DishRow = {
   prep_time_minutes: number | null;
 };
 
+export type DiscountRuleRow = {
+  id: string;
+  restaurant_id: string;
+  label: string;
+  percent: number;
+  days_of_week: number[];
+  start_time: string | null;
+  end_time: string | null;
+  active: boolean;
+};
+
 export type CategoryRow = {
   id: string;
   restaurant_id: string;
@@ -114,6 +125,17 @@ export type Dish = {
   service: MenuService;
   stockQuantity: number | null;
   prepTimeMinutes: number | null;
+};
+
+export type DiscountRule = {
+  id: string;
+  restaurantId: string;
+  label: string;
+  percent: number;
+  daysOfWeek: number[];
+  startTime: string | null;
+  endTime: string | null;
+  active: boolean;
 };
 
 export type Category = {
