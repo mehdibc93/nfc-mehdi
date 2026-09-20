@@ -61,6 +61,12 @@ module.exports = {
           '50%': { transform: 'perspective(900px) rotateX(-5deg) rotateY(7deg) translateY(-2px) scale(1.06)' },
           '75%': { transform: 'perspective(900px) rotateX(3deg) rotateY(-4deg) translateY(-8px) scale(1.055)' },
         },
+        // Halo pulsé autour du bouton "Voir en RA" pour attirer l'œil vers une fonctionnalité
+        // encore inhabituelle sur une carte de restaurant.
+        arGlowPulse: {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(168, 85, 247, 0.55), 0 4px 18px rgba(88, 28, 135, 0.45)' },
+          '50%': { boxShadow: '0 0 0 8px rgba(168, 85, 247, 0), 0 4px 18px rgba(88, 28, 135, 0.45)' },
+        },
       },
       animation: {
         float: 'float 6s ease-in-out infinite',
@@ -77,6 +83,7 @@ module.exports = {
         drawCheckSolo: 'drawCheck 320ms ease-out forwards',
         pop: 'pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
         floatTilt3D: 'floatTilt3D 9s ease-in-out infinite',
+        arGlowPulse: 'arGlowPulse 2.2s ease-in-out infinite',
       },
       fontFamily: {
         display: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui'],

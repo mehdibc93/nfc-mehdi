@@ -1886,13 +1886,16 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                   <button
                     type="button"
                     onClick={() => openArOverlay(selectedDish)}
-                    className="absolute left-4 top-4 z-20 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/50 px-3.5 py-2 text-xs font-semibold text-white backdrop-blur transition-colors duration-300 hover:bg-black/65"
+                    className="absolute left-4 top-4 z-20 flex animate-arGlowPulse items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-500 via-purple-500 to-indigo-500 px-4 py-2.5 text-sm font-bold text-white transition-transform duration-300 hover:-translate-y-0.5 hover:scale-105"
                   >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
                       <path d="M12 3v9M12 12l8-4.5M12 12l-8-4.5" />
                     </svg>
                     {tr('modal.viewInAr')}
+                    <span className="rounded-full bg-white/25 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                      {tr('modal.arNewBadge')}
+                    </span>
                   </button>
                 )}
 

@@ -137,7 +137,8 @@ body::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-floatTilt3D {
+  .animate-floatTilt3D,
+  .animate-arGlowPulse {
     animation: none;
   }
 }
