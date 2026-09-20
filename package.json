@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@google/model-viewer": "^4.3.1",
     "@lottiefiles/dotlottie-react": "^0.19.12",
     "@stripe/react-stripe-js": "^6.8.0",
     "@stripe/stripe-js": "^9.12.1",

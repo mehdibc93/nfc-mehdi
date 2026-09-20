@@ -15,6 +15,7 @@ import type { PushState } from '../lib/pushNotifications';
 import { DAY_LABELS_SHORT } from '../lib/discounts';
 import { mapDiscountRule } from '../lib/mappers';
 import type { DiscountRule } from '../lib/types';
+import { setPageMeta } from '../lib/seo';
 
 type ConfigRestaurant = {
   id: string;
@@ -31,6 +32,15 @@ export function ConfigurationPage() {
   const [loading, setLoading] = useState(true);
   const [restaurant, setRestaurant] = useState<ConfigRestaurant | null>(null);
   const [toast, setToast] = useState('');
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Configuration — Nourevo',
+      description: 'Configuration de votre restaurant sur Nourevo.',
+      canonicalPath: '/dashboard/configuration',
+      noindex: true,
+    });
+  }, []);
 
   const [writingNfc, setWritingNfc] = useState(false);
 

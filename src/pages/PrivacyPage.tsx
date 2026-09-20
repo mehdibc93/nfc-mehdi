@@ -8,6 +8,7 @@ export function PrivacyPage() {
     setPageMeta({
       title: 'Politique de confidentialité — Nourevo',
       description: 'Politique de confidentialité et protection des données personnelles sur Nourevo.',
+      canonicalPath: '/confidentialite',
     });
   }, []);
 

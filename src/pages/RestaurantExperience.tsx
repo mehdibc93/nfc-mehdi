@@ -187,8 +187,35 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
       title: `${restaurantName} — Menu digital | Nourevo`,
       description,
       image: restaurant.heroImage || undefined,
+      // Le lien canonique ignore les paramètres de démo (?demo=1, ?nfc=1) pour que Google
+      // indexe une seule URL par restaurant plutôt que plusieurs variantes équivalentes.
+      canonicalPath: `/r/${restaurant.slug}`,
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'Restaurant',
+        name: restaurantName,
+        image: restaurant.heroImage || undefined,
+        address: restaurantAddress
+          ? {
+              '@type': 'PostalAddress',
+              streetAddress: restaurantAddress,
+              addressCountry: 'FR',
+            }
+          : undefined,
+        servesCuisine: restaurantTags.length > 0 ? restaurantTags : undefined,
+        aggregateRating:
+          restaurant.reviewCount > 0
+            ? {
+                '@type': 'AggregateRating',
+                ratingValue: restaurant.rating,
+                reviewCount: restaurant.reviewCount,
+              }
+            : undefined,
+        acceptsReservations: 'False',
+        menu: `${window.location.origin}/r/${restaurant.slug}`,
+      },
     });
-  }, [restaurantName, restaurantAddress, restaurant.heroImage]);
+  }, [restaurantName, restaurantAddress, restaurant.heroImage, restaurant.slug, restaurant.rating, restaurant.reviewCount, restaurantTags]);
 
   const paymentOptions = useMemo(
     () =>
@@ -267,6 +294,8 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const [allergenExclusions, setAllergenExclusions] = useState<Set<string>>(new Set());
   const [showDietFilters, setShowDietFilters] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [arOverlayOpen, setArOverlayOpen] = useState(false);
+  const [modelViewerReady, setModelViewerReady] = useState(false);
   const [selectedExtraIndexes, setSelectedExtraIndexes] = useState<Set<number>>(new Set());
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
   const [creatingPaymentIntent, setCreatingPaymentIntent] = useState(false);
@@ -505,6 +534,18 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
     setSelectedDish(dish);
     setModalStep('dish');
     logDishEvent(restaurant.id, dish.id, dish.name, 'view');
+  };
+
+  // Le web component <model-viewer> (three.js sous le capot, ~500 Ko) n'est chargé que si un
+  // client ouvre effectivement la réalité augmentée — pas au chargement du menu, pour ne pas
+  // pénaliser tout le monde alors que peu de plats auront un modèle 3D.
+  const openArOverlay = async (dish: FlatDish) => {
+    if (!modelViewerReady) {
+      await import('@google/model-viewer');
+      setModelViewerReady(true);
+    }
+    logDishEvent(restaurant.id, dish.id, dish.name, 'view');
+    setArOverlayOpen(true);
   };
 
   const startOrderForDish = (dish?: FlatDish | null) => {
@@ -1525,7 +1566,28 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         <div className="relative z-10 grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-700">
-              <span>✓</span>
+              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  pathLength="1"
+                  style={{ strokeDasharray: 1, strokeDashoffset: 1 }}
+                  className="animate-drawCheckCircle"
+                />
+                <path
+                  d="M7 12.3l3.2 3.2L17 8.7"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  pathLength="1"
+                  style={{ strokeDasharray: 1, strokeDashoffset: 1 }}
+                  className="animate-drawCheckMark"
+                />
+              </svg>
               {tr('success.confirmed')}
             </div>
             <h1 className="font-display text-5xl font-bold tracking-tight text-stone-900 sm:text-6xl">
@@ -1811,13 +1873,28 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
             </button>
 
             <div className="grid lg:grid-cols-[1fr_0.95fr]">
-              <div className="relative min-h-[280px] sm:min-h-[340px] lg:min-h-[680px]">
+              <div className="relative min-h-[280px] overflow-hidden sm:min-h-[340px] lg:min-h-[680px]">
                 <img
+                  key={activePhotoIndex}
                   src={activeDishPhotos[activePhotoIndex] ?? selectedDish.image}
                   alt={`${localizedDishName(selectedDish)} — ${activePhotoIndex + 1}`}
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full origin-center object-cover animate-floatTilt3D [transform-style:preserve-3d]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/10" />
+
+                {selectedDish.arModelUrl && (
+                  <button
+                    type="button"
+                    onClick={() => openArOverlay(selectedDish)}
+                    className="absolute left-4 top-4 z-20 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/50 px-3.5 py-2 text-xs font-semibold text-white backdrop-blur transition-colors duration-300 hover:bg-black/65"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
+                      <path d="M12 3v9M12 12l8-4.5M12 12l-8-4.5" />
+                    </svg>
+                    {tr('modal.viewInAr')}
+                  </button>
+                )}
 
                 {activeDishPhotos.length > 1 && (
                   <>
@@ -2042,6 +2119,39 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {arOverlayOpen && selectedDish && modelViewerReady && (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-black">
+          <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60">{tr('modal.arTitle')}</p>
+              <p className="truncate text-sm font-semibold text-white">{localizedDishName(selectedDish)}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setArOverlayOpen(false)}
+              className="shrink-0 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-sm text-white transition-colors duration-300 hover:bg-white/20"
+            >
+              {tr('modal.close')}
+            </button>
+          </div>
+          <div className="relative flex-1">
+            <model-viewer
+              src={selectedDish.arModelUrl ?? undefined}
+              ios-src={selectedDish.arModelIosUrl ?? undefined}
+              alt={localizedDishName(selectedDish)}
+              ar
+              ar-modes="webxr scene-viewer quick-look"
+              camera-controls
+              auto-rotate
+              shadow-intensity="1"
+              reveal="auto"
+              style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
+            />
+          </div>
+          <p className="px-4 pb-5 pt-2 text-center text-xs text-white/60 sm:px-6">{tr('modal.arHint')}</p>
         </div>
       )}
     </div>

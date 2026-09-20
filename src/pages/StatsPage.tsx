@@ -10,6 +10,7 @@ import { PinSectionGate } from '../components/PinSectionGate';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
 import { useOrderNotifications } from '../hooks/useOrderNotifications';
+import { setPageMeta } from '../lib/seo';
 
 type DishStat = {
   key: string;
@@ -34,6 +35,15 @@ export function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [restaurant, setRestaurant] = useState<RestaurantWithMenu | null>(null);
   const [events, setEvents] = useState<DishEventRow[]>([]);
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Statistiques — Nourevo',
+      description: 'Statistiques de votre restaurant sur Nourevo.',
+      canonicalPath: '/dashboard/stats',
+      noindex: true,
+    });
+  }, []);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
 
   useEffect(() => {

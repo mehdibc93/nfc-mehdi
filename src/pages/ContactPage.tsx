@@ -28,6 +28,7 @@ export function ContactPage() {
     setPageMeta({
       title: 'Contact — Nourevo',
       description: 'Une question sur Nourevo, votre abonnement ou un problème technique ? Contactez-nous directement.',
+      canonicalPath: '/contact',
     });
   }, []);
 

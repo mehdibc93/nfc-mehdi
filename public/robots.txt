@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /connexion
+Disallow: /inscription
+Disallow: /reinitialiser-mot-de-passe
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /service
 
 Sitemap: https://nourevo.vercel.app/sitemap.xml

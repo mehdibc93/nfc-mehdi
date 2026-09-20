@@ -37,6 +37,8 @@ export type DishRow = {
   service: MenuService;
   stock_quantity: number | null;
   prep_time_minutes: number | null;
+  ar_model_url: string | null;
+  ar_model_ios_url: string | null;
 };
 
 export type DiscountRuleRow = {
@@ -125,6 +127,8 @@ export type Dish = {
   service: MenuService;
   stockQuantity: number | null;
   prepTimeMinutes: number | null;
+  arModelUrl: string | null;
+  arModelIosUrl: string | null;
 };
 
 export type DiscountRule = {

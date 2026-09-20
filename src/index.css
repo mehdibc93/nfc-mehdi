@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* Polices chargées depuis index.html (preconnect + <link>) plutôt qu'en @import ici : un
+   @import CSS retarde le premier rendu (il doit être découvert et récupéré avant le reste de
+   la feuille de style), alors qu'un <link> dans le <head> démarre en parallèle avec le HTML. */
 
 @tailwind base;
 @tailwind components;
@@ -132,4 +134,10 @@ body::before {
 ::selection {
   background: rgba(60, 90, 134, 0.22);
   color: #161c26;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-floatTilt3D {
+    animation: none;
+  }
 }

@@ -5,7 +5,7 @@ import { setPageMeta } from '../lib/seo';
 
 export function LegalNoticePage() {
   useEffect(() => {
-    setPageMeta({ title: 'Mentions légales — Nourevo', description: 'Mentions légales du site Nourevo.' });
+    setPageMeta({ title: 'Mentions légales — Nourevo', description: 'Mentions légales du site Nourevo.', canonicalPath: '/mentions-legales' });
   }, []);
 
   return (

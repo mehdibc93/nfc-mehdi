@@ -9,7 +9,7 @@ import { slugify } from '../lib/slug';
 import { money } from '../lib/format';
 import { translateDishFields, translateRestaurantFields } from '../lib/translate';
 import { LOCALES } from '../lib/i18n';
-import { MAX_VIDEO_SIZE_MB, uploadPhoto, uploadVideo } from '../lib/storage';
+import { MAX_MODEL_SIZE_MB, MAX_VIDEO_SIZE_MB, uploadModel, uploadPhoto, uploadVideo } from '../lib/storage';
 import { ALLERGENS, DIET_TAGS } from '../lib/dietInfo';
 import { INTRO_VIDEOS } from '../lib/introVideos';
 import { WAIT_ANIMATIONS, getWaitAnimationId } from '../lib/waitAnimations';
@@ -31,6 +31,7 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
 import { useOrderNotifications } from '../hooks/useOrderNotifications';
+import { setPageMeta } from '../lib/seo';
 
 const TARGET_LOCALES = LOCALES.filter((locale) => locale.code !== 'fr');
 const DEFAULT_CATEGORY_NAMES = ['Entrées', 'Plats', 'Desserts', 'Boissons'];
@@ -57,6 +58,15 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [restaurant, setRestaurant] = useState<RestaurantWithMenu | null>(null);
   const [toast, setToast] = useState('');
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Dashboard — Nourevo',
+      description: 'Gérez votre carte, votre restaurant et vos paiements sur Nourevo.',
+      canonicalPath: location.pathname,
+      noindex: true,
+    });
+  }, [location.pathname]);
   const [translatingRestaurant, setTranslatingRestaurant] = useState(false);
   const [translatingDishId, setTranslatingDishId] = useState<string | null>(null);
   const [uploadingHero, setUploadingHero] = useState(false);
@@ -65,6 +75,7 @@ export function DashboardPage() {
   const [uploadingNewHero, setUploadingNewHero] = useState(false);
   const [uploadingDishImageId, setUploadingDishImageId] = useState<string | null>(null);
   const [uploadingGalleryDishId, setUploadingGalleryDishId] = useState<string | null>(null);
+  const [uploadingArModelDishId, setUploadingArModelDishId] = useState<string | null>(null);
   const [connectingStripe, setConnectingStripe] = useState(false);
 
   // Onboarding (pas encore de restaurant)
@@ -108,6 +119,7 @@ export function DashboardPage() {
   const [stripeConfirmError, setStripeConfirmError] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [savingChanges, setSavingChanges] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const pendingRestaurantPatchRef = useRef<Partial<RestaurantWithMenu>>({});
   const pendingCategoryPatchesRef = useRef<Map<string, string>>(new Map());
   const pendingDishPatchesRef = useRef<Map<string, Partial<Dish>>>(new Map());
@@ -785,6 +797,10 @@ export function DashboardPage() {
         ? dt(`Échec de l'enregistrement de ${failures} changement(s).`, `Failed to save ${failures} change(s).`)
         : dt('✓ Modifications enregistrées !', '✓ Changes saved!'),
     );
+    if (failures === 0) {
+      setJustSaved(true);
+      window.setTimeout(() => setJustSaved(false), 1600);
+    }
   };
 
   const toggleDietTag = (dish: Dish, key: string) => {
@@ -1140,6 +1156,33 @@ export function DashboardPage() {
       setToast(dt("Échec de l'envoi de la photo.", 'Photo upload failed.'));
     } finally {
       setUploadingGalleryDishId(null);
+    }
+  };
+
+  // field distingue Android (.glb, ar_model_url) et iPhone (.usdz, ar_model_ios_url) — les deux
+  // sont facultatifs et indépendants : Android fonctionne avec le .glb seul.
+  const handleArModelUpload = async (
+    dish: Dish,
+    field: 'arModelUrl' | 'arModelIosUrl',
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !user) return;
+    setUploadingArModelDishId(dish.id);
+    try {
+      const url = await uploadModel(file, user.id);
+      await updateDish(dish.id, { [field]: url });
+      setToast(dt('Modèle 3D envoyé !', '3D model uploaded!'));
+    } catch (error) {
+      setToast(
+        dt(
+          `Échec de l'envoi du modèle 3D : ${error instanceof Error ? error.message : 'erreur inconnue'}`,
+          `3D model upload failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+        ),
+      );
+    } finally {
+      setUploadingArModelDishId(null);
     }
   };
 
@@ -2730,6 +2773,71 @@ export function DashboardPage() {
                         </button>
                       </div>
                     </div>
+
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
+                        {dt('🕶️ Réalité augmentée', '🕶️ Augmented reality')}
+                      </p>
+                      <p className="mt-1.5 text-xs font-normal normal-case tracking-normal text-stone-500">
+                        {dt(
+                          "Facultatif — si vous avez un modèle 3D de ce plat, vos clients pourront le poser sur leur table via la caméra de leur téléphone. Le fichier .glb suffit pour Android ; ajoutez aussi un .usdz pour que ça fonctionne sur iPhone.",
+                          'Optional — if you have a 3D model of this dish, your customers can place it on their table using their phone camera. The .glb file is enough for Android; add a .usdz too so it also works on iPhone.',
+                        )}
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <label className="cursor-pointer rounded-full border border-stone-200 bg-white px-4 py-2.5 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40">
+                          {uploadingArModelDishId === dish.id
+                            ? dt('Envoi...', 'Uploading...')
+                            : dish.arModelUrl
+                              ? dt('✓ Modèle Android (.glb)', '✓ Android model (.glb)')
+                              : dt('Modèle Android (.glb)', 'Android model (.glb)')}
+                          <input
+                            type="file"
+                            accept=".glb,model/gltf-binary"
+                            className="hidden"
+                            onChange={(event) => handleArModelUpload(dish, 'arModelUrl', event)}
+                            disabled={uploadingArModelDishId === dish.id}
+                          />
+                        </label>
+                        {dish.arModelUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updateDish(dish.id, { arModelUrl: null })}
+                            className="text-xs font-semibold text-red-500 hover:text-red-600"
+                          >
+                            {dt('Retirer', 'Remove')}
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <label className="cursor-pointer rounded-full border border-stone-200 bg-white px-4 py-2.5 text-xs font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40">
+                          {uploadingArModelDishId === dish.id
+                            ? dt('Envoi...', 'Uploading...')
+                            : dish.arModelIosUrl
+                              ? dt('✓ Modèle iPhone (.usdz)', '✓ iPhone model (.usdz)')
+                              : dt('Modèle iPhone (.usdz)', 'iPhone model (.usdz)')}
+                          <input
+                            type="file"
+                            accept=".usdz,model/vnd.usdz+zip"
+                            className="hidden"
+                            onChange={(event) => handleArModelUpload(dish, 'arModelIosUrl', event)}
+                            disabled={uploadingArModelDishId === dish.id}
+                          />
+                        </label>
+                        {dish.arModelIosUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updateDish(dish.id, { arModelIosUrl: null })}
+                            className="text-xs font-semibold text-red-500 hover:text-red-600"
+                          >
+                            {dt('Retirer', 'Remove')}
+                          </button>
+                        )}
+                      </div>
+                      <p className="mt-1.5 text-xs font-normal normal-case tracking-normal text-stone-400">
+                        {dt(`Max ${MAX_MODEL_SIZE_MB} Mo par fichier.`, `Max ${MAX_MODEL_SIZE_MB} MB per file.`)}
+                      </p>
+                    </div>
                       </>
                     )}
                   </div>
@@ -3061,9 +3169,31 @@ export function DashboardPage() {
                 type="button"
                 onClick={saveAllChanges}
                 disabled={!hasUnsavedChanges || savingChanges}
-                className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-6 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50"
+                className={`flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-50 ${
+                  justSaved ? 'animate-pop bg-emerald-500' : 'bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800'
+                }`}
               >
-                {savingChanges ? dt('Enregistrement...', 'Saving...') : dt('💾 Sauvegarder', '💾 Save')}
+                {justSaved ? (
+                  <>
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none">
+                      <path
+                        d="M5 12.5l4.5 4.5L19 7.5"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        pathLength="1"
+                        style={{ strokeDasharray: 1, strokeDashoffset: 1 }}
+                        className="animate-drawCheckSolo"
+                      />
+                    </svg>
+                    {dt('Enregistré !', 'Saved!')}
+                  </>
+                ) : savingChanges ? (
+                  dt('Enregistrement...', 'Saving...')
+                ) : (
+                  dt('💾 Sauvegarder', '💾 Save')
+                )}
               </button>
               <button
                 type="button"

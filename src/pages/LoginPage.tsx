@@ -16,12 +16,15 @@ export function LoginPage() {
     setPageMeta({
       title: 'Connexion restaurateur — Nourevo',
       description: 'Connectez-vous à votre dashboard Nourevo pour gérer votre carte, vos commandes et votre restaurant.',
+      canonicalPath: '/connexion',
+      noindex: true,
     });
   }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
   const [mode, setMode] = useState<'login' | 'forgot'>('login');
   const [resetEmail, setResetEmail] = useState('');
   const [resetSubmitting, setResetSubmitting] = useState(false);
@@ -42,7 +45,15 @@ export function LoginPage() {
       );
       return;
     }
-    navigate('/dashboard');
+    // Connexion réussie : un court moment de marque (façon écran de lancement Netflix) avant
+    // d'entrer dans le dashboard, plutôt qu'un redirect instantané. Ignoré si l'utilisateur a
+    // demandé moins d'animations.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      navigate('/dashboard');
+      return;
+    }
+    setShowIntro(true);
+    window.setTimeout(() => navigate('/dashboard'), 1850);
   };
 
   const handleResetSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -132,16 +143,27 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-14">
-      <div className="mb-4 flex w-full max-w-sm items-center justify-between gap-3">
-        <Link
-          to="/"
-          className="flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
-        >
-          {dt("← Retour à l'accueil", '← Back to home')}
-        </Link>
-        <DashboardLanguageSwitch />
-      </div>
+    <>
+      {showIntro && (
+        <div className="fixed inset-0 z-50 flex animate-introFadeOut items-center justify-center bg-navy-800">
+          <div className="flex flex-col items-center">
+            <span className="animate-logoReveal font-display text-3xl font-bold tracking-[0.25em] text-white sm:text-4xl">
+              NOUREVO
+            </span>
+            <span className="mt-4 h-[2px] w-16 origin-center animate-introLine bg-gradient-to-r from-transparent via-navy-300 to-transparent" />
+          </div>
+        </div>
+      )}
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-14">
+        <div className="mb-4 flex w-full max-w-sm items-center justify-between gap-3">
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
+          >
+            {dt("← Retour à l'accueil", '← Back to home')}
+          </Link>
+          <DashboardLanguageSwitch />
+        </div>
       <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft">
         <img src={logoHorizontal} alt="Nourevo" className="h-7 w-auto" />
         <h1 className="mt-3 font-display text-2xl font-bold text-stone-900">{dt('Connexion restaurateur', 'Restaurant owner login')}</h1>
@@ -184,8 +206,11 @@ export function LoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="mt-6 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 disabled:opacity-60"
+          className="mt-6 flex w-full items-center justify-center gap-2.5 rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 disabled:opacity-60"
         >
+          {submitting && (
+            <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          )}
           {submitting ? dt('Connexion...', 'Logging in...') : dt('Se connecter', 'Log in')}
         </button>
 
@@ -196,6 +221,7 @@ export function LoginPage() {
           </Link>
         </p>
       </form>
-    </div>
+      </div>
+    </>
   );
 }

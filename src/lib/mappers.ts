@@ -50,6 +50,8 @@ export function toDishRowPatch(patch: Partial<Dish>): Record<string, unknown> {
   if (patch.service !== undefined) out.service = patch.service;
   if (patch.stockQuantity !== undefined) out.stock_quantity = patch.stockQuantity;
   if (patch.prepTimeMinutes !== undefined) out.prep_time_minutes = patch.prepTimeMinutes;
+  if (patch.arModelUrl !== undefined) out.ar_model_url = patch.arModelUrl;
+  if (patch.arModelIosUrl !== undefined) out.ar_model_ios_url = patch.arModelIosUrl;
   return out;
 }
 
@@ -113,6 +115,8 @@ export function mapDish(row: DishRow): Dish {
     service: row.service ?? 'all_day',
     stockQuantity: row.stock_quantity,
     prepTimeMinutes: row.prep_time_minutes,
+    arModelUrl: row.ar_model_url,
+    arModelIosUrl: row.ar_model_ios_url,
   };
 }
 

@@ -8,6 +8,7 @@ export function TermsPage() {
     setPageMeta({
       title: "Conditions générales d'utilisation — Nourevo",
       description: "Conditions générales d'utilisation de la plateforme Nourevo.",
+      canonicalPath: '/cgu',
     });
   }, []);
 

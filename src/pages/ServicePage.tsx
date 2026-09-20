@@ -12,6 +12,7 @@ import { useDt } from '../lib/dashboardLocale';
 import { playChime } from '../lib/notificationSound';
 import { requestNotificationPermission, showBrowserNotification } from '../lib/browserNotify';
 import { areNotificationsEnabled } from '../lib/notificationPrefs';
+import { setPageMeta } from '../lib/seo';
 
 const ORDER_STATUS_LABEL: Record<OrderStatus, { fr: string; en: string }> = {
   new: { fr: 'Nouvelle', en: 'New' },
@@ -38,6 +39,16 @@ export function ServicePage() {
   const dt = useDt();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Mode Service — Nourevo',
+      description: 'Suivez les commandes et demandes en direct sur Nourevo.',
+      canonicalPath: '/service',
+      noindex: true,
+    });
+  }, []);
+
   const [loading, setLoading] = useState(true);
   const [restaurant, setRestaurant] = useState<{
     id: string;

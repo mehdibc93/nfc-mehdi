@@ -193,6 +193,7 @@ export function DiscoverDashboardPage() {
     setPageMeta({
       title: 'Découvrir le dashboard — Nourevo',
       description: "Un aperçu concret du dashboard Nourevo avant de créer votre compte : vue d'ensemble, personnalisation, Mode Service, statistiques et rentabilité.",
+      canonicalPath: '/decouvrir-dashboard',
     });
   }, []);
 

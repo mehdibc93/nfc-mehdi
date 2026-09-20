@@ -11,6 +11,7 @@ import { PinSectionGate } from '../components/PinSectionGate';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
 import { useOrderNotifications } from '../hooks/useOrderNotifications';
+import { setPageMeta } from '../lib/seo';
 import {
   PROFITABILITY_TIER_EMOJI,
   PROFITABILITY_TIER_LABEL,
@@ -37,6 +38,15 @@ export function ProfitabilityPage() {
   const [loading, setLoading] = useState(true);
   const [restaurant, setRestaurant] = useState<RestaurantWithMenu | null>(null);
   const [events, setEvents] = useState<DishEventRow[]>([]);
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Rentabilité — Nourevo',
+      description: 'Analyse de rentabilité de votre menu sur Nourevo.',
+      canonicalPath: '/dashboard/rentabilite',
+      noindex: true,
+    });
+  }, []);
 
   useEffect(() => {
     if (!user) return;

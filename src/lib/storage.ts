@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 
 const PHOTOS_BUCKET = 'photos';
 const VIDEOS_BUCKET = 'videos';
+const MODELS_BUCKET = 'models';
 
 const MAX_IMAGE_DIMENSION = 1600;
 const JPEG_QUALITY = 0.82;
@@ -73,5 +74,26 @@ export async function uploadVideo(file: File, userId: string): Promise<string> {
   if (error) throw error;
 
   const { data } = supabase.storage.from(VIDEOS_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// Modèle 3D d'un plat pour l'affichage en réalité augmentée (voir migration_026_dish_ar_model.sql) :
+// .glb pour Android/Chrome (Scene Viewer), .usdz pour iPhone (Quick Look).
+export const MAX_MODEL_SIZE_MB = 20;
+
+export async function uploadModel(file: File, userId: string): Promise<string> {
+  if (file.size > MAX_MODEL_SIZE_MB * 1024 * 1024) {
+    throw new Error(`Fichier trop lourd (max ${MAX_MODEL_SIZE_MB} Mo).`);
+  }
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'glb';
+  const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+  const { error } = await supabase.storage.from(MODELS_BUCKET).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(MODELS_BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }

@@ -85,6 +85,19 @@ export function FaqPage() {
     setPageMeta({
       title: 'FAQ — Nourevo',
       description: 'Les réponses aux questions les plus fréquentes sur Nourevo : paiement, matériel NFC, abonnement, langues, sécurité.',
+      canonicalPath: '/faq',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: FAQ_ITEMS.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.answer,
+          },
+        })),
+      },
     });
   }, []);
 

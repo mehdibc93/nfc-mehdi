@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import logoHorizontal from '../assets/logo-horizontal.png';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
+import { setPageMeta } from '../lib/seo';
 
 export function ResetPasswordPage() {
   const dt = useDt();
@@ -15,6 +16,15 @@ export function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    setPageMeta({
+      title: 'Réinitialiser le mot de passe — Nourevo',
+      description: 'Choisissez un nouveau mot de passe pour votre compte Nourevo.',
+      canonicalPath: '/reinitialiser-mot-de-passe',
+      noindex: true,
+    });
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
