@@ -1,13 +1,13 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/dashboard", "destination": "/app.html" },
-    { "source": "/dashboard/:path*", "destination": "/app.html" },
-    { "source": "/service", "destination": "/app.html" },
-    { "source": "/connexion", "destination": "/app.html" },
-    { "source": "/inscription", "destination": "/app.html" },
-    { "source": "/reinitialiser-mot-de-passe", "destination": "/app.html" },
-    { "source": "/r/:path*", "destination": "/app.html" }
+    { "source": "/dashboard", "destination": "/app" },
+    { "source": "/dashboard/:path*", "destination": "/app" },
+    { "source": "/service", "destination": "/app" },
+    { "source": "/connexion", "destination": "/app" },
+    { "source": "/inscription", "destination": "/app" },
+    { "source": "/reinitialiser-mot-de-passe", "destination": "/app" },
+    { "source": "/r/:path*", "destination": "/app" }
   ],
   "headers": [
     { "source": "/dashboard", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
