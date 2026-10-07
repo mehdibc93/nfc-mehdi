@@ -1677,6 +1677,14 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                 </button>
               ))}
             </div>
+            {/* Restaurant de démonstration (sans propriétaire) : explique au prospect que le
+                choix du paiement appartient à chaque restaurant. */}
+            {!restaurant.ownerId && !isDineIn && (
+              <p className="mt-4 rounded-2xl border border-navy-300/25 bg-navy-300/8 p-4 text-sm leading-6 text-stone-600">
+                <span className="font-semibold text-navy-700">ℹ️ {tr('checkout.demoPaymentNoteTitle')}</span>{' '}
+                {tr('checkout.demoPaymentNote')}
+              </p>
+            )}
           </div>
 
           <div className="glass rounded-3xl p-8">
