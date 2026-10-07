@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabaseClient';
 import { mapOrder, mapTableRequest } from '../lib/mappers';
-import type { Order, OrderRow, OrderStatus, TableRequest, TableRequestRow } from '../lib/types';
+import type { Fulfillment, Order, OrderRow, OrderStatus, TableRequest, TableRequestRow } from '../lib/types';
 import { money } from '../lib/format';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { PinSectionGate } from '../components/PinSectionGate';
@@ -14,11 +14,22 @@ import { requestNotificationPermission, showBrowserNotification } from '../lib/b
 import { areNotificationsEnabled } from '../lib/notificationPrefs';
 import { setPageMeta } from '../lib/seo';
 
-const ORDER_STATUS_LABEL: Record<OrderStatus, { fr: string; en: string }> = {
+type Label = { fr: string; en: string };
+
+// Mêmes statuts pour les trois types de commande, mais libellés adaptés : « servie » devient
+// « prête à retirer » à emporter et « en livraison » en livraison.
+const ORDER_STATUS_LABEL: Record<OrderStatus, Label> = {
   new: { fr: 'Nouvelle', en: 'New' },
   confirmed: { fr: 'Confirmée', en: 'Confirmed' },
   served: { fr: 'Servie', en: 'Served' },
   done: { fr: 'Terminée', en: 'Done' },
+  refused: { fr: 'Refusée', en: 'Declined' },
+};
+
+const SERVED_LABEL: Record<Fulfillment, Label> = {
+  dine_in: ORDER_STATUS_LABEL.served,
+  takeaway: { fr: 'Prête à retirer', en: 'Ready for pickup' },
+  delivery: { fr: 'En livraison', en: 'Out for delivery' },
 };
 
 const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
@@ -26,19 +37,53 @@ const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
   confirmed: 'served',
   served: 'done',
   done: null,
+  refused: null,
 };
 
-const NEXT_ACTION_LABEL: Record<OrderStatus, { fr: string; en: string }> = {
-  new: { fr: 'Prise en compte', en: 'Accept' },
-  confirmed: { fr: 'Marquer servie', en: 'Mark served' },
-  served: { fr: 'Terminer', en: 'Finish' },
-  done: { fr: '', en: '' },
+const NEXT_ACTION_LABEL: Record<Fulfillment, Partial<Record<OrderStatus, Label>>> = {
+  dine_in: {
+    new: { fr: 'Prise en compte', en: 'Accept' },
+    confirmed: { fr: 'Marquer servie', en: 'Mark served' },
+    served: { fr: 'Terminer', en: 'Finish' },
+  },
+  takeaway: {
+    new: { fr: 'Accepter', en: 'Accept' },
+    confirmed: { fr: 'Prête à retirer', en: 'Ready for pickup' },
+    served: { fr: 'Récupérée', en: 'Picked up' },
+  },
+  delivery: {
+    new: { fr: 'Accepter', en: 'Accept' },
+    confirmed: { fr: 'Partie en livraison', en: 'Out for delivery' },
+    served: { fr: 'Livrée', en: 'Delivered' },
+  },
 };
+
+const statusLabel = (order: Order): Label =>
+  order.status === 'served' ? SERVED_LABEL[order.fulfillment] : ORDER_STATUS_LABEL[order.status];
+
+const FULFILLMENT_LABEL: Record<Fulfillment, Label> = {
+  dine_in: { fr: 'Sur place', en: 'Dine in' },
+  takeaway: { fr: 'À emporter', en: 'Takeaway' },
+  delivery: { fr: 'Livraison', en: 'Delivery' },
+};
+
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
 export function ServicePage() {
   const dt = useDt();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // « Table 4 », « 🥡 À emporter — Julie », « 🛵 Livraison — Karim ».
+  const orderTitle = (order: Order) => {
+    if (order.fulfillment === 'dine_in') return `${dt('Table', 'Table')} ${order.tableLabel}`;
+    const icon = order.fulfillment === 'delivery' ? '🛵' : '🥡';
+    const label = dt(FULFILLMENT_LABEL[order.fulfillment].fr, FULFILLMENT_LABEL[order.fulfillment].en);
+    return `${icon} ${label}${order.customerName ? ` — ${order.customerName}` : ''}`;
+  };
+  const scheduleLabel = (order: Order) =>
+    order.scheduledFor ? `${dt('Pour', 'For')} ${formatTime(order.scheduledFor)}` : dt('Dès que possible', 'As soon as possible');
 
   useEffect(() => {
     setPageMeta({
@@ -127,7 +172,7 @@ export function ServicePage() {
           setOrders((current) => [order, ...current]);
           if (areNotificationsEnabled()) {
             playChime();
-            showBrowserNotification(dt('Nouvelle commande', 'New order'), `${dt('Table', 'Table')} ${order.tableLabel} — ${restaurant.name}`);
+            showBrowserNotification(dt('Nouvelle commande', 'New order'), `${orderTitle(order)} — ${restaurant.name}`);
           }
         },
       )
@@ -181,6 +226,15 @@ export function ServicePage() {
     await supabase.from('orders').update({ status: next }).eq('id', order.id);
   };
 
+  // Refus (adresse trop loin, rupture...) : confirmation intégrée à la carte de la commande.
+  // Un paiement en ligne déjà encaissé n'est pas remboursé automatiquement.
+  const [refusingOrderId, setRefusingOrderId] = useState<string | null>(null);
+  const refuseOrder = async (order: Order) => {
+    setRefusingOrderId(null);
+    setOrders((current) => current.map((o) => (o.id === order.id ? { ...o, status: 'refused' } : o)));
+    await supabase.from('orders').update({ status: 'refused' }).eq('id', order.id);
+  };
+
   const handleLeaveClick = () => {
     if (!restaurant?.servicePin) {
       navigate('/dashboard');
@@ -215,17 +269,23 @@ export function ServicePage() {
 
       const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
       const header = dt(
-        ['Date', 'Table', 'Statut', 'Payé', 'Total (€)', 'Articles', 'Instructions'],
-        ['Date', 'Table', 'Status', 'Paid', 'Total (€)', 'Items', 'Instructions'],
+        ['Date', 'Type', 'Table', 'Statut', 'Payé', 'Total (€)', 'Frais de livraison (€)', 'Articles', 'Instructions', 'Client', 'Téléphone', 'Adresse', 'Créneau'],
+        ['Date', 'Type', 'Table', 'Status', 'Paid', 'Total (€)', 'Delivery fee (€)', 'Items', 'Instructions', 'Customer', 'Phone', 'Address', 'Time slot'],
       );
       const rows = allOrders.map((order) => [
         new Date(order.createdAt).toLocaleString('fr-FR'),
+        dt(FULFILLMENT_LABEL[order.fulfillment].fr, FULFILLMENT_LABEL[order.fulfillment].en),
         order.tableLabel,
-        dt(ORDER_STATUS_LABEL[order.status].fr, ORDER_STATUS_LABEL[order.status].en),
+        dt(statusLabel(order).fr, statusLabel(order).en),
         order.paid ? dt('Oui', 'Yes') : dt('Non', 'No'),
         order.total.toFixed(2),
+        order.deliveryFee.toFixed(2),
         order.items.map((item) => `${item.name} x${item.quantity}`).join(' | '),
         order.specialInstructions,
+        order.customerName,
+        order.customerPhone,
+        order.deliveryAddress,
+        order.fulfillment === 'dine_in' ? '' : scheduleLabel(order),
       ]);
       const csv = [header, ...rows].map((row) => row.map((cell) => escapeCell(String(cell))).join(';')).join('\n');
       const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -271,8 +331,14 @@ export function ServicePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, requests, tableLabels]);
 
-  const activeOrders = useMemo(() => orders.filter((order) => order.status !== 'done'), [orders]);
-  const doneOrders = useMemo(() => orders.filter((order) => order.status === 'done').slice(0, 10), [orders]);
+  const activeOrders = useMemo(
+    () => orders.filter((order) => order.status !== 'done' && order.status !== 'refused'),
+    [orders],
+  );
+  const doneOrders = useMemo(
+    () => orders.filter((order) => order.status === 'done' || order.status === 'refused').slice(0, 10),
+    [orders],
+  );
   const pendingCount = useMemo(
     () => orders.filter((order) => order.status === 'new').length + requests.length,
     [orders, requests],
@@ -410,11 +476,37 @@ export function ServicePage() {
               {activeOrders.map((order) => (
                 <div key={order.id} className="rounded-3xl border border-stone-200 bg-white p-6 shadow-soft">
                   <div className="flex items-center justify-between">
-                    <p className="font-display text-lg font-bold text-stone-900">{dt('Table', 'Table')} {order.tableLabel}</p>
+                    <p className="font-display text-lg font-bold text-stone-900">{orderTitle(order)}</p>
                     <span className="rounded-full bg-stone-900/5 px-3 py-1 text-xs font-semibold text-stone-500">
-                      {dt(ORDER_STATUS_LABEL[order.status].fr, ORDER_STATUS_LABEL[order.status].en)}
+                      {dt(statusLabel(order).fr, statusLabel(order).en)}
                     </span>
                   </div>
+                  {order.fulfillment !== 'dine_in' && (
+                    <div className="mt-3 space-y-1 rounded-2xl bg-navy-300/10 p-3 text-sm text-stone-700">
+                      <p className="font-semibold">🕒 {scheduleLabel(order)}</p>
+                      {order.customerPhone && (
+                        <p>
+                          📞{' '}
+                          <a href={`tel:${order.customerPhone.replace(/\s/g, '')}`} className="font-semibold text-navy-700 underline">
+                            {order.customerPhone}
+                          </a>
+                        </p>
+                      )}
+                      {order.fulfillment === 'delivery' && order.deliveryAddress && (
+                        <p>
+                          📍{' '}
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-navy-700 underline"
+                          >
+                            {order.deliveryAddress}
+                          </a>
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <ul className="mt-3 space-y-1 text-sm text-stone-600">
                     {order.items.map((item, index) => (
                       <li key={index}>
@@ -428,20 +520,65 @@ export function ServicePage() {
                     </p>
                   )}
                   <div className="mt-3 flex items-center justify-between">
-                    <p className="font-semibold text-stone-900">{dt('Total :', 'Total:')} {money(order.total)}</p>
+                    <p className="font-semibold text-stone-900">
+                      {dt('Total :', 'Total:')} {money(order.total)}
+                      {order.deliveryFee > 0 && (
+                        <span className="ml-1 text-xs font-normal text-stone-400">
+                          ({dt('dont livraison', 'incl. delivery')} {money(order.deliveryFee)})
+                        </span>
+                      )}
+                    </p>
                     <span className={`text-xs font-semibold ${order.paid ? 'text-emerald-600' : 'text-stone-400'}`}>
                       {order.paid ? dt('✅ Payé', '✅ Paid') : dt('⏳ À encaisser', '⏳ To collect')}
                     </span>
                   </div>
-                  {NEXT_STATUS[order.status] && (
+                  {NEXT_STATUS[order.status] && NEXT_ACTION_LABEL[order.fulfillment][order.status] && (
                     <button
                       type="button"
                       onClick={() => advanceOrder(order)}
                       className="mt-4 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-2.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5"
                     >
-                      {dt(NEXT_ACTION_LABEL[order.status].fr, NEXT_ACTION_LABEL[order.status].en)}
+                      {dt(NEXT_ACTION_LABEL[order.fulfillment][order.status]!.fr, NEXT_ACTION_LABEL[order.fulfillment][order.status]!.en)}
                     </button>
                   )}
+                  {order.status === 'new' &&
+                    (refusingOrderId === order.id ? (
+                      <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm">
+                        <p className="font-semibold text-red-700">{dt('Refuser cette commande ?', 'Decline this order?')}</p>
+                        {order.paid && (
+                          <p className="mt-1 text-xs text-red-600">
+                            {dt(
+                              'Elle a été payée en ligne : pensez à rembourser le client depuis votre compte Stripe.',
+                              'It was paid online: remember to refund the customer from your Stripe account.',
+                            )}
+                          </p>
+                        )}
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setRefusingOrderId(null)}
+                            className="flex-1 rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-600"
+                          >
+                            {dt('Annuler', 'Cancel')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => refuseOrder(order)}
+                            className="flex-1 rounded-full bg-red-600 px-3 py-2 text-xs font-bold text-white"
+                          >
+                            {dt('Refuser', 'Decline')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setRefusingOrderId(order.id)}
+                        className="mt-2 w-full rounded-full border border-stone-200 bg-white px-5 py-2 text-xs font-semibold text-stone-500 transition-colors duration-300 hover:border-red-200 hover:text-red-600"
+                      >
+                        {dt('Refuser la commande', 'Decline order')}
+                      </button>
+                    ))}
                 </div>
               ))}
             </div>
@@ -457,8 +594,13 @@ export function ServicePage() {
                   key={order.id}
                   className="flex items-center justify-between rounded-2xl border border-stone-200 bg-white px-5 py-3 text-sm text-stone-500"
                 >
-                  <span>{dt('Table', 'Table')} {order.tableLabel}</span>
-                  <span>{money(order.total)}</span>
+                  <span>
+                    {orderTitle(order)}
+                    {order.status === 'refused' && (
+                      <span className="ml-2 text-xs font-semibold text-red-500">{dt('Refusée', 'Declined')}</span>
+                    )}
+                  </span>
+                  <span className={order.status === 'refused' ? 'line-through' : ''}>{money(order.total)}</span>
                 </div>
               ))}
             </div>

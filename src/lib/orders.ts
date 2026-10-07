@@ -1,5 +1,16 @@
 import { supabase } from './supabaseClient';
-import type { OrderItem, OrderStatus, RequestType } from './types';
+import type { Fulfillment, OrderItem, OrderStatus, RequestType } from './types';
+
+// Type de commande et coordonnées du client — uniquement pour l'emporter et la livraison.
+export type OrderFulfillmentDetails = {
+  fulfillment: Fulfillment;
+  customerName?: string;
+  customerPhone?: string;
+  deliveryAddress?: string;
+  /** ISO ; null = « dès que possible ». */
+  scheduledFor?: string | null;
+  deliveryFee?: number;
+};
 
 // L'écriture de la commande elle-même ne doit jamais bloquer ni casser l'expérience client si
 // elle échoue : les erreurs sont avalées, seul l'id (utile pour suivre le statut en direct
@@ -16,8 +27,22 @@ export async function placeOrder(
   paid: boolean,
   specialInstructions: string,
   stockDecrements: { dishId: string; quantity: number }[] = [],
+  details: OrderFulfillmentDetails = { fulfillment: 'dine_in' },
 ): Promise<string | null> {
   const orderId = crypto.randomUUID();
+  // Les colonnes de migration_027 ne sont envoyées que hors commande sur place, pour que la
+  // commande à table continue de fonctionner même si cette migration n'a pas encore été exécutée.
+  const fulfillmentColumns =
+    details.fulfillment === 'dine_in'
+      ? {}
+      : {
+          fulfillment: details.fulfillment,
+          customer_name: details.customerName?.trim() || null,
+          customer_phone: details.customerPhone?.trim() || null,
+          delivery_address: details.fulfillment === 'delivery' ? details.deliveryAddress?.trim() || null : null,
+          scheduled_for: details.scheduledFor ?? null,
+          delivery_fee: details.fulfillment === 'delivery' ? details.deliveryFee ?? 0 : 0,
+        };
   const { error } = await supabase.from('orders').insert({
     id: orderId,
     restaurant_id: restaurantId,
@@ -26,6 +51,7 @@ export async function placeOrder(
     total,
     items,
     special_instructions: specialInstructions,
+    ...fulfillmentColumns,
   });
   if (error) return null;
 

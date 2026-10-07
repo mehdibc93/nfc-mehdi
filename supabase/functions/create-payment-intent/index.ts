@@ -85,9 +85,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { restaurantId, items } = (await req.json()) as { restaurantId?: string; items?: CartRequestItem[] };
+    const { restaurantId, items, fulfillment = 'dine_in' } = (await req.json()) as {
+      restaurantId?: string;
+      items?: CartRequestItem[];
+      fulfillment?: string;
+    };
     if (!restaurantId || !Array.isArray(items) || items.length === 0) {
       return json({ error: 'Requête invalide.' }, 400);
+    }
+    if (!['dine_in', 'takeaway', 'delivery'].includes(fulfillment)) {
+      return json({ error: 'Type de commande invalide.' }, 400);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -97,12 +104,20 @@ Deno.serve(async (req) => {
 
     const { data: restaurant, error: restaurantError } = await supabase
       .from('restaurants')
-      .select('id, stripe_account_id, stripe_onboarded')
+      // `*` plutôt qu'une liste de colonnes : les colonnes emporter/livraison (migration_027)
+      // peuvent ne pas exister encore, et une colonne absente ferait échouer la requête.
+      .select('*')
       .eq('id', restaurantId)
       .maybeSingle();
 
     if (restaurantError || !restaurant || !restaurant.stripe_account_id || !restaurant.stripe_onboarded) {
       return json({ error: "Ce restaurant n'accepte pas encore le paiement en ligne." }, 400);
+    }
+    if (fulfillment === 'takeaway' && !restaurant.takeaway_enabled) {
+      return json({ error: "Ce restaurant ne propose pas la vente à emporter." }, 400);
+    }
+    if (fulfillment === 'delivery' && !restaurant.delivery_enabled) {
+      return json({ error: 'Ce restaurant ne propose pas la livraison.' }, 400);
     }
 
     const { data: discountRules } = await supabase
@@ -142,6 +157,19 @@ Deno.serve(async (req) => {
 
     if (amount <= 0) {
       return json({ error: 'Panier vide ou invalide.' }, 400);
+    }
+
+    // Livraison : minimum de commande et frais calculés sur le sous-total des plats après
+    // réduction — même règle que src/lib/fulfillment.ts côté client (deliveryFeeFor).
+    if (fulfillment === 'delivery') {
+      const subtotalCents = amount;
+      const minOrderCents = Math.round((Number(restaurant.delivery_min_order) || 0) * 100);
+      if (subtotalCents < minOrderCents) {
+        return json({ error: 'Montant minimum de commande non atteint pour la livraison.' }, 400);
+      }
+      const freeFrom = restaurant.delivery_free_from == null ? null : Math.round(Number(restaurant.delivery_free_from) * 100);
+      const isFree = freeFrom !== null && subtotalCents >= freeFrom;
+      if (!isFree) amount += Math.round((Number(restaurant.delivery_fee) || 0) * 100);
     }
 
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });

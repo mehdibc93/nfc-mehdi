@@ -17,6 +17,7 @@ import { MENU_SERVICES } from '../lib/menuSlots';
 import { DAY_KEYS, DAY_LABELS, defaultOpeningHours } from '../lib/openingHours';
 import { HERO_PRESETS } from '../lib/heroPresets';
 import { PinSectionGate } from '../components/PinSectionGate';
+import { TakeawayDeliverySettings } from '../components/TakeawayDeliverySettings';
 import logoHorizontal from '../assets/logo-horizontal.png';
 import type { DayKey, DayHours } from '../lib/types';
 import {
@@ -236,7 +237,7 @@ export function DashboardPage() {
         .eq('restaurant_id', restaurant.id)
         .eq('event_type', 'view')
         .gte('created_at', since),
-      supabase.from('orders').select('total').eq('restaurant_id', restaurant.id).gte('created_at', since),
+      supabase.from('orders').select('total').eq('restaurant_id', restaurant.id).neq('status', 'refused').gte('created_at', since),
     ]).then(([{ count: viewsCount }, { data: todayOrders }]) => {
       if (cancelled) return;
       const orders = (todayOrders ?? []) as { total: number }[];
@@ -2019,6 +2020,7 @@ export function DashboardPage() {
                 )}
               </p>
             </div>
+            <TakeawayDeliverySettings restaurant={restaurant} updateRestaurantField={updateRestaurantField} />
             <div className="sm:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
                 {dt('Couleur des boutons (page client)', 'Button color (customer page)')}

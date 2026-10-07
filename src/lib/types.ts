@@ -6,6 +6,7 @@ export type MenuService = 'all_day' | 'lunch' | 'dinner';
 export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 export type DayHours = { closed: boolean; open: string; close: string };
 export type OpeningHours = Record<DayKey, DayHours>;
+export type Fulfillment = 'dine_in' | 'takeaway' | 'delivery';
 
 // Lignes brutes telles que renvoyées par Postgres (snake_case)
 export type DishRow = {
@@ -94,6 +95,13 @@ export type RestaurantRow = {
   custom_intro_video: string | null;
   custom_wait_video: string | null;
   pin_protected_sections: string[];
+  takeaway_enabled: boolean;
+  delivery_enabled: boolean;
+  takeaway_pay_on_site: boolean;
+  delivery_pay_on_delivery: boolean;
+  delivery_fee: number;
+  delivery_min_order: number;
+  delivery_free_from: number | null;
   categories?: CategoryRow[];
 };
 
@@ -184,6 +192,13 @@ export type Restaurant = {
   customIntroVideo: string | null;
   customWaitVideo: string | null;
   pinProtectedSections: string[];
+  takeawayEnabled: boolean;
+  deliveryEnabled: boolean;
+  takeawayPayOnSite: boolean;
+  deliveryPayOnDelivery: boolean;
+  deliveryFee: number;
+  deliveryMinOrder: number;
+  deliveryFreeFrom: number | null;
 };
 
 export type RestaurantWithMenu = Restaurant & { categories: Category[] };
@@ -191,7 +206,7 @@ export type RestaurantWithMenu = Restaurant & { categories: Category[] };
 export type SubscriptionStatus = 'inactive' | 'active' | 'past_due' | 'canceled';
 export type SubscriptionPlan = 'monthly' | 'annual_monthly' | 'annual_upfront';
 
-export type OrderStatus = 'new' | 'confirmed' | 'served' | 'done';
+export type OrderStatus = 'new' | 'confirmed' | 'served' | 'done' | 'refused';
 export type OrderItem = { name: string; price: number; quantity: number; extraNames?: string[] };
 
 export type OrderRow = {
@@ -203,6 +218,12 @@ export type OrderRow = {
   total: number;
   items: OrderItem[] | null;
   special_instructions: string | null;
+  fulfillment: Fulfillment | null;
+  customer_name: string | null;
+  customer_phone: string | null;
+  delivery_address: string | null;
+  scheduled_for: string | null;
+  delivery_fee: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -216,6 +237,13 @@ export type Order = {
   total: number;
   items: OrderItem[];
   specialInstructions: string;
+  fulfillment: Fulfillment;
+  customerName: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  /** null = « dès que possible ». */
+  scheduledFor: string | null;
+  deliveryFee: number;
   createdAt: string;
 };
 

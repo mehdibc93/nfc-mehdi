@@ -9,7 +9,8 @@ import { LOCALES, t } from '../lib/i18n';
 import type { Locale } from '../lib/i18n';
 import { logDishEvent } from '../lib/analytics';
 import { getOrderStatus, placeOrder, sendTableRequest } from '../lib/orders';
-import type { OrderStatus } from '../lib/types';
+import type { Fulfillment, OrderStatus } from '../lib/types';
+import { buildPickupSlots, canOrderAsap, deliveryFeeFor, formatSlotTime, meetsDeliveryMinimum } from '../lib/fulfillment';
 import { accentGradient, accentTextColor } from '../lib/color';
 import { getIntroVideo } from '../lib/introVideos';
 import { ChefCookingIllustration } from '../components/ChefCookingIllustration';
@@ -23,6 +24,7 @@ import { getStripe } from '../lib/stripeClient';
 import { StripeCheckoutForm } from '../components/StripeCheckoutForm';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { setPageMeta } from '../lib/seo';
+import { SITE_URL } from '../lib/site';
 
 type Phase = 'scan' | 'cinematic' | 'menu' | 'checkout' | 'success';
 type ModalStep = 'dish' | 'added' | 'drink' | 'drink-added' | 'dessert' | 'dessert-added' | null;
@@ -116,7 +118,27 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const [searchParams] = useSearchParams();
   // `demo=1` : lien de démo partagé (pitch commercial). `nfc=1` : lien réellement programmé
   // sur le tag physique — le vrai scan a déjà eu lieu, inutile de refaire semblant d'en faire un.
-  const skipScan = searchParams.get('demo') === '1' || searchParams.get('nfc') === '1';
+  // `mode=emporter` / `mode=livraison` : lien de commande à distance partagé par le restaurant
+  // (réseaux sociaux, fiche Google...) — pas de tag NFC, donc pas d'animation de scan non plus.
+  const linkMode = searchParams.get('mode');
+  const skipScan = searchParams.get('demo') === '1' || searchParams.get('nfc') === '1' || Boolean(linkMode);
+
+  // Sur place toujours possible ; emporter/livraison si activés ET s'il existe au moins un moyen
+  // de payer (paiement en ligne Stripe, ou paiement sur place autorisé par le restaurant).
+  const availableFulfillments = useMemo(() => {
+    const modes: Fulfillment[] = ['dine_in'];
+    if (restaurant.takeawayEnabled && (restaurant.stripeOnboarded || restaurant.takeawayPayOnSite)) modes.push('takeaway');
+    if (restaurant.deliveryEnabled && (restaurant.stripeOnboarded || restaurant.deliveryPayOnDelivery)) modes.push('delivery');
+    return modes;
+  }, [restaurant]);
+  const initialFulfillment: Fulfillment =
+    linkMode === 'livraison' && availableFulfillments.includes('delivery')
+      ? 'delivery'
+      : linkMode === 'emporter' && availableFulfillments.includes('takeaway')
+        ? 'takeaway'
+        : 'dine_in';
+  const [fulfillment, setFulfillment] = useState<Fulfillment>(initialFulfillment);
+  const isDineIn = fulfillment === 'dine_in';
   const [language, setLanguage] = useState<Locale>('fr');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const tr = (key: Parameters<typeof t>[1], vars?: Record<string, string | number>) => t(language, key, vars);
@@ -187,9 +209,9 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
       title: `${restaurantName} — Menu digital | Nourevo`,
       description,
       image: restaurant.heroImage || undefined,
-      // Le lien canonique ignore les paramètres de démo (?demo=1, ?nfc=1) pour que Google
-      // indexe une seule URL par restaurant plutôt que plusieurs variantes équivalentes.
       canonicalPath: `/r/${restaurant.slug}`,
+      // Menus clients (démo comprise) : jamais indexés — le SEO porte sur les pages publiques.
+      noindex: true,
       jsonLd: {
         '@context': 'https://schema.org',
         '@type': 'Restaurant',
@@ -212,7 +234,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               }
             : undefined,
         acceptsReservations: 'False',
-        menu: `${window.location.origin}/r/${restaurant.slug}`,
+        menu: `${SITE_URL}/r/${restaurant.slug}`,
       },
     });
   }, [restaurantName, restaurantAddress, restaurant.heroImage, restaurant.slug, restaurant.rating, restaurant.reviewCount, restaurantTags]);
@@ -223,16 +245,34 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         restaurant.stripeOnboarded
           ? { id: 'app', label: tr('checkout.appPay'), description: tr('checkout.appPayDesc') }
           : null,
-        { id: 'counter', label: tr('checkout.counter'), description: tr('checkout.counterDesc') },
+        fulfillment === 'dine_in'
+          ? { id: 'counter', label: tr('checkout.counter'), description: tr('checkout.counterDesc') }
+          : null,
+        fulfillment === 'takeaway' && restaurant.takeawayPayOnSite
+          ? { id: 'counter', label: tr('checkout.payOnPickup'), description: tr('checkout.payOnPickupDesc') }
+          : null,
+        fulfillment === 'delivery' && restaurant.deliveryPayOnDelivery
+          ? { id: 'counter', label: tr('checkout.payOnDelivery'), description: tr('checkout.payOnDeliveryDesc') }
+          : null,
       ].filter((option): option is { id: string; label: string; description: string } => option !== null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [language, restaurant.stripeOnboarded],
+    [language, restaurant.stripeOnboarded, restaurant.takeawayPayOnSite, restaurant.deliveryPayOnDelivery, fulfillment],
   );
   const cookingSteps = useMemo(
-    () => [tr('success.step1'), tr('success.step2'), tr('success.step3')],
+    () => [
+      tr('success.step1'),
+      tr('success.step2'),
+      fulfillment === 'takeaway'
+        ? tr('success.step3Takeaway')
+        : fulfillment === 'delivery'
+          ? tr('success.step3Delivery')
+          : tr('success.step3'),
+    ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [language],
+    [language, fulfillment],
   );
+  const fulfillmentLabel = (mode: Fulfillment) =>
+    mode === 'takeaway' ? tr('fulfillment.takeaway') : mode === 'delivery' ? tr('fulfillment.delivery') : tr('fulfillment.dineIn');
 
   // null si le restaurateur n'a pas configuré d'horaires midi/soir : dans ce cas, tous les
   // plats restent visibles quel que soit leur créneau.
@@ -282,8 +322,13 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const [selectedDrink, setSelectedDrink] = useState<FlatDish | null>(drinkMenu[0] ?? null);
   const [selectedDessert, setSelectedDessert] = useState<FlatDish | null>(dessertMenu[0] ?? null);
   const [selectedTable, setSelectedTable] = useState('4');
-  const [paymentMode, setPaymentMode] = useState(paymentOptions[0].id);
+  const [paymentMode, setPaymentMode] = useState(paymentOptions[0]?.id ?? 'counter');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  // 'asap' = dès que possible, sinon l'ISO du créneau choisi ('' = rien de choisi).
+  const [scheduledChoice, setScheduledChoice] = useState('asap');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [videoReady, setVideoReady] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
@@ -373,9 +418,55 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
 
   const total = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
 
+  // Livraison : frais et minimum calculés sur le sous-total des plats (après réduction). Le
+  // montant réellement facturé en ligne est recalculé côté serveur (create-payment-intent).
+  const deliveryPricing = {
+    deliveryFee: restaurant.deliveryFee,
+    deliveryMinOrder: restaurant.deliveryMinOrder,
+    deliveryFreeFrom: restaurant.deliveryFreeFrom,
+  };
+  const deliveryFee = fulfillment === 'delivery' ? deliveryFeeFor(total, deliveryPricing) : 0;
+  const belowDeliveryMinimum = fulfillment === 'delivery' && !meetsDeliveryMinimum(total, deliveryPricing);
+  const grandTotal = total + deliveryFee;
+
+  // Créneaux recalculés à chaque arrivée sur l'étape paiement (ils dépendent de l'heure).
+  const pickupSlots = useMemo(
+    () => (phase === 'checkout' && !isDineIn ? buildPickupSlots(restaurant.openingHours) : []),
+    [phase, isDineIn, restaurant.openingHours],
+  );
+  const asapAvailable = useMemo(
+    () => phase === 'checkout' && canOrderAsap(restaurant.openingHours),
+    [phase, restaurant.openingHours],
+  );
+
+  // Garde un mode de paiement et un horaire valides quand le type de commande change.
+  useEffect(() => {
+    if (!paymentOptions.some((option) => option.id === paymentMode) && paymentOptions[0]) {
+      setPaymentMode(paymentOptions[0].id);
+    }
+  }, [paymentOptions, paymentMode]);
+  useEffect(() => {
+    // Uniquement pendant le paiement : après validation, le créneau choisi doit rester affiché.
+    if (isDineIn || phase !== 'checkout') return;
+    const stillValid = scheduledChoice === 'asap' ? asapAvailable : pickupSlots.some((slot) => slot.iso === scheduledChoice);
+    if (!stillValid) setScheduledChoice(asapAvailable ? 'asap' : pickupSlots[0]?.iso ?? '');
+  }, [isDineIn, phase, asapAvailable, pickupSlots, scheduledChoice]);
+
+  const checkoutReady =
+    isDineIn ||
+    (customerName.trim().length > 0 &&
+      customerPhone.trim().length >= 6 &&
+      (fulfillment !== 'delivery' || deliveryAddress.trim().length > 0) &&
+      scheduledChoice !== '' &&
+      !belowDeliveryMinimum);
+
   // Prépare le paiement carte/Apple Pay/Google Pay dès qu'on arrive sur l'étape paiement avec ce mode choisi.
   useEffect(() => {
     if (phase !== 'checkout' || paymentMode !== 'app' || !restaurant.stripeOnboarded || cart.length === 0) {
+      return undefined;
+    }
+    if (belowDeliveryMinimum) {
+      setStripeClientSecret(null);
       return undefined;
     }
     let cancelled = false;
@@ -387,6 +478,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         body: {
           restaurantId: restaurant.id,
           items: cart.map((item) => ({ dishId: item.dishId, quantity: item.quantity, extraNames: item.extraNames })),
+          fulfillment,
         },
       })
       .then(({ data, error }) => {
@@ -402,7 +494,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, paymentMode, restaurant.id, restaurant.stripeOnboarded]);
+  }, [phase, paymentMode, restaurant.id, restaurant.stripeOnboarded, fulfillment, belowDeliveryMinimum]);
 
   // Somme les temps de préparation renseignés par le restaurateur (un par plat distinct du
   // panier, pas multiplié par la quantité) — `null` si aucun plat du panier n'a de temps
@@ -454,7 +546,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
       getOrderStatus(placedOrderId).then((status) => {
         if (cancelled || !status) return;
         setLiveOrderStatus(status);
-        if ((status === 'served' || status === 'done') && interval) {
+        if ((status === 'served' || status === 'done' || status === 'refused') && interval) {
           window.clearInterval(interval);
         }
       });
@@ -493,14 +585,16 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   }, [toastMessage]);
 
   const resetFlow = () => {
-    setPhase('scan');
+    // Commande à distance (lien emporter/livraison) : pas de scan NFC à rejouer.
+    setPhase(linkMode ? 'menu' : 'scan');
     setSelectedDish(null);
     setModalStep(null);
     setCart([]);
     setSelectedDrink(drinkMenu[0] ?? null);
     setSelectedDessert(dessertMenu[0] ?? null);
     setSelectedTable('4');
-    setPaymentMode(paymentOptions[0].id);
+    setFulfillment(initialFulfillment);
+    setPaymentMode(paymentOptions[0]?.id ?? 'counter');
     setSpecialInstructions('');
     setToastMessage(null);
     setVideoReady(false);
@@ -607,18 +701,26 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
     setLiveOrderStatus(null);
     placeOrder(
       restaurant.id,
-      selectedTable,
+      isDineIn ? selectedTable : '',
       cart.map((item) => ({ name: item.name, price: item.price, quantity: item.quantity, extraNames: item.extraNames })),
-      total,
+      grandTotal,
       paymentMode === 'app',
       specialInstructions,
       cart
         .filter((item): item is typeof item & { dishId: string } => Boolean(item.dishId))
         .map((item) => ({ dishId: item.dishId, quantity: item.quantity })),
+      {
+        fulfillment,
+        customerName,
+        customerPhone,
+        deliveryAddress,
+        scheduledFor: scheduledChoice === 'asap' ? null : scheduledChoice,
+        deliveryFee,
+      },
     ).then((orderId) => setPlacedOrderId(orderId));
     setModalStep(null);
     setPhase('success');
-    setToastMessage(tr('success.paymentToast'));
+    setToastMessage(isDineIn ? tr('success.paymentToast') : tr('success.confirmed'));
   };
 
   const requestTableService = (type: 'bill' | 'waiter') => {
@@ -1413,11 +1515,125 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
           <div className="glass rounded-3xl p-8">
             <span className="text-xs font-semibold uppercase tracking-[0.3em] text-stone-400">{tr('checkout.badge')}</span>
             <h1 className="mt-4 font-display text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
-              {tr('checkout.title')}
+              {fulfillment === 'takeaway'
+                ? tr('checkout.titleTakeaway')
+                : fulfillment === 'delivery'
+                  ? tr('checkout.titleDelivery')
+                  : tr('checkout.title')}
             </h1>
-            <p className="mt-4 max-w-3xl text-stone-500">{tr('checkout.subtitle')}</p>
+            {isDineIn && <p className="mt-4 max-w-3xl text-stone-500">{tr('checkout.subtitle')}</p>}
           </div>
 
+          {availableFulfillments.length > 1 && (
+            <div className="glass rounded-3xl p-8">
+              <h2 className="font-display text-2xl font-bold text-stone-900">{tr('fulfillment.title')}</h2>
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                {availableFulfillments.map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setFulfillment(mode)}
+                    className={`rounded-2xl border p-4 text-left transition-all duration-300 ${
+                      fulfillment === mode
+                        ? 'border-navy-300/50 bg-navy-300/10'
+                        : 'border-stone-200 bg-white hover:border-navy-300/30 hover:bg-navy-300/5'
+                    }`}
+                  >
+                    <p className="font-semibold text-stone-900">
+                      {mode === 'takeaway' ? '🥡' : mode === 'delivery' ? '🛵' : '🍽️'} {fulfillmentLabel(mode)}
+                    </p>
+                    <p className="mt-1 text-sm text-stone-500">
+                      {mode === 'takeaway'
+                        ? tr('fulfillment.takeawayDesc')
+                        : mode === 'delivery'
+                          ? tr('fulfillment.deliveryDesc')
+                          : tr('fulfillment.dineInDesc')}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!isDineIn && (
+            <div className="glass rounded-3xl p-8">
+              <h2 className="font-display text-2xl font-bold text-stone-900">{tr('checkout.contactTitle')}</h2>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-stone-600">
+                  {tr('checkout.name')}
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    value={customerName}
+                    onChange={(event) => setCustomerName(event.target.value)}
+                    className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-normal text-stone-700 outline-none focus:border-navy-300"
+                  />
+                </label>
+                <label className="block text-sm font-semibold text-stone-600">
+                  {tr('checkout.phone')}
+                  <input
+                    type="tel"
+                    autoComplete="tel"
+                    value={customerPhone}
+                    onChange={(event) => setCustomerPhone(event.target.value)}
+                    className="mt-1.5 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-normal text-stone-700 outline-none focus:border-navy-300"
+                  />
+                </label>
+                {fulfillment === 'delivery' && (
+                  <label className="block text-sm font-semibold text-stone-600 sm:col-span-2">
+                    {tr('checkout.address')}
+                    <textarea
+                      autoComplete="street-address"
+                      rows={2}
+                      value={deliveryAddress}
+                      onChange={(event) => setDeliveryAddress(event.target.value)}
+                      placeholder={tr('checkout.addressPlaceholder')}
+                      className="mt-1.5 w-full resize-none rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-normal text-stone-700 outline-none focus:border-navy-300"
+                    />
+                  </label>
+                )}
+              </div>
+
+              <h3 className="mt-8 font-display text-xl font-bold text-stone-900">
+                {fulfillment === 'delivery' ? tr('checkout.timeTitleDelivery') : tr('checkout.timeTitleTakeaway')}
+              </h3>
+              {!asapAvailable && pickupSlots.length === 0 ? (
+                <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">{tr('checkout.noSlots')}</p>
+              ) : (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {asapAvailable && (
+                    <button
+                      type="button"
+                      onClick={() => setScheduledChoice('asap')}
+                      className={`rounded-2xl border px-4 py-2.5 text-sm font-semibold transition-all duration-300 ${
+                        scheduledChoice === 'asap'
+                          ? 'border-navy-300/50 bg-navy-300/15 text-stone-900'
+                          : 'border-stone-200 bg-white text-stone-500 hover:border-navy-300/30'
+                      }`}
+                    >
+                      ⚡ {tr('checkout.asap')}
+                    </button>
+                  )}
+                  {pickupSlots.map((slot) => (
+                    <button
+                      key={slot.iso}
+                      type="button"
+                      onClick={() => setScheduledChoice(slot.iso)}
+                      className={`rounded-2xl border px-4 py-2.5 text-sm font-semibold tabular-nums transition-all duration-300 ${
+                        scheduledChoice === slot.iso
+                          ? 'border-navy-300/50 bg-navy-300/15 text-stone-900'
+                          : 'border-stone-200 bg-white text-stone-500 hover:border-navy-300/30'
+                      }`}
+                    >
+                      {slot.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {isDineIn && (
           <div className="glass rounded-3xl p-8">
             <h2 className="font-display text-2xl font-bold text-stone-900">{tr('checkout.tableNumber')}</h2>
             <div className="mt-5 grid grid-cols-4 gap-3 sm:grid-cols-6">
@@ -1436,6 +1652,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               ))}
             </div>
           </div>
+          )}
 
           <div className="glass rounded-3xl p-8">
             <h2 className="font-display text-2xl font-bold text-stone-900">{tr('checkout.paymentMode')}</h2>
@@ -1479,7 +1696,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
             <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
               <h2 className="font-display text-3xl font-bold text-stone-900">{tr('checkout.afterPaymentTitle')}</h2>
               <div className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-500">
-                {tr('checkout.table', { number: selectedTable })}
+                {isDineIn ? tr('checkout.table', { number: selectedTable }) : fulfillmentLabel(fulfillment)}
               </div>
             </div>
           </div>
@@ -1508,14 +1725,41 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
             )}
 
             <div className="mt-6 rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
+              {fulfillment === 'delivery' && (
+                <div className="mb-3 space-y-1 border-b border-navy-300/20 pb-3 text-sm text-stone-600">
+                  <div className="flex items-center justify-between">
+                    <span>{tr('checkout.subtotal')}</span>
+                    <span>{money(total)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>{tr('checkout.deliveryFee')}</span>
+                    <span>{deliveryFee > 0 ? money(deliveryFee) : tr('checkout.free')}</span>
+                  </div>
+                  {deliveryFee > 0 && restaurant.deliveryFreeFrom !== null && (
+                    <p className="text-xs text-stone-400">
+                      {tr('checkout.freeDeliveryFrom', { amount: money(restaurant.deliveryFreeFrom) })}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-stone-600">{tr('checkout.totalDue')}</span>
-                <span className="text-3xl font-bold text-navy-700">{money(total)}</span>
+                <span className="text-3xl font-bold text-navy-700">{money(grandTotal)}</span>
               </div>
               <p className="mt-2 text-sm text-stone-500">{tr('checkout.timeAfterValidation')}</p>
             </div>
 
-            {paymentMode === 'app' ? (
+            {belowDeliveryMinimum && (
+              <p className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                {tr('checkout.minOrder', { amount: money(restaurant.deliveryMinOrder) })}
+              </p>
+            )}
+
+            {!checkoutReady ? (
+              <p className="mt-6 rounded-2xl border border-stone-200 bg-stone-50/70 p-4 text-center text-sm text-stone-500">
+                {tr('checkout.missingInfo')}
+              </p>
+            ) : paymentMode === 'app' ? (
               <div className="mt-6">
                 {creatingPaymentIntent && (
                   <p className="text-center text-sm text-stone-400">Préparation du paiement...</p>
@@ -1540,7 +1784,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                 onClick={finalizeOrder}
                 className="mt-6 w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-[1.125rem] text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg" style={accentButtonStyle}
               >
-                {tr('checkout.payAtCounter')}
+                {isDineIn ? tr('checkout.payAtCounter') : tr('checkout.confirmOrder')}
               </button>
             )}
 
@@ -1595,18 +1839,44 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-stone-500">{tr('success.subtitle')}</p>
 
+            {liveOrderStatus === 'refused' && (
+              <div className="rounded-3xl border border-red-200 bg-red-50 p-6">
+                <p className="font-semibold text-red-700">{tr('success.refusedTitle')}</p>
+                <p className="mt-1 text-sm text-red-600">{tr('success.refusedText')}</p>
+              </div>
+            )}
+
+            {!isDineIn && scheduledChoice !== 'asap' && scheduledChoice !== '' && (
+              <p className="rounded-full border border-navy-300/25 bg-navy-300/8 px-5 py-3 text-sm font-semibold text-navy-700">
+                🕒{' '}
+                {fulfillment === 'delivery'
+                  ? tr('success.deliveryAt', { time: formatSlotTime(scheduledChoice) })
+                  : tr('success.pickupAt', { time: formatSlotTime(scheduledChoice) })}
+              </p>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-3xl border border-stone-200/80 bg-stone-50/60 p-6">
-                <p className="text-xs uppercase tracking-[0.28em] text-stone-400">{tr('success.table')}</p>
-                <p className="mt-2 text-3xl font-bold text-stone-900">{selectedTable}</p>
+                {isDineIn ? (
+                  <>
+                    <p className="text-xs uppercase tracking-[0.28em] text-stone-400">{tr('success.table')}</p>
+                    <p className="mt-2 text-3xl font-bold text-stone-900">{selectedTable}</p>
+                  </>
+                ) : (
+                  <p className="text-2xl font-bold text-stone-900">
+                    {fulfillment === 'delivery' ? '🛵' : '🥡'} {fulfillmentLabel(fulfillment)}
+                  </p>
+                )}
               </div>
               <div className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
                 <p className="text-xs uppercase tracking-[0.28em] text-stone-500">{tr('success.totalPaid')}</p>
-                <p className="mt-2 text-3xl font-bold text-navy-700">{money(total)}</p>
+                <p className="mt-2 text-3xl font-bold text-navy-700">{money(grandTotal)}</p>
               </div>
               <div className="rounded-3xl border border-stone-200/80 bg-stone-50/60 p-6">
                 <p className="text-xs uppercase tracking-[0.28em] text-stone-400">{tr('success.estimatedTime')}</p>
-                <p className="mt-2 text-3xl font-bold text-stone-900">{estimatedTime}</p>
+                <p className="mt-2 text-3xl font-bold text-stone-900">
+                  {!isDineIn && scheduledChoice !== 'asap' && scheduledChoice !== '' ? formatSlotTime(scheduledChoice) : estimatedTime}
+                </p>
                 {statusStepIndex !== null && (
                   <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Suivi en direct par le restaurant
@@ -1809,7 +2079,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         </div>
       )}
 
-      {showFloatingControls && (phase === 'menu' || phase === 'checkout') && (
+      {showFloatingControls && isDineIn && (phase === 'menu' || phase === 'checkout') && (
         <div className="fixed bottom-4 right-4 z-[55] flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
           <button
             type="button"

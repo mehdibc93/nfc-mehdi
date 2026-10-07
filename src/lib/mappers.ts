@@ -82,6 +82,13 @@ export function toRestaurantRowPatch(patch: Partial<Restaurant>): Record<string,
   if (patch.customIntroVideo !== undefined) out.custom_intro_video = patch.customIntroVideo;
   if (patch.customWaitVideo !== undefined) out.custom_wait_video = patch.customWaitVideo;
   if (patch.pinProtectedSections !== undefined) out.pin_protected_sections = patch.pinProtectedSections;
+  if (patch.takeawayEnabled !== undefined) out.takeaway_enabled = patch.takeawayEnabled;
+  if (patch.deliveryEnabled !== undefined) out.delivery_enabled = patch.deliveryEnabled;
+  if (patch.takeawayPayOnSite !== undefined) out.takeaway_pay_on_site = patch.takeawayPayOnSite;
+  if (patch.deliveryPayOnDelivery !== undefined) out.delivery_pay_on_delivery = patch.deliveryPayOnDelivery;
+  if (patch.deliveryFee !== undefined) out.delivery_fee = patch.deliveryFee;
+  if (patch.deliveryMinOrder !== undefined) out.delivery_min_order = patch.deliveryMinOrder;
+  if (patch.deliveryFreeFrom !== undefined) out.delivery_free_from = patch.deliveryFreeFrom;
   return out;
 }
 
@@ -165,6 +172,14 @@ export function mapRestaurant(row: RestaurantRow): Restaurant {
     customIntroVideo: row.custom_intro_video,
     customWaitVideo: row.custom_wait_video,
     pinProtectedSections: row.pin_protected_sections ?? [],
+    // `?? défaut` : tant que migration_027 n'est pas exécutée, ces colonnes n'existent pas.
+    takeawayEnabled: row.takeaway_enabled ?? false,
+    deliveryEnabled: row.delivery_enabled ?? false,
+    takeawayPayOnSite: row.takeaway_pay_on_site ?? true,
+    deliveryPayOnDelivery: row.delivery_pay_on_delivery ?? false,
+    deliveryFee: Number(row.delivery_fee ?? 0),
+    deliveryMinOrder: Number(row.delivery_min_order ?? 0),
+    deliveryFreeFrom: row.delivery_free_from == null ? null : Number(row.delivery_free_from),
   };
 }
 
@@ -178,6 +193,12 @@ export function mapOrder(row: OrderRow): Order {
     total: row.total,
     items: row.items ?? [],
     specialInstructions: row.special_instructions ?? '',
+    fulfillment: row.fulfillment ?? 'dine_in',
+    customerName: row.customer_name ?? '',
+    customerPhone: row.customer_phone ?? '',
+    deliveryAddress: row.delivery_address ?? '',
+    scheduledFor: row.scheduled_for,
+    deliveryFee: Number(row.delivery_fee ?? 0),
     createdAt: row.created_at,
   };
 }
