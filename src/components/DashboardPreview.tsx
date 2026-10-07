@@ -1,3 +1,7 @@
+import { SITE_URL } from '../lib/site';
+
+const SITE_HOST = new URL(SITE_URL).host;
+
 // Recréation visuelle (chiffres fictifs) du dashboard réel, pour donner un aperçu concret aux
 // prospects avant qu'ils créent un compte — pas une capture d'écran, mais une maquette fidèle
 // au vrai design (mêmes composants/couleurs que DashboardPage.tsx).
@@ -19,7 +23,7 @@ export function DashboardPreview() {
         <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
         <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
         <span className="ml-3 rounded-full bg-white px-3 py-1 text-[11px] text-stone-400">
-          nourevo.vercel.app/dashboard
+          {SITE_HOST}/dashboard
         </span>
       </div>
 
