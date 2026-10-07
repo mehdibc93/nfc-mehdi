@@ -9,4 +9,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Ce module est aussi chargé (sans être utilisé) pendant le pré-rendu des pages publiques au
+// build, sous Node : pas de session persistée ni de rafraîchissement de token hors navigateur.
+// Dans le navigateur, ces options valent leurs valeurs par défaut (true).
+const isBrowser = typeof window !== 'undefined';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: isBrowser,
+    autoRefreshToken: isBrowser,
+    detectSessionInUrl: isBrowser,
+  },
+});

@@ -17,6 +17,7 @@ export function SignupPage() {
       title: 'Créer mon compte restaurateur — Nourevo',
       description: 'Créez votre compte Nourevo et composez votre carte digitale en quelques minutes.',
       canonicalPath: '/inscription',
+      noindex: true,
     });
   }, []);
   const [email, setEmail] = useState('');

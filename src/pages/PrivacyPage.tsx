@@ -1,15 +1,11 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import logoHorizontal from '../assets/logo-horizontal.png';
-import { setPageMeta } from '../lib/seo';
+import { setPublicPageMeta } from '../lib/seo';
 
 export function PrivacyPage() {
   useEffect(() => {
-    setPageMeta({
-      title: 'Politique de confidentialité — Nourevo',
-      description: 'Politique de confidentialité et protection des données personnelles sur Nourevo.',
-      canonicalPath: '/confidentialite',
-    });
+    setPublicPageMeta('/confidentialite');
   }, []);
 
   return (

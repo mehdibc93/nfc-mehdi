@@ -3,28 +3,10 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<meta
-			name="description"
-			content="Nourevo réunit la prise de commande, le paiement, les statistiques, la rentabilité, les avis clients et la gestion de votre carte dans une seule plateforme — accessible d'un simple tap NFC."
-		/>
-		<title>Nourevo — La plateforme tout-en-un pour votre restaurant</title>
-		<meta property="og:title" content="Nourevo — La plateforme tout-en-un pour votre restaurant" />
-		<meta
-			property="og:description"
-			content="Prise de commande, paiement, statistiques, rentabilité, avis clients et gestion de carte, réunis dans une seule plateforme."
-		/>
-		<meta property="og:type" content="website" />
-		<meta property="og:url" content="https://nourevo.vercel.app" />
-		<meta property="og:image" content="https://nourevo.vercel.app/logo512.png" />
-		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:title" content="Nourevo — La plateforme tout-en-un pour votre restaurant" />
-		<meta
-			name="twitter:description"
-			content="Prise de commande, paiement, statistiques, rentabilité, avis clients et gestion de carte, réunis dans une seule plateforme."
-		/>
-		<meta name="twitter:image" content="https://nourevo.vercel.app/logo512.png" />
-		<meta name="robots" content="index, follow" />
-		<link rel="canonical" href="https://nourevo.vercel.app/" />
+		<!-- Balises SEO (title, description, canonical, robots, Open Graph, Twitter, JSON-LD) :
+		     injectées au build par scripts/prerender.mjs (voir src/lib/pageMeta.ts), puis
+		     mises à jour au runtime par setPageMeta (src/lib/seo.ts). -->
+		<!--app-head-->
 		<meta name="theme-color" content="#111e30" />
 		<link rel="icon" type="image/x-icon" href="/favicon.ico" />
 		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
@@ -36,32 +18,9 @@
 			rel="stylesheet"
 			href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
 		/>
-		<script type="application/ld+json">
-			{
-				"@context": "https://schema.org",
-				"@type": "SoftwareApplication",
-				"name": "Nourevo",
-				"applicationCategory": "BusinessApplication",
-				"operatingSystem": "Web",
-				"description": "Carte digitale pour restaurants : prise de commande, paiement, statistiques, rentabilité et gestion de menu, accessible d'un simple tap NFC.",
-				"url": "https://nourevo.vercel.app",
-				"image": "https://nourevo.vercel.app/logo512.png",
-				"offers": {
-					"@type": "Offer",
-					"price": "49",
-					"priceCurrency": "EUR",
-					"description": "Abonnement mensuel à partir de 49€/mois"
-				},
-				"provider": {
-					"@type": "Organization",
-					"name": "Nourevo",
-					"url": "https://nourevo.vercel.app"
-				}
-			}
-		</script>
 		<script type="module" src="/src/main.tsx"></script>
 	</head>
 	<body>
-		<div id="root"></div>
+		<div id="root"><!--app-html--></div>
 	</body>
 </html>

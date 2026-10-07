@@ -13,7 +13,7 @@ import {
   RestaurantPreview,
   StatistiquesPreview,
 } from '../components/DashboardMiniPreviews';
-import { setPageMeta } from '../lib/seo';
+import { setPublicPageMeta } from '../lib/seo';
 
 type DashboardPage = {
   id: string;
@@ -190,11 +190,7 @@ export function DiscoverDashboardPage() {
   const [previewPage, setPreviewPage] = useState<DashboardPage | null>(null);
 
   useEffect(() => {
-    setPageMeta({
-      title: 'Découvrir le dashboard — Nourevo',
-      description: "Un aperçu concret du dashboard Nourevo avant de créer votre compte : vue d'ensemble, personnalisation, Mode Service, statistiques et rentabilité.",
-      canonicalPath: '/decouvrir-dashboard',
-    });
+    setPublicPageMeta('/decouvrir-dashboard');
   }, []);
 
   return (

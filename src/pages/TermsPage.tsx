@@ -1,15 +1,11 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import logoHorizontal from '../assets/logo-horizontal.png';
-import { setPageMeta } from '../lib/seo';
+import { setPublicPageMeta } from '../lib/seo';
 
 export function TermsPage() {
   useEffect(() => {
-    setPageMeta({
-      title: "Conditions générales d'utilisation — Nourevo",
-      description: "Conditions générales d'utilisation de la plateforme Nourevo.",
-      canonicalPath: '/cgu',
-    });
+    setPublicPageMeta('/cgu');
   }, []);
 
   return (

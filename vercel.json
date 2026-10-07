@@ -1,3 +1,21 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/dashboard", "destination": "/app.html" },
+    { "source": "/dashboard/:path*", "destination": "/app.html" },
+    { "source": "/service", "destination": "/app.html" },
+    { "source": "/connexion", "destination": "/app.html" },
+    { "source": "/inscription", "destination": "/app.html" },
+    { "source": "/reinitialiser-mot-de-passe", "destination": "/app.html" },
+    { "source": "/r/:path*", "destination": "/app.html" }
+  ],
+  "headers": [
+    { "source": "/dashboard", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/dashboard/:path*", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/service", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/connexion", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/inscription", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/reinitialiser-mot-de-passe", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/r/:path*", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }
+  ]
 }

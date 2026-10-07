@@ -5,7 +5,7 @@ import { DashboardPreview } from '../components/DashboardPreview';
 import { Reveal, Transition } from '../components/Reveal';
 import { useAuth } from '../hooks/useAuth';
 import logoHorizontal from '../assets/logo-horizontal.png';
-import { setPageMeta } from '../lib/seo';
+import { setPublicPageMeta } from '../lib/seo';
 
 const DEMO_SLUG = 'le-jardin-parisien';
 const WHATSAPP_HREF =
@@ -111,12 +111,7 @@ export function LandingPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setPageMeta({
-      title: 'Nourevo — La plateforme tout-en-un pour votre restaurant',
-      description:
-        "Nourevo réunit la prise de commande, le paiement, les statistiques, la rentabilité, les avis clients et la gestion de votre carte — accessible d'un simple tap NFC.",
-      canonicalPath: '/',
-    });
+    setPublicPageMeta('/');
   }, []);
 
   const handleLogout = async () => {

@@ -1,7 +1,7 @@
  import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import logoHorizontal from '../assets/logo-horizontal.png';
-import { setPageMeta } from '../lib/seo';
+import { setPublicPageMeta } from '../lib/seo';
 
 const PLANS = [
   {
@@ -48,24 +48,7 @@ const INCLUDED = [
 
 export function PricingPage() {
   useEffect(() => {
-    setPageMeta({
-      title: 'Tarifs — Nourevo',
-      description: 'Un seul abonnement, toutes les fonctionnalités incluses. Sans commission sur vos ventes.',
-      canonicalPath: '/tarifs',
-      jsonLd: {
-        '@context': 'https://schema.org',
-        '@type': 'Product',
-        name: 'Nourevo',
-        description: 'Carte digitale pour restaurants avec prise de commande, paiement et gestion de menu.',
-        offers: PLANS.map((plan) => ({
-          '@type': 'Offer',
-          name: plan.name,
-          price: plan.price.replace(/[^0-9.,]/g, '').replace(',', '.'),
-          priceCurrency: 'EUR',
-          url: 'https://nourevo.vercel.app/tarifs',
-        })),
-      },
-    });
+    setPublicPageMeta('/tarifs');
   }, []);
 
   return (

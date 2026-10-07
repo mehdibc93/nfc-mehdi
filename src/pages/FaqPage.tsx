@@ -1,104 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import logoHorizontal from '../assets/logo-horizontal.png';
-import { setPageMeta } from '../lib/seo';
+import { setPublicPageMeta } from '../lib/seo';
 import { useAuth } from '../hooks/useAuth';
-
-const FAQ_ITEMS = [
-  {
-    question: 'Comment mes clients paient-ils leur commande ?',
-    answer:
-      'Par carte bancaire, Apple Pay ou Google Pay directement depuis leur téléphone, via Stripe — ou en payant à la caisse comme d\'habitude, si vous préférez. L\'argent arrive directement sur votre propre compte bancaire, Nourevo ne prélève aucune commission sur vos ventes.',
-  },
-  {
-    question: 'Ai-je besoin d\'un matériel spécial ?',
-    answer:
-      'Non, la carte NFC à poser sur chaque table est fournie par nos soins avec votre abonnement, déjà configurée pour votre restaurant. Vous n\'avez rien à acheter ni à programmer vous-même.',
-  },
-  {
-    question: 'Est-ce compatible avec tous les téléphones ?',
-    answer:
-      'Pour programmer la carte NFC : oui sur Android (directement depuis Chrome), et sur iPhone via une application gratuite comme NFC Tools (limitation d\'Apple, pas de Nourevo). Côté client, scanner la carte et commander fonctionne sur tous les smartphones.',
-  },
-  {
-    question: 'Y a-t-il un engagement ?',
-    answer:
-      'Le plan à 59€/mois est sans engagement, résiliable à tout moment. Les plans à 54€/mois et 588€/an impliquent un engagement de 12 mois, en échange d\'un tarif réduit.',
-  },
-  {
-    question: 'Y a-t-il un essai gratuit ?',
-    answer:
-      'Oui, 7 jours d\'essai gratuit sur votre premier abonnement, quel que soit le plan choisi. Votre carte bancaire est demandée à l\'inscription mais n\'est débitée qu\'à l\'issue des 7 jours — annulez avant cette date et vous ne serez jamais prélevé.',
-  },
-  {
-    question: 'Puis-je gérer mon menu dans plusieurs langues ?',
-    answer:
-      'Oui, votre carte peut être traduite en français, anglais, espagnol, chinois et russe, avec une traduction automatique en un clic depuis le dashboard.',
-  },
-  {
-    question: 'Puis-je voir un exemple avant de créer un compte ?',
-    answer:
-      'Oui, une carte de démonstration complète est accessible depuis la page d\'accueil ("Voir la démo « Le Jardin Parisien »"), sans avoir besoin de créer de compte.',
-  },
-  {
-    question: 'Que se passe-t-il si un plat n\'est plus disponible ?',
-    answer:
-      'Vous pouvez suivre le stock de chaque plat individuellement — dès qu\'il atteint zéro, il disparaît automatiquement de la carte, sans action de votre part. Vous pouvez aussi marquer un plat "Rupture de stock" manuellement à tout moment.',
-  },
-  {
-    question: 'Mes données et celles de mes clients sont-elles protégées ?',
-    answer:
-      'Oui. Consultez notre politique de confidentialité pour le détail du traitement des données. Les paiements sont gérés directement par Stripe, Nourevo n\'a jamais accès aux coordonnées bancaires de vos clients.',
-  },
-  {
-    question: 'Puis-je annuler mon abonnement à tout moment ?',
-    answer:
-      'Oui, depuis votre espace de gestion d\'abonnement (portail Stripe accessible depuis le dashboard). Pour les plans avec engagement de 12 mois, l\'annulation prend effet à la fin de la période engagée.',
-  },
-  {
-    question: 'Vos clients doivent-ils télécharger une application ?',
-    answer:
-      'Non, aucune application à télécharger. Le client scanne la carte NFC (ou clique sur un lien), et le menu s\'ouvre directement dans son navigateur, comme n\'importe quelle page web.',
-  },
-  {
-    question: 'Puis-je modifier mon menu quand je veux ?',
-    answer:
-      'Oui, à tout moment depuis votre dashboard. Vos changements sont visibles par vos clients dès que vous cliquez sur "Sauvegarder".',
-  },
-  {
-    question: 'Le paiement est-il vraiment sécurisé ?',
-    answer:
-      'Oui, tous les paiements passent directement par Stripe, une infrastructure certifiée utilisée par des millions d\'entreprises dans le monde. Nourevo n\'a jamais accès aux coordonnées bancaires de vos clients.',
-  },
-  {
-    question: 'Puis-je créer un design totalement personnalisé ?',
-    answer:
-      'Vous personnalisez les couleurs, les photos, les vidéos et les textes de votre carte. Il n\'y a en revanche pas d\'éditeur de mise en page libre : la structure de la carte reste celle de Nourevo, pensée pour rester claire et efficace sur mobile.',
-  },
-];
+import { FAQ_ITEMS } from '../lib/faq';
 
 export function FaqPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    setPageMeta({
-      title: 'FAQ — Nourevo',
-      description: 'Les réponses aux questions les plus fréquentes sur Nourevo : paiement, matériel NFC, abonnement, langues, sécurité.',
-      canonicalPath: '/faq',
-      jsonLd: {
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        mainEntity: FAQ_ITEMS.map((item) => ({
-          '@type': 'Question',
-          name: item.question,
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: item.answer,
-          },
-        })),
-      },
-    });
+    setPublicPageMeta('/faq');
   }, []);
 
   return (
@@ -131,6 +43,8 @@ export function FaqPage() {
                 <button
                   type="button"
                   onClick={() => setOpenIndex(isOpen ? null : index)}
+                  aria-expanded={isOpen}
+                  aria-controls={`faq-answer-${index}`}
                   className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
                 >
                   <span className="font-display text-base font-bold text-stone-900">{item.question}</span>
@@ -138,9 +52,11 @@ export function FaqPage() {
                     +
                   </span>
                 </button>
-                {isOpen && (
-                  <p className="px-6 pb-5 text-sm leading-6 text-stone-500">{item.answer}</p>
-                )}
+                {/* Toujours dans le DOM (masqué si fermé) : les réponses restent lisibles par
+                    les moteurs de recherche et les IA dans le HTML pré-rendu. */}
+                <p id={`faq-answer-${index}`} hidden={!isOpen} className="px-6 pb-5 text-sm leading-6 text-stone-500">
+                  {item.answer}
+                </p>
               </div>
             );
           })}

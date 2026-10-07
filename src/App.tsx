@@ -4,7 +4,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { supabase } from './lib/supabaseClient';
 import { LoadingScreen } from './components/LoadingScreen';
-import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
@@ -14,13 +13,7 @@ import { ServicePage } from './pages/ServicePage';
 import { ProfitabilityPage } from './pages/ProfitabilityPage';
 import { ConfigurationPage } from './pages/ConfigurationPage';
 import { RestaurantExperience } from './pages/RestaurantExperience';
-import { LegalNoticePage } from './pages/LegalNoticePage';
-import { TermsPage } from './pages/TermsPage';
-import { PrivacyPage } from './pages/PrivacyPage';
-import { ContactPage } from './pages/ContactPage';
-import { PricingPage } from './pages/PricingPage';
-import { FaqPage } from './pages/FaqPage';
-import { DiscoverDashboardPage } from './pages/DiscoverDashboardPage';
+import { publicRoutes } from './publicRoutes';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -75,7 +68,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        {publicRoutes}
         <Route path="/connexion" element={<LoginPage />} />
         <Route path="/inscription" element={<SignupPage />} />
         <Route path="/reinitialiser-mot-de-passe" element={<ResetPasswordPage />} />
@@ -152,13 +145,6 @@ function App() {
           }
         />
         <Route path="/r/:slug" element={<RestaurantExperience />} />
-        <Route path="/mentions-legales" element={<LegalNoticePage />} />
-        <Route path="/cgu" element={<TermsPage />} />
-        <Route path="/confidentialite" element={<PrivacyPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/tarifs" element={<PricingPage />} />
-        <Route path="/faq" element={<FaqPage />} />
-        <Route path="/decouvrir-dashboard" element={<DiscoverDashboardPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
