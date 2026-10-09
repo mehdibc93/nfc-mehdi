@@ -79,17 +79,68 @@ function getActiveDiscountPercent(rules: DiscountRuleRow[]): number {
   return Math.max(...active.map((rule) => rule.percent));
 }
 
+// Pourboires : 200 € maximum ; un pourboire payé seul doit atteindre le minimum Stripe (0,50 €).
+// Mêmes bornes que src/lib/tips.ts côté client.
+const MAX_TIP_CENTS = 20000;
+const MIN_SEPARATE_TIP_CENTS = 50;
+
+// Pourboire « après le repas » : paiement séparé, rattaché à une commande existante du
+// restaurant. Il n'est compté sur la commande qu'une fois encaissé, par record-tip.
+async function createTipPaymentIntent(restaurantId: string | undefined, orderId: string | undefined, tipCents: number) {
+  if (!restaurantId || !orderId) return json({ error: 'Requête invalide.' }, 400);
+  if (tipCents < MIN_SEPARATE_TIP_CENTS) return json({ error: 'Le pourboire minimum est de 0,50 €.' }, 400);
+
+  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const { data: restaurant } = await supabase.from('restaurants').select('*').eq('id', restaurantId).maybeSingle();
+  if (!restaurant || !restaurant.stripe_account_id || !restaurant.stripe_onboarded || !restaurant.tips_enabled) {
+    return json({ error: "Ce restaurant n'accepte pas les pourboires en ligne." }, 400);
+  }
+  const { data: order } = await supabase.from('orders').select('id').eq('id', orderId).eq('restaurant_id', restaurantId).maybeSingle();
+  if (!order) return json({ error: 'Commande introuvable.' }, 404);
+
+  const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { apiVersion: '2024-06-20' });
+  const paymentIntent = await stripe.paymentIntents.create(
+    {
+      amount: tipCents,
+      currency: 'eur',
+      automatic_payment_methods: { enabled: true },
+      metadata: { kind: 'tip', order_id: orderId },
+    },
+    { stripeAccount: restaurant.stripe_account_id },
+  );
+  return json({ clientSecret: paymentIntent.client_secret, stripeAccountId: restaurant.stripe_account_id });
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { restaurantId, items, fulfillment = 'dine_in' } = (await req.json()) as {
+    const {
+      restaurantId,
+      items,
+      fulfillment = 'dine_in',
+      tipAmount = 0,
+      kind = 'order',
+      orderId,
+    } = (await req.json()) as {
       restaurantId?: string;
       items?: CartRequestItem[];
       fulfillment?: string;
+      /** Pourboire en euros, ajouté au paiement (commande) ou payé seul (kind = 'tip'). */
+      tipAmount?: number;
+      /** 'order' : paiement d'une commande ; 'tip' : pourboire après le repas, sur `orderId`. */
+      kind?: string;
+      orderId?: string;
     };
+    const tipCents = Math.round((Number(tipAmount) || 0) * 100);
+    if (tipCents < 0 || tipCents > MAX_TIP_CENTS) {
+      return json({ error: 'Montant de pourboire invalide.' }, 400);
+    }
+    if (kind === 'tip') {
+      return await createTipPaymentIntent(restaurantId, orderId, tipCents);
+    }
     if (!restaurantId || !Array.isArray(items) || items.length === 0) {
       return json({ error: 'Requête invalide.' }, 400);
     }
@@ -172,12 +223,21 @@ Deno.serve(async (req) => {
       if (!isFree) amount += Math.round((Number(restaurant.delivery_fee) || 0) * 100);
     }
 
+    // Pourboire choisi au paiement : seulement si le restaurant les a activés.
+    if (tipCents > 0) {
+      if (!restaurant.tips_enabled) {
+        return json({ error: "Ce restaurant n'accepte pas les pourboires." }, 400);
+      }
+      amount += tipCents;
+    }
+
     const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
     const paymentIntent = await stripe.paymentIntents.create(
       {
         amount,
         currency: 'eur',
         automatic_payment_methods: { enabled: true },
+        metadata: { kind: 'order', tip_cents: String(tipCents) },
       },
       { stripeAccount: restaurant.stripe_account_id },
     );

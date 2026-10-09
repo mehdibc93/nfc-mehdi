@@ -8,7 +8,8 @@ import { money, formatCountdown } from '../lib/format';
 import { LOCALES, t } from '../lib/i18n';
 import type { Locale } from '../lib/i18n';
 import { logDishEvent } from '../lib/analytics';
-import { getOrderStatus, placeOrder, sendTableRequest } from '../lib/orders';
+import { createTipPayment, getOrderStatus, placeOrder, recordTip, sendTableRequest } from '../lib/orders';
+import { MIN_SEPARATE_TIP, parseTipInput, tipFromPercent } from '../lib/tips';
 import type { Fulfillment, OrderStatus } from '../lib/types';
 import { buildPickupSlots, canOrderAsap, deliveryFeeFor, formatSlotTime, meetsDeliveryMinimum } from '../lib/fulfillment';
 import { accentGradient, accentTextColor } from '../lib/color';
@@ -29,6 +30,7 @@ import { SITE_URL } from '../lib/site';
 type Phase = 'scan' | 'cinematic' | 'menu' | 'checkout' | 'success';
 type ModalStep = 'dish' | 'added' | 'drink' | 'drink-added' | 'dessert' | 'dessert-added' | null;
 type FlatDish = Dish & { category: string };
+type TipChoice = 'none' | 'custom' | number;
 
 type CartItem = {
   name: string;
@@ -329,6 +331,19 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   // 'asap' = dès que possible, sinon l'ISO du créneau choisi ('' = rien de choisi).
   const [scheduledChoice, setScheduledChoice] = useState('asap');
+  // Pourboire au paiement : 'none', un pourcentage proposé par le restaurant, ou 'custom'.
+  const [tipChoice, setTipChoice] = useState<TipChoice>('none');
+  const [customTip, setCustomTip] = useState('');
+  // Pourboire réellement payé avec la commande (affiché sur l'écran de suivi).
+  const [paidTip, setPaidTip] = useState(0);
+  // Pourboire « après le repas » (paiement séparé depuis l'écran de suivi).
+  const [afterTipOpen, setAfterTipOpen] = useState(false);
+  const [afterTipChoice, setAfterTipChoice] = useState<TipChoice>('none');
+  const [afterCustomTip, setAfterCustomTip] = useState('');
+  const [afterTipSecret, setAfterTipSecret] = useState<string | null>(null);
+  const [afterTipLoading, setAfterTipLoading] = useState(false);
+  const [afterTipError, setAfterTipError] = useState<string | null>(null);
+  const [afterTipThanks, setAfterTipThanks] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [videoReady, setVideoReady] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
@@ -429,6 +444,23 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const belowDeliveryMinimum = fulfillment === 'delivery' && !meetsDeliveryMinimum(total, deliveryPricing);
   const grandTotal = total + deliveryFee;
 
+  // Pourboires : uniquement avec le paiement en ligne, calculés sur le montant des plats.
+  const tipsAvailable = restaurant.tipsEnabled && restaurant.stripeOnboarded;
+  const tipAmountFor = (choice: TipChoice, custom: string) =>
+    choice === 'custom' ? parseTipInput(custom) ?? 0 : typeof choice === 'number' ? tipFromPercent(total, choice) : 0;
+  const tipOffered = tipsAvailable && paymentMode === 'app';
+  const checkoutTip = tipOffered ? tipAmountFor(tipChoice, customTip) : 0;
+  const tipInvalid = tipOffered && tipChoice === 'custom' && parseTipInput(customTip) === null;
+  const amountToPay = grandTotal + checkoutTip;
+  // Le paiement Stripe est recréé quand le pourboire change : on attend que la saisie se
+  // stabilise, et on ne montre le formulaire que s'il correspond au pourboire affiché.
+  const [intentTip, setIntentTip] = useState(0);
+  const [secretTip, setSecretTip] = useState<number | null>(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIntentTip(checkoutTip), 500);
+    return () => window.clearTimeout(timer);
+  }, [checkoutTip]);
+
   // Créneaux recalculés à chaque arrivée sur l'étape paiement (ils dépendent de l'heure).
   const pickupSlots = useMemo(
     () => (phase === 'checkout' && !isDineIn ? buildPickupSlots(restaurant.openingHours) : []),
@@ -453,12 +485,13 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   }, [isDineIn, phase, asapAvailable, pickupSlots, scheduledChoice]);
 
   const checkoutReady =
-    isDineIn ||
+    (isDineIn ||
     (customerName.trim().length > 0 &&
       customerPhone.trim().length >= 6 &&
       (fulfillment !== 'delivery' || deliveryAddress.trim().length > 0) &&
       scheduledChoice !== '' &&
-      !belowDeliveryMinimum);
+      !belowDeliveryMinimum)) &&
+    !tipInvalid;
 
   // Prépare le paiement carte/Apple Pay/Google Pay dès qu'on arrive sur l'étape paiement avec ce mode choisi.
   useEffect(() => {
@@ -479,6 +512,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
           restaurantId: restaurant.id,
           items: cart.map((item) => ({ dishId: item.dishId, quantity: item.quantity, extraNames: item.extraNames })),
           fulfillment,
+          tipAmount: intentTip,
         },
       })
       .then(({ data, error }) => {
@@ -487,6 +521,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
           setPaymentError(data?.error ?? error?.message ?? 'Impossible de préparer le paiement.');
         } else {
           setStripeClientSecret(data.clientSecret);
+          setSecretTip(intentTip);
         }
         setCreatingPaymentIntent(false);
       });
@@ -494,7 +529,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, paymentMode, restaurant.id, restaurant.stripeOnboarded, fulfillment, belowDeliveryMinimum]);
+  }, [phase, paymentMode, restaurant.id, restaurant.stripeOnboarded, fulfillment, belowDeliveryMinimum, intentTip]);
 
   // Somme les temps de préparation renseignés par le restaurateur (un par plat distinct du
   // panier, pas multiplié par la quantité) — `null` si aucun plat du panier n'a de temps
@@ -594,6 +629,12 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
     setSelectedDessert(dessertMenu[0] ?? null);
     setSelectedTable('4');
     setFulfillment(initialFulfillment);
+    setTipChoice('none');
+    setCustomTip('');
+    setPaidTip(0);
+    setAfterTipOpen(false);
+    setAfterTipSecret(null);
+    setAfterTipThanks(null);
     setPaymentMode(paymentOptions[0]?.id ?? 'counter');
     setSpecialInstructions('');
     setToastMessage(null);
@@ -716,11 +757,88 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         deliveryAddress,
         scheduledFor: scheduledChoice === 'asap' ? null : scheduledChoice,
         deliveryFee,
+        tipAmount: checkoutTip,
       },
     ).then((orderId) => setPlacedOrderId(orderId));
+    setPaidTip(checkoutTip);
+    setAfterTipOpen(false);
+    setAfterTipSecret(null);
+    setAfterTipThanks(null);
     setModalStep(null);
     setPhase('success');
     setToastMessage(isDineIn ? tr('success.paymentToast') : tr('success.confirmed'));
+  };
+
+  const afterTipAmount = tipAmountFor(afterTipChoice, afterCustomTip);
+  const startAfterTipPayment = () => {
+    if (!placedOrderId) return;
+    setAfterTipError(null);
+    setAfterTipLoading(true);
+    createTipPayment(restaurant.id, placedOrderId, afterTipAmount).then(({ clientSecret, error }) => {
+      setAfterTipLoading(false);
+      if (clientSecret) setAfterTipSecret(clientSecret);
+      else setAfterTipError(error ?? null);
+    });
+  };
+  const finishAfterTip = () => {
+    if (placedOrderId && afterTipSecret) recordTip(placedOrderId, afterTipSecret);
+    setAfterTipThanks(afterTipAmount);
+    setAfterTipSecret(null);
+    setAfterTipOpen(false);
+  };
+
+  // Choix du pourboire : « Non merci », pourcentages du restaurant (avec le montant calculé),
+  // ou montant libre.
+  const renderTipChoices = (
+    choice: TipChoice,
+    setChoice: (value: TipChoice) => void,
+    custom: string,
+    setCustom: (value: string) => void,
+    allowNone: boolean,
+  ) => {
+    const options: TipChoice[] = [...(allowNone ? (['none'] as TipChoice[]) : []), ...restaurant.tipPercentages, 'custom'];
+    return (
+      <>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {options.map((option) => (
+            <button
+              key={String(option)}
+              type="button"
+              onClick={() => setChoice(option)}
+              className={`rounded-2xl border px-3 py-2.5 text-sm font-semibold transition-all duration-300 ${
+                choice === option
+                  ? 'border-navy-300/50 bg-navy-300/15 text-stone-900'
+                  : 'border-stone-200 bg-white text-stone-500 hover:border-navy-300/30'
+              }`}
+            >
+              {option === 'none' ? (
+                tr('tips.none')
+              ) : option === 'custom' ? (
+                tr('tips.custom')
+              ) : (
+                <>
+                  {option} %<span className="block text-xs font-normal text-stone-400">{money(tipFromPercent(total, option))}</span>
+                </>
+              )}
+            </button>
+          ))}
+        </div>
+        {choice === 'custom' && (
+          <div className="mt-3">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={custom}
+              onChange={(event) => setCustom(event.target.value)}
+              placeholder={tr('tips.customPlaceholder')}
+              aria-label={tr('tips.customPlaceholder')}
+              className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 outline-none focus:border-navy-300"
+            />
+            {parseTipInput(custom) === null && <p className="mt-1 text-xs text-red-600">{tr('tips.invalid')}</p>}
+          </div>
+        )}
+      </>
+    );
   };
 
   const requestTableService = (type: 'bill' | 'waiter') => {
@@ -1732,27 +1850,43 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               </div>
             )}
 
+            {tipOffered && (
+              <div className="mt-6 rounded-3xl border border-stone-200 bg-white p-5">
+                <p className="font-semibold text-stone-900">💝 {tr('tips.title')}</p>
+                <p className="mt-1 text-xs text-stone-500">{tr('tips.subtitle')}</p>
+                {renderTipChoices(tipChoice, setTipChoice, customTip, setCustomTip, true)}
+              </div>
+            )}
+
             <div className="mt-6 rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
-              {fulfillment === 'delivery' && (
+              {(fulfillment === 'delivery' || checkoutTip > 0) && (
                 <div className="mb-3 space-y-1 border-b border-navy-300/20 pb-3 text-sm text-stone-600">
                   <div className="flex items-center justify-between">
                     <span>{tr('checkout.subtotal')}</span>
                     <span>{money(total)}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span>{tr('checkout.deliveryFee')}</span>
-                    <span>{deliveryFee > 0 ? money(deliveryFee) : tr('checkout.free')}</span>
-                  </div>
-                  {deliveryFee > 0 && restaurant.deliveryFreeFrom !== null && (
+                  {fulfillment === 'delivery' && (
+                    <div className="flex items-center justify-between">
+                      <span>{tr('checkout.deliveryFee')}</span>
+                      <span>{deliveryFee > 0 ? money(deliveryFee) : tr('checkout.free')}</span>
+                    </div>
+                  )}
+                  {fulfillment === 'delivery' && deliveryFee > 0 && restaurant.deliveryFreeFrom !== null && (
                     <p className="text-xs text-stone-400">
                       {tr('checkout.freeDeliveryFrom', { amount: money(restaurant.deliveryFreeFrom) })}
                     </p>
+                  )}
+                  {checkoutTip > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span>{tr('checkout.tip')}</span>
+                      <span>{money(checkoutTip)}</span>
+                    </div>
                   )}
                 </div>
               )}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-stone-600">{tr('checkout.totalDue')}</span>
-                <span className="text-3xl font-bold text-navy-700">{money(grandTotal)}</span>
+                <span className="text-3xl font-bold text-navy-700">{money(amountToPay)}</span>
               </div>
               <p className="mt-2 text-sm text-stone-500">{tr('checkout.timeAfterValidation')}</p>
             </div>
@@ -1777,8 +1911,9 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
                     {paymentError}
                   </p>
                 )}
-                {stripeClientSecret && restaurant.stripeAccountId && (
+                {stripeClientSecret && restaurant.stripeAccountId && secretTip === checkoutTip && intentTip === checkoutTip && (
                   <StripeCheckoutForm
+                    key={stripeClientSecret}
                     stripePromise={getStripe(restaurant.stripeAccountId)}
                     clientSecret={stripeClientSecret}
                     payLabel={tr('checkout.payWithApp')}
@@ -1878,7 +2013,12 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               </div>
               <div className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
                 <p className="text-xs uppercase tracking-[0.28em] text-stone-500">{tr('success.totalPaid')}</p>
-                <p className="mt-2 text-3xl font-bold text-navy-700">{money(grandTotal)}</p>
+                <p className="mt-2 text-3xl font-bold text-navy-700">{money(grandTotal + paidTip)}</p>
+                {paidTip > 0 && (
+                  <p className="mt-1 text-xs text-stone-500">
+                    {tr('checkout.tip')} : {money(paidTip)}
+                  </p>
+                )}
               </div>
               <div className="rounded-3xl border border-stone-200/80 bg-stone-50/60 p-6">
                 <p className="text-xs uppercase tracking-[0.28em] text-stone-400">{tr('success.estimatedTime')}</p>
@@ -1897,6 +2037,74 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               <div className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
                 <p className="text-xs uppercase tracking-[0.28em] text-navy-700">{tr('success.kitchenInstructionsSent')}</p>
                 <p className="mt-2 text-sm text-stone-700">{specialInstructions}</p>
+              </div>
+            )}
+
+            {afterTipThanks !== null && (
+              <p className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-semibold text-emerald-700">
+                {tr('tips.thanks', { amount: money(afterTipThanks) })}
+              </p>
+            )}
+
+            {tipsAvailable && placedOrderId && paidTip === 0 && afterTipThanks === null && liveOrderStatus !== 'refused' && (
+              <div className="rounded-3xl border border-stone-200/80 bg-stone-50/60 p-6">
+                {!afterTipOpen ? (
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <p className="font-semibold text-stone-900">💝 {tr('tips.afterTitle')}</p>
+                    <button
+                      type="button"
+                      onClick={() => setAfterTipOpen(true)}
+                      className="shrink-0 rounded-full border border-navy-300/40 bg-white px-5 py-2.5 text-sm font-bold text-navy-700 transition-all duration-300 hover:-translate-y-0.5"
+                    >
+                      {tr('tips.afterButton')}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="font-semibold text-stone-900">💝 {tr('tips.afterTitle')}</p>
+                    {!afterTipSecret ? (
+                      <>
+                        {renderTipChoices(afterTipChoice, setAfterTipChoice, afterCustomTip, setAfterCustomTip, false)}
+                        {afterTipChoice !== 'none' && afterTipAmount > 0 && afterTipAmount < MIN_SEPARATE_TIP && (
+                          <p className="mt-2 text-xs text-amber-700">{tr('tips.minimum', { amount: money(MIN_SEPARATE_TIP) })}</p>
+                        )}
+                        {afterTipError && <p className="mt-2 text-sm text-red-600">{afterTipError}</p>}
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={startAfterTipPayment}
+                            disabled={afterTipLoading || afterTipAmount < MIN_SEPARATE_TIP}
+                            className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-2.5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50"
+                            style={accentButtonStyle}
+                          >
+                            {afterTipLoading ? '...' : tr('tips.pay', { amount: money(afterTipAmount) })}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAfterTipOpen(false)}
+                            className="rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-600"
+                          >
+                            {tr('tips.cancel')}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      restaurant.stripeAccountId && (
+                        <div className="mt-4">
+                          <StripeCheckoutForm
+                            key={afterTipSecret}
+                            stripePromise={getStripe(restaurant.stripeAccountId)}
+                            clientSecret={afterTipSecret}
+                            payLabel={tr('tips.pay', { amount: money(afterTipAmount) })}
+                            onSuccess={finishAfterTip}
+                            onError={setAfterTipError}
+                          />
+                          {afterTipError && <p className="mt-2 text-sm text-red-600">{afterTipError}</p>}
+                        </div>
+                      )
+                    )}
+                  </>
+                )}
               </div>
             )}
 

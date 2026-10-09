@@ -12,6 +12,7 @@ import type {
   TableRequest,
   TableRequestRow,
 } from './types';
+import { DEFAULT_TIP_PERCENTAGES } from './tips';
 
 export function mapDiscountRule(row: DiscountRuleRow): DiscountRule {
   return {
@@ -89,6 +90,8 @@ export function toRestaurantRowPatch(patch: Partial<Restaurant>): Record<string,
   if (patch.deliveryFee !== undefined) out.delivery_fee = patch.deliveryFee;
   if (patch.deliveryMinOrder !== undefined) out.delivery_min_order = patch.deliveryMinOrder;
   if (patch.deliveryFreeFrom !== undefined) out.delivery_free_from = patch.deliveryFreeFrom;
+  if (patch.tipsEnabled !== undefined) out.tips_enabled = patch.tipsEnabled;
+  if (patch.tipPercentages !== undefined) out.tip_percentages = patch.tipPercentages;
   return out;
 }
 
@@ -180,6 +183,9 @@ export function mapRestaurant(row: RestaurantRow): Restaurant {
     deliveryFee: Number(row.delivery_fee ?? 0),
     deliveryMinOrder: Number(row.delivery_min_order ?? 0),
     deliveryFreeFrom: row.delivery_free_from == null ? null : Number(row.delivery_free_from),
+    // Idem pour migration_028 (pourboires).
+    tipsEnabled: row.tips_enabled ?? false,
+    tipPercentages: row.tip_percentages?.length ? row.tip_percentages : DEFAULT_TIP_PERCENTAGES,
   };
 }
 
@@ -199,6 +205,7 @@ export function mapOrder(row: OrderRow): Order {
     deliveryAddress: row.delivery_address ?? '',
     scheduledFor: row.scheduled_for,
     deliveryFee: Number(row.delivery_fee ?? 0),
+    tipAmount: Number(row.tip_amount ?? 0),
     createdAt: row.created_at,
   };
 }

@@ -10,6 +10,8 @@ export type OrderFulfillmentDetails = {
   /** ISO ; null = « dès que possible ». */
   scheduledFor?: string | null;
   deliveryFee?: number;
+  /** Pourboire payé en ligne avec la commande, en euros (à part de `total`). */
+  tipAmount?: number;
 };
 
 // L'écriture de la commande elle-même ne doit jamais bloquer ni casser l'expérience client si
@@ -52,6 +54,8 @@ export async function placeOrder(
     items,
     special_instructions: specialInstructions,
     ...fulfillmentColumns,
+    // Envoyé seulement s'il y a un pourboire (colonne ajoutée par migration_028_tips.sql).
+    ...(details.tipAmount ? { tip_amount: details.tipAmount } : {}),
   });
   if (error) return null;
 
@@ -76,6 +80,31 @@ export async function getOrderStatus(orderId: string): Promise<OrderStatus | nul
   );
   if (error || !data?.status) return null;
   return data.status;
+}
+
+// Pourboire « après le repas » : crée le paiement Stripe (pourboire seul), puis, une fois
+// encaissé, le fait enregistrer sur la commande par la fonction record-tip, qui vérifie le
+// paiement auprès de Stripe.
+export async function createTipPayment(
+  restaurantId: string,
+  orderId: string,
+  tipAmount: number,
+): Promise<{ clientSecret?: string; error?: string }> {
+  const { data, error } = await supabase.functions.invoke<{ clientSecret?: string; error?: string }>(
+    'create-payment-intent',
+    { body: { kind: 'tip', restaurantId, orderId, tipAmount } },
+  );
+  if (error || !data?.clientSecret) return { error: data?.error ?? error?.message ?? 'Impossible de préparer le paiement.' };
+  return { clientSecret: data.clientSecret };
+}
+
+export async function recordTip(orderId: string, clientSecret: string): Promise<boolean> {
+  // Le clientSecret Stripe a la forme « pi_xxx_secret_yyy » : l'id du paiement en est le début.
+  const paymentIntentId = clientSecret.split('_secret_')[0];
+  const { data, error } = await supabase.functions.invoke<{ tipAmount?: number }>('record-tip', {
+    body: { orderId, paymentIntentId },
+  });
+  return !error && typeof data?.tipAmount === 'number';
 }
 
 export function sendTableRequest(restaurantId: string, tableLabel: string, type: RequestType) {

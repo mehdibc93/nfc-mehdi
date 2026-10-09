@@ -269,8 +269,8 @@ export function ServicePage() {
 
       const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
       const header = dt(
-        ['Date', 'Type', 'Table', 'Statut', 'Payé', 'Total (€)', 'Frais de livraison (€)', 'Articles', 'Instructions', 'Client', 'Téléphone', 'Adresse', 'Créneau'],
-        ['Date', 'Type', 'Table', 'Status', 'Paid', 'Total (€)', 'Delivery fee (€)', 'Items', 'Instructions', 'Customer', 'Phone', 'Address', 'Time slot'],
+        ['Date', 'Type', 'Table', 'Statut', 'Payé', 'Total (€)', 'Frais de livraison (€)', 'Pourboire (€)', 'Articles', 'Instructions', 'Client', 'Téléphone', 'Adresse', 'Créneau'],
+        ['Date', 'Type', 'Table', 'Status', 'Paid', 'Total (€)', 'Delivery fee (€)', 'Tip (€)', 'Items', 'Instructions', 'Customer', 'Phone', 'Address', 'Time slot'],
       );
       const rows = allOrders.map((order) => [
         new Date(order.createdAt).toLocaleString('fr-FR'),
@@ -280,6 +280,7 @@ export function ServicePage() {
         order.paid ? dt('Oui', 'Yes') : dt('Non', 'No'),
         order.total.toFixed(2),
         order.deliveryFee.toFixed(2),
+        order.tipAmount.toFixed(2),
         order.items.map((item) => `${item.name} x${item.quantity}`).join(' | '),
         order.specialInstructions,
         order.customerName,
@@ -519,7 +520,7 @@ export function ServicePage() {
                       📝 {order.specialInstructions}
                     </p>
                   )}
-                  <div className="mt-3 flex items-center justify-between">
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                     <p className="font-semibold text-stone-900">
                       {dt('Total :', 'Total:')} {money(order.total)}
                       {order.deliveryFee > 0 && (
@@ -528,6 +529,11 @@ export function ServicePage() {
                         </span>
                       )}
                     </p>
+                    {order.tipAmount > 0 && (
+                      <span className="rounded-full bg-pink-50 px-2.5 py-1 text-xs font-semibold text-pink-700">
+                        💝 {dt('Pourboire', 'Tip')} {money(order.tipAmount)}
+                      </span>
+                    )}
                     <span className={`text-xs font-semibold ${order.paid ? 'text-emerald-600' : 'text-stone-400'}`}>
                       {order.paid ? dt('✅ Payé', '✅ Paid') : dt('⏳ À encaisser', '⏳ To collect')}
                     </span>
@@ -600,7 +606,10 @@ export function ServicePage() {
                       <span className="ml-2 text-xs font-semibold text-red-500">{dt('Refusée', 'Declined')}</span>
                     )}
                   </span>
-                  <span className={order.status === 'refused' ? 'line-through' : ''}>{money(order.total)}</span>
+                  <span>
+                    <span className={order.status === 'refused' ? 'line-through' : ''}>{money(order.total)}</span>
+                    {order.tipAmount > 0 && <span className="ml-2 text-xs text-pink-700">💝 +{money(order.tipAmount)}</span>}
+                  </span>
                 </div>
               ))}
             </div>

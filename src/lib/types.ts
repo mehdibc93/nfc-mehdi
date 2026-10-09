@@ -102,6 +102,8 @@ export type RestaurantRow = {
   delivery_fee: number;
   delivery_min_order: number;
   delivery_free_from: number | null;
+  tips_enabled: boolean;
+  tip_percentages: number[] | null;
   categories?: CategoryRow[];
 };
 
@@ -199,6 +201,8 @@ export type Restaurant = {
   deliveryFee: number;
   deliveryMinOrder: number;
   deliveryFreeFrom: number | null;
+  tipsEnabled: boolean;
+  tipPercentages: number[];
 };
 
 export type RestaurantWithMenu = Restaurant & { categories: Category[] };
@@ -224,6 +228,7 @@ export type OrderRow = {
   delivery_address: string | null;
   scheduled_for: string | null;
   delivery_fee: number | null;
+  tip_amount: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -244,6 +249,8 @@ export type Order = {
   /** null = « dès que possible ». */
   scheduledFor: string | null;
   deliveryFee: number;
+  /** Pourboire en euros, compté à part de `total`. */
+  tipAmount: number;
   createdAt: string;
 };
 
