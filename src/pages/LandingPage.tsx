@@ -10,10 +10,21 @@ import { setPublicPageMeta } from '../lib/seo';
 import { PLANS } from '../lib/plans';
 import { FAQ_ITEMS } from '../lib/faq';
 import { PAYMENT_LOGOS, STRIPE_LOGO } from '../lib/paymentLogos';
+import { DeliveryCommissionCalculator } from '../components/DeliveryCommissionCalculator';
 
 const DEMO_HREF = '/r/le-jardin-parisien?demo=1';
 const WHATSAPP_HREF =
   'https://wa.me/33753924902?text=Bonjour%2C%20je%20souhaite%20commander%20une%20carte%20NFC%20pour%20mon%20restaurant.';
+
+// Chiffres clés : uniquement des faits sur le produit ou des calculs exacts (offre annuelle :
+// 588 € / 365 jours = 1,61 €), jamais de statistique de performance non mesurée.
+const KEY_FIGURES = [
+  { value: '1 tap', label: 'pour ouvrir votre carte, sans application' },
+  { value: '0 %', label: 'de commission sur vos ventes' },
+  { value: '5', label: 'langues, traduites en un clic' },
+  { value: '15 min', label: 'pour mettre votre carte en ligne' },
+  { value: '1,61 €', label: "par jour avec l'offre annuelle" },
+];
 
 const HERO_TRUST = ["7 jours d'essai gratuit", '0 % de commission sur vos ventes', 'Prêt en 15 minutes'];
 
@@ -337,7 +348,8 @@ export function LandingPage() {
                 ))}
               </ul>
               <p className="text-sm text-stone-500">
-                À partir de <strong className="font-semibold text-stone-800">49 €/mois</strong> ·{' '}
+                À partir de <strong className="font-semibold text-stone-800">49 €/mois</strong>, soit{' '}
+                <strong className="font-semibold text-stone-800">1,61 € par jour</strong> ·{' '}
                 <Link to="/tarifs" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
                   voir les offres
                 </Link>
@@ -389,6 +401,21 @@ export function LandingPage() {
               arrive directement sur votre compte
             </p>
           </div>
+        </section>
+
+        {/* Chiffres clés */}
+        <section className="mx-auto w-full max-w-7xl px-4 pt-14 sm:px-8 lg:px-10">
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {KEY_FIGURES.map((figure) => (
+              <div key={figure.value} className="rounded-3xl border border-stone-200/70 bg-white px-5 py-6 text-center shadow-soft">
+                <dt className="sr-only">{figure.label}</dt>
+                <dd>
+                  <span className="block font-display text-3xl font-bold text-navy-800 sm:text-4xl">{figure.value}</span>
+                  <span className="mt-1 block text-sm leading-5 text-stone-500">{figure.label}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
         {/* Comment ça marche, côté client */}
@@ -511,7 +538,7 @@ export function LandingPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60">Au-delà de la salle</p>
                 <h2 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
-                  Vendez aussi à emporter et en livraison — sans commission.
+                  Vendez à emporter et en livraison, sans reverser de commission.
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-white/80 sm:text-base">
                   Partagez votre lien de commande sur Instagram, votre fiche Google ou votre site. Vos clients
@@ -534,6 +561,9 @@ export function LandingPage() {
               </div>
               <div className="mx-auto h-[420px] w-full max-w-[240px] overflow-hidden">
                 <PhoneFrame src="/images/landing/client-modes.jpg" alt="Choix sur place, à emporter ou livraison" />
+              </div>
+              <div className="lg:col-span-2">
+                <DeliveryCommissionCalculator />
               </div>
             </div>
           </Reveal>
