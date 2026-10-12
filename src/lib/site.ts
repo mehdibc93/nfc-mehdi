@@ -5,3 +5,6 @@
 export const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://nourevo.fr').replace(/\/+$/, '');
 
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/logo512.png`;
+
+// Adresse de contact affichée sur le site (accueil, contact, pages légales) et dans le JSON-LD.
+export const CONTACT_EMAIL = 'contact.nourevo@gmail.com';

@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import logoHorizontal from '../assets/logo-horizontal.png';
 import { setPublicPageMeta } from '../lib/seo';
-
-const CONTACT_EMAIL = 'contact.nourevo@gmail.com';
+import { CONTACT_EMAIL } from '../lib/site';
 
 const REASONS = [
   {

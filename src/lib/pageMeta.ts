@@ -4,7 +4,7 @@
 //   navigation côté client.
 // Ajouter une page publique : une entrée ici + une route dans src/publicRoutes.tsx.
 import { FAQ_ITEMS } from './faq';
-import { DEFAULT_OG_IMAGE, SITE_URL } from './site';
+import { CONTACT_EMAIL, DEFAULT_OG_IMAGE, SITE_URL } from './site';
 
 export type JsonLd = Record<string, unknown> | Record<string, unknown>[];
 
@@ -23,6 +23,13 @@ const ORGANIZATION = {
   name: 'Nourevo',
   url: `${SITE_URL}/`,
   logo: DEFAULT_OG_IMAGE,
+  email: CONTACT_EMAIL,
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer service',
+    email: CONTACT_EMAIL,
+    availableLanguage: ['French', 'English'],
+  },
 };
 
 const SOFTWARE_APPLICATION = {

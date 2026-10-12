@@ -10,6 +10,7 @@ import { setPublicPageMeta } from '../lib/seo';
 import { PLANS } from '../lib/plans';
 import { FAQ_ITEMS } from '../lib/faq';
 import { PAYMENT_LOGOS, STRIPE_LOGO } from '../lib/paymentLogos';
+import { CONTACT_EMAIL } from '../lib/site';
 import { DeliveryCommissionCalculator } from '../components/DeliveryCommissionCalculator';
 
 const DEMO_HREF = '/r/le-jardin-parisien?demo=1';
@@ -891,14 +892,22 @@ export function LandingPage() {
                   </div>
                 </div>
               </div>
-              <a
-                href={WHATSAPP_HREF}
-                target="_blank"
-                rel="noreferrer"
-                className="flex shrink-0 items-center gap-2.5 rounded-full bg-[#25D366] px-6 py-4 text-sm font-bold text-white shadow-md transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                💬 Commander sur WhatsApp
-              </a>
+              <div className="flex shrink-0 flex-col items-stretch gap-3 sm:items-end">
+                <a
+                  href={WHATSAPP_HREF}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2.5 rounded-full bg-[#25D366] px-6 py-4 text-sm font-bold text-white shadow-md transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  💬 Commander sur WhatsApp
+                </a>
+                <a
+                  href={`mailto:${CONTACT_EMAIL}`}
+                  className="text-center text-sm font-semibold text-navy-700 underline-offset-2 hover:underline sm:text-right"
+                >
+                  ✉️ ou par email : {CONTACT_EMAIL}
+                </a>
+              </div>
             </div>
           </Reveal>
         </section>
@@ -906,7 +915,12 @@ export function LandingPage() {
 
       <footer className="border-t border-stone-900/5 px-4 py-8 sm:px-8 lg:px-10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-xs text-stone-500 sm:flex-row">
-          <p>© {new Date().getFullYear()} Nourevo</p>
+          <div className="flex flex-col items-center gap-1 sm:items-start">
+            <p>© {new Date().getFullYear()} Nourevo</p>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold text-stone-600 hover:text-navy-700">
+              ✉️ {CONTACT_EMAIL}
+            </a>
+          </div>
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             <Link to="/decouvrir-dashboard" className="hover:text-navy-700">
               Dashboard
