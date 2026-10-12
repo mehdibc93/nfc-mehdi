@@ -19,114 +19,80 @@ const DEMO_HREF = '/r/le-jardin-parisien?demo=1';
 const WHATSAPP_HREF =
   'https://wa.me/33753924902?text=Bonjour%2C%20je%20souhaite%20commander%20une%20carte%20NFC%20pour%20mon%20restaurant.';
 
-// Chiffres clés : faits sur le produit, calculs exacts (offre annuelle : 588 € / 365 jours =
-// 1,61 €, « le prix d'un café ») et un chiffre du secteur toujours accompagné de sa source (`sourced`, note ¹ sous
-// le bandeau) — jamais présenté comme un résultat mesuré chez les clients Nourevo.
-const KEY_FIGURES = [
-  { value: '+10–30 %', label: 'de panier moyen constaté avec la commande digitale', sourced: true },
-  { value: '0 %', label: 'de commission sur vos ventes' },
-  { value: '1 tap', label: 'pour ouvrir votre carte, sans application' },
-  { value: '15 min', label: 'pour mettre votre carte en ligne' },
-  { value: '☕ 1 café', label: "par jour : c'est le prix de l'offre annuelle" },
+// Ce que voit le visiteur juste sous la promesse : trois bénéfices concrets, sans chiffre de
+// performance (aucune statistique non mesurée chez les clients Nourevo).
+const HERO_BENEFITS = [
+  { icon: '🎨', text: 'Une carte digitale à vos couleurs, avec vos photos et votre vidéo d’accueil.' },
+  { icon: '✨', text: 'Vos plats, vos boissons et vos desserts mis en valeur au bon moment.' },
+  { icon: '🧭', text: 'Les commandes, la carte et vos chiffres réunis dans un seul espace.' },
 ];
 
-// Bénéfices mis en avant dès le haut de page.
-const HERO_BENEFITS: { icon: string; content: ReactNode }[] = [
-  {
-    icon: '📈',
-    content: (
-      <>
-        <strong className="font-semibold text-stone-900">Un panier moyen plus élevé</strong> : suggestions de boisson
-        et de dessert, suppléments et photos à chaque commande —{' '}
-        <a href="#source-panier" className="whitespace-nowrap font-semibold text-navy-700 underline-offset-2 hover:underline">
-          +10 à 30 % constatés dans le secteur¹
-        </a>
-        .
-      </>
-    ),
-  },
-  {
-    icon: '😊',
-    content: (
-      <>
-        <strong className="font-semibold text-stone-900">Une meilleure expérience client</strong> : ils consultent,
-        commandent, paient et laissent un pourboire depuis leur table, sans attendre.
-      </>
-    ),
-  },
-  {
-    icon: '🎨',
-    content: (
-      <>
-        <strong className="font-semibold text-stone-900">Un restaurant à votre image</strong> : vos couleurs, vos
-        photos, votre vidéo d’accueil — pas un menu générique.
-      </>
-    ),
-  },
-];
+// Réassurance sous les boutons. L'essai de 7 jours ne vaut que pour le premier abonnement et la
+// carte bancaire est demandée à l'inscription (voir billing-create-checkout et la FAQ).
+const HERO_TRUST = ['7 jours offerts sur votre premier abonnement', 'Aucune commission sur vos ventes', 'Aucune application pour vos clients'];
 
-// Ce que Nourevo fait autrement : uniquement des faits vérifiables sur le produit (pas de
-// superlatif du type « les seuls », impossible à prouver face aux concurrents).
-const DIFFERENTIATORS = [
+// Bénéfices pour l'établissement : uniquement des fonctionnalités présentes dans le produit.
+const BENEFITS = [
   {
     icon: '🎨',
-    title: 'Un restaurant à votre image',
+    title: 'Une carte à votre image',
     description:
-      'Couleur de vos boutons, photo de couverture, vidéo d’accueil et animation d’attente personnalisées : vos clients reconnaissent votre établissement dès l’ouverture de la carte.',
+      'Couleur de vos boutons, photo de couverture, vidéo d’accueil et animation d’attente : vos clients retrouvent l’identité de votre établissement dès l’ouverture de la carte.',
   },
   {
     icon: '📲',
-    title: 'Une carte NFC, pas un autocollant',
+    title: 'Aucune application à installer',
     description:
-      'Vos cartes NFC sont fournies et déjà configurées : un simple contact suffit, là où le QR code oblige à ouvrir l’appareil photo et à viser.',
+      'Un simple geste sur la carte NFC posée sur la table, ou un lien, et votre carte s’ouvre dans le navigateur du téléphone. Rien à télécharger, rien à expliquer.',
   },
   {
-    icon: '🧩',
-    title: 'Tout réuni dans un seul outil',
+    icon: '🍽️',
+    title: 'Consulter, commander, payer à table',
     description:
-      'Menu, commande, paiement, emporter, livraison, pourboires, statistiques et rentabilité : plus besoin d’empiler plusieurs abonnements.',
+      'Vos clients parcourent la carte dans leur langue, commandent quand ils le souhaitent et règlent par carte, Apple Pay, Google Pay ou à la caisse.',
   },
   {
-    icon: '💸',
-    title: 'Un prix fixe, zéro commission',
+    icon: '✨',
+    title: 'Valorisez votre carte et vos suggestions',
     description:
-      'Là où Uber Eats ou Deliveroo prélèvent environ 15 à 30 % HT de chaque commande livrée (taux indicatifs, voir le simulateur), Nourevo ne prend rien : dès 49 €/mois, quel que soit votre chiffre d’affaires.',
+      'Photos, suggestions du chef, boisson ou dessert proposés au bon moment, suppléments, et certains plats présentés en réalité augmentée.',
+  },
+  {
+    icon: '🧭',
+    title: 'Un seul espace pour le service',
+    description:
+      'Les commandes arrivent en temps réel dans le Mode Service ; la carte, les horaires, les stocks et les statistiques se gèrent au même endroit.',
+  },
+  {
+    icon: '🤝',
+    title: 'Un modèle simple et transparent',
+    description:
+      'Un abonnement fixe, des cartes NFC fournies et aucune commission prélevée par Nourevo sur vos ventes. Les paiements arrivent directement sur votre compte.',
   },
 ];
-
-const HERO_TRUST = ["7 jours d'essai gratuit", '0 % de commission sur vos ventes', 'Prêt en 15 minutes'];
 
 const NFC_VS_QR = [
-  { label: 'Pour ouvrir le menu', qr: 'Ouvrir l’appareil photo, viser, attendre la mise au point', nfc: 'Un simple contact avec la carte' },
-  { label: 'En salle sombre ou en terrasse', qr: 'Reflets et lumière faible gênent la lecture', nfc: 'Fonctionne quelle que soit la lumière' },
-  { label: 'Image de votre établissement', qr: 'Autocollant générique, souvent abîmé', nfc: 'Carte élégante aux couleurs de Nourevo' },
-  { label: 'Après l’ouverture du menu', qr: 'Souvent un simple PDF à faire défiler', nfc: 'Commande, paiement, pourboire et suivi en direct' },
-];
-
-const COMPARISON = [
-  { label: 'Modifier un prix', paper: 'Réimpression nécessaire', nourevo: 'Modifié en quelques secondes' },
-  { label: 'Photos des plats', paper: 'Aucune', nourevo: 'Une photo pour chaque plat' },
-  { label: 'Suivi des ventes', paper: 'Aucun', nourevo: 'Statistiques en temps réel' },
-  { label: 'Rentabilité par plat', paper: 'Impossible à connaître', nourevo: 'Calculée automatiquement' },
-  { label: 'Paiement', paper: 'À la caisse uniquement', nourevo: 'Carte, Apple Pay, Google Pay à table' },
-  { label: 'Langues proposées', paper: 'Une seule', nourevo: '5 langues, traduites en un clic' },
+  { label: 'Pour ouvrir la carte', qr: 'Ouvrir l’appareil photo, viser, attendre la mise au point', nfc: 'Un simple geste du téléphone sur la carte' },
+  { label: 'En salle peu éclairée ou en terrasse', qr: 'Les reflets et la pénombre gênent parfois la lecture', nfc: 'Fonctionne quelle que soit la lumière' },
+  { label: 'Sur vos tables', qr: 'Souvent un autocollant standard', nfc: 'Une carte soignée, posée sur la table' },
+  { label: 'Une fois la carte ouverte', qr: 'Selon les solutions, une simple carte à consulter', nfc: 'Commande, paiement, pourboire et suivi de la commande' },
 ];
 
 const SETUP_STEPS = [
   {
     number: '1',
-    title: 'Créez votre carte',
-    description: 'Ajoutez vos plats, vos photos et vos prix depuis votre dashboard — aucune compétence technique requise.',
+    title: 'Composez votre carte',
+    description: 'Ajoutez vos plats, vos photos et vos prix depuis votre espace, puis choisissez vos couleurs. Aucune compétence technique n’est nécessaire.',
   },
   {
     number: '2',
     title: 'Recevez vos cartes NFC',
-    description: 'Déjà configurées pour votre restaurant, livrées chez vous, prêtes à poser sur vos tables.',
+    description: 'Elles arrivent déjà configurées pour votre établissement : il ne reste qu’à les poser sur vos tables.',
   },
   {
     number: '3',
-    title: 'Encaissez vos premières commandes',
-    description: 'Connectez votre compte Stripe : l’argent arrive directement sur votre compte bancaire, sans commission.',
+    title: 'Accueillez vos premières commandes',
+    description: 'Connectez votre compte Stripe pour le paiement en ligne : l’argent arrive directement sur votre compte bancaire.',
   },
 ];
 
@@ -189,7 +155,7 @@ export function LandingPage() {
 
   const primaryCta = isAuthenticated
     ? { to: '/dashboard', label: 'Aller à mon dashboard' }
-    : { to: '/inscription', label: 'Essayer gratuitement 7 jours' };
+    : { to: '/inscription', label: 'Commencer l’essai gratuit' };
 
   return (
     <div className="relative min-h-screen overflow-hidden text-stone-900">
@@ -263,24 +229,24 @@ export function LandingPage() {
           <div className="relative grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-10">
             <div className="space-y-7">
               <p className="inline-flex items-center gap-2 rounded-full border border-navy-300/30 bg-white/70 px-4 py-1.5 text-xs font-semibold text-navy-700">
-                📲 Carte NFC · Menu digital · Paiement à table
+                Carte digitale · Commande à table · Gestion simplifiée
               </p>
-              <h1 className="font-display text-4xl font-bold leading-[1.06] tracking-tight text-stone-900 sm:text-5xl lg:text-6xl">
-                Vos clients commandent et paient à table, d’un simple tap.
+              <h1 className="font-display text-4xl font-bold leading-[1.08] tracking-tight text-stone-900 sm:text-5xl lg:text-[3.5rem]">
+                Une expérience à table qui ressemble à votre restaurant.
               </h1>
               <p className="max-w-xl text-base leading-7 text-stone-600 sm:text-lg sm:leading-8">
-                Nourevo est la plateforme tout-en-un des restaurants : une carte NFC posée sur chaque table ouvre
-                votre menu sur le téléphone du client, <strong className="font-semibold text-stone-800">sans application</strong>.
-                Commande, paiement, pourboires, emporter, livraison et statistiques, au même endroit.
+                Avec Nourevo, vos clients découvrent votre carte, commandent et paient depuis leur table, d’un simple geste
+                sur une carte NFC et sans application à installer. Vous retrouvez, de votre côté, tout ce qu’il faut pour
+                suivre le service et faire vivre votre carte.
               </p>
 
-              <ul className="space-y-3">
+              <ul className="space-y-2.5">
                 {HERO_BENEFITS.map((benefit) => (
-                  <li key={benefit.icon} className="flex items-start gap-3 text-sm leading-6 text-stone-600 sm:text-base">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-base shadow-soft">
+                  <li key={benefit.icon} className="flex items-start gap-3 text-sm leading-6 text-stone-700 sm:text-base">
+                    <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-base shadow-soft">
                       {benefit.icon}
                     </span>
-                    <span>{benefit.content}</span>
+                    <span className="pt-1">{benefit.text}</span>
                   </li>
                 ))}
               </ul>
@@ -296,25 +262,23 @@ export function LandingPage() {
                   to={DEMO_HREF}
                   className="rounded-full border border-stone-300 bg-white px-7 py-4 text-center text-sm font-bold text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:border-navy-300 hover:text-navy-700"
                 >
-                  ▶ Voir la démo en direct
+                  Découvrir la démonstration
                 </Link>
               </div>
 
-              <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-stone-500">
-                {HERO_TRUST.map((label) => (
-                  <li key={label} className="flex items-center gap-1.5">
-                    <span className="text-emerald-600">✓</span>
-                    {label}
-                  </li>
-                ))}
-              </ul>
-              <p className="text-sm text-stone-500">
-                À partir de <strong className="font-semibold text-stone-800">49 €/mois</strong> : le prix{' '}
-                <strong className="font-semibold text-stone-800">d’un café par jour</strong> ☕ ·{' '}
-                <Link to="/tarifs" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
-                  voir les offres
-                </Link>
-              </p>
+              <div className="space-y-2">
+                <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-stone-600">
+                  {HERO_TRUST.map((label) => (
+                    <li key={label} className="flex items-center gap-1.5">
+                      <span aria-hidden="true" className="text-emerald-600">✓</span>
+                      {label}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-stone-500">
+                  Carte bancaire demandée à l’inscription, aucun prélèvement avant la fin de l’essai.
+                </p>
+              </div>
             </div>
 
             <div className="relative mx-auto w-full max-w-[420px]">
@@ -339,7 +303,7 @@ export function LandingPage() {
         <section className="border-y border-stone-200/70 bg-white/70">
           <div className="mx-auto max-w-7xl px-4 py-10 text-center sm:px-8 lg:px-10">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
-              Vos clients paient comme ils en ont l’habitude
+              Vos clients règlent comme ils en ont l’habitude
             </p>
             <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
               {PAYMENT_LOGOS.map((logo) => (
@@ -358,17 +322,18 @@ export function LandingPage() {
                 <title>Stripe</title>
                 <path d={STRIPE_LOGO.path} />
               </svg>
-              <strong className="font-semibold text-stone-700">Stripe</strong>· 0 % de commission Nourevo · l’argent
-              arrive directement sur votre compte
+              <strong className="font-semibold text-stone-700">Stripe</strong>· les paiements arrivent directement sur
+              votre compte
             </p>
           </div>
         </section>
 
-        {/* Nourevo en 30 secondes : le principe, montré plutôt qu'expliqué */}
+        {/* Démonstration : le principe, montré plutôt qu'expliqué */}
         <section id="comment-ca-marche" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-20 sm:px-8 lg:px-10">
           <Reveal>
-            <SectionHeading eyebrow="Comment ça marche" title="Nourevo en 30 secondes">
-              Suivez une commande, de la table à la cuisine. Ce sont de vraies captures de l’application.
+            <SectionHeading eyebrow="Comment ça marche" title="Un service, de la table à la cuisine">
+              Voici, étape par étape, ce que vivent vos clients et votre équipe. Les images sont issues de
+              l’application, sur notre restaurant de démonstration.
             </SectionHeading>
           </Reveal>
           <div className="mt-12">
@@ -379,65 +344,28 @@ export function LandingPage() {
               to={DEMO_HREF}
               className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-7 py-4 text-sm font-bold text-white shadow-glow transition-all duration-300 hover:-translate-y-0.5"
             >
-              ▶ Essayer la démo comme un client
+              Parcourir la démonstration comme un client
             </Link>
           </div>
         </section>
 
-        {/* Chiffres clés */}
-        <section className="mx-auto w-full max-w-7xl px-4 pt-14 sm:px-8 lg:px-10">
-          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {KEY_FIGURES.map((figure) => (
-              <div key={figure.value} className="rounded-3xl border border-stone-200/70 bg-white px-5 py-6 text-center shadow-soft">
-                <dt className="sr-only">{figure.label}</dt>
-                <dd>
-                  <span className="block whitespace-nowrap font-display text-3xl font-bold text-navy-800 sm:text-4xl">{figure.value}</span>
-                  <span className="mt-1 block text-sm leading-5 text-stone-500">
-                    {figure.label}
-                    {figure.sourced && '¹'}
-                  </span>
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <p id="source-panier" className="mx-auto mt-4 max-w-4xl scroll-mt-28 text-center text-xs leading-5 text-stone-500">
-            ¹ Hausse du panier moyen observée dans la restauration avec la commande digitale et les suggestions
-            automatiques (bornes, commande en ligne), selon des chiffres publiés par des acteurs du secteur —{' '}
-            <a
-              href="https://www.qsrmagazine.com/technology/study-kiosk-demand-rise-quick-service"
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              QSR Magazine
-            </a>
-            ,{' '}
-            <a
-              href="https://blog.getbite.com/articles/from-10-to-30-the-real-revenue-impact-of-restaurant-kiosks"
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              Bite
-            </a>
-            . Résultats variables selon l’établissement, non garantis.
-          </p>
-        </section>
-
-        {/* Ce que Nourevo fait autrement */}
-        <section className="mx-auto w-full max-w-7xl px-4 pt-20 sm:px-8 lg:px-10">
+        {/* Bénéfices pour l'établissement et ses clients */}
+        <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
-            <SectionHeading eyebrow="Pourquoi Nourevo" title="Ce que nous faisons autrement">
-              Une solution pensée pour que chaque restaurant garde son identité — et ses marges.
+            <SectionHeading eyebrow="Pour votre établissement" title="Moderniser l’expérience, sans perdre votre identité">
+              Bistrot de quartier, brasserie ou restaurant d’hôtel : Nourevo s’adapte à votre carte et à votre façon de
+              recevoir.
             </SectionHeading>
           </Reveal>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {DIFFERENTIATORS.map((item, index) => (
-              <Reveal key={item.title} delayMs={index * 80}>
-                <div className="h-full rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-navy-50 text-2xl">{item.icon}</span>
-                  <h3 className="mt-4 font-display text-lg font-bold text-stone-900">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-stone-500">{item.description}</p>
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {BENEFITS.map((item, index) => (
+              <Reveal key={item.title} delayMs={(index % 3) * 80}>
+                <div className="h-full rounded-3xl border border-stone-200/70 bg-white p-7 shadow-soft">
+                  <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-2xl bg-navy-50 text-2xl">
+                    {item.icon}
+                  </span>
+                  <h3 className="mt-5 font-display text-lg font-bold text-stone-900">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">{item.description}</p>
                 </div>
               </Reveal>
             ))}
@@ -447,8 +375,8 @@ export function LandingPage() {
         {/* Fonctionnalités, à découvrir en cliquant */}
         <section id="fonctionnalites" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
-            <SectionHeading eyebrow="Fonctionnalités" title="Cliquez, et voyez par vous-même">
-              Choisissez un public, puis une fonctionnalité : l’écran correspondant s’affiche.
+            <SectionHeading eyebrow="Fonctionnalités" title="Un outil pensé pour le quotidien du service">
+              Choisissez un point de vue, puis une fonctionnalité : l’écran correspondant s’affiche.
             </SectionHeading>
           </Reveal>
           <div className="mt-10">
@@ -459,9 +387,9 @@ export function LandingPage() {
         {/* NFC ou QR code */}
         <section className="mx-auto w-full max-w-5xl px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
-            <SectionHeading eyebrow="NFC ou QR code ?" title="Votre restaurant mérite mieux qu’un QR code">
-              Le QR code a dépanné pendant des années. La carte NFC rend la même chose plus simple, plus rapide et plus
-              élégante.
+            <SectionHeading eyebrow="La carte NFC" title="Pourquoi une carte NFC sur vos tables ?">
+              Le QR code a rendu de grands services. La carte NFC offre un geste plus simple et une présentation plus
+              soignée.
             </SectionHeading>
           </Reveal>
           <Reveal delayMs={100}>
@@ -488,7 +416,7 @@ export function LandingPage() {
           </Reveal>
         </section>
 
-        {/* Plus de ventes : emporter, livraison, pourboires */}
+        {/* Vente à emporter et livraison */}
         <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
           <div className="grid items-center gap-12 lg:grid-cols-[0.8fr_1.2fr]">
             <Reveal>
@@ -504,12 +432,12 @@ export function LandingPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-navy-500">Vente à emporter & livraison</p>
                 <h2 className="mt-2 font-display text-3xl font-bold text-stone-900 sm:text-4xl">
-                  Vos clients commandent aussi depuis chez eux.
+                  Votre carte, aussi pour ceux qui commandent depuis chez eux.
                 </h2>
                 <p className="mt-4 text-base leading-7 text-stone-600">
-                  Un lien de commande à votre nom, à partager sur Instagram, Google ou votre site. Les commandes arrivent
-                  directement dans votre Mode Service, et l’argent sur votre compte, sans intermédiaire. Idéal pour vos
-                  clients fidèles, en complément des plateformes de livraison.
+                  Partagez votre lien de commande sur votre site, votre fiche Google ou vos réseaux. Vos habitués
+                  commandent en direct, en complément des plateformes de livraison, et les commandes rejoignent votre Mode
+                  Service.
                 </p>
                 <ul className="mt-8 grid gap-4 sm:grid-cols-2">
                   {[
@@ -537,42 +465,10 @@ export function LandingPage() {
           </Reveal>
         </section>
 
-        {/* Menu papier VS Nourevo */}
-        <section className="mx-auto w-full max-w-5xl px-4 pt-24 sm:px-8 lg:px-10">
-          <Reveal>
-            <SectionHeading eyebrow="La différence Nourevo" title="Le menu papier a fait son temps">
-              Prix à réimprimer, plats rentables inconnus, service interrompu pour prendre une commande à la voix : la
-              carte papier vous coûte du temps et de l’argent, chaque jour.
-            </SectionHeading>
-          </Reveal>
-          <Reveal delayMs={100}>
-            <div className="mt-10 overflow-hidden rounded-3xl border border-stone-200/70 bg-white shadow-soft">
-              <div className="hidden grid-cols-3 gap-4 border-b border-stone-200/70 bg-stone-50 px-6 py-4 text-xs font-semibold uppercase tracking-wide text-stone-500 sm:grid">
-                <span />
-                <span>Menu papier</span>
-                <span>Avec Nourevo</span>
-              </div>
-              <div className="divide-y divide-stone-100">
-                {COMPARISON.map((row) => (
-                  <div key={row.label} className="grid grid-cols-1 gap-2 px-6 py-5 sm:grid-cols-3 sm:items-center sm:gap-4">
-                    <span className="text-sm font-bold text-stone-800">{row.label}</span>
-                    <span className="flex items-center gap-2 text-sm text-stone-500">
-                      <span className="text-rose-400">✕</span> {row.paper}
-                    </span>
-                    <span className="flex items-center gap-2 rounded-xl bg-emerald-50/70 px-3 py-1.5 text-sm font-semibold text-navy-700 sm:bg-transparent sm:px-0 sm:py-0">
-                      <span className="text-emerald-600">✓</span> {row.nourevo}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Reveal>
-        </section>
-
         {/* Mise en place */}
         <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
-            <SectionHeading eyebrow="Mise en place" title="Opérationnel en moins de 15 minutes" />
+            <SectionHeading eyebrow="Mise en place" title="Une mise en place simple, en trois étapes" />
           </Reveal>
           <div className="mt-10 grid gap-5 sm:grid-cols-3">
             {SETUP_STEPS.map((step, index) => (
@@ -589,12 +485,29 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* FAQ */}
+        <section className="mx-auto w-full max-w-3xl px-4 pt-24 sm:px-8">
+          <Reveal>
+            <SectionHeading eyebrow="Questions fréquentes" title="Les questions que l’on nous pose souvent" />
+          </Reveal>
+          <div className="mt-10 space-y-3">
+            {HOME_FAQ.map((item, index) => (
+              <FaqItem key={item.question} question={item.question} answer={item.answer} index={index} />
+            ))}
+          </div>
+          <p className="mt-6 text-center text-sm">
+            <Link to="/faq" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
+              Voir toutes les questions →
+            </Link>
+          </p>
+        </section>
+
         {/* Tarifs */}
         <section className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
-            <SectionHeading eyebrow="Tarifs" title="Un abonnement simple, tout inclus">
-              Toutes les fonctionnalités dans chaque offre, cartes NFC fournies, 0 % de commission sur vos ventes et 7
-              jours d’essai gratuit.
+            <SectionHeading eyebrow="Tarifs" title="Une offre claire, sans commission">
+              Toutes les fonctionnalités dans chaque formule, cartes NFC fournies et 7 jours d’essai gratuit sur votre
+              premier abonnement. Avec l’offre annuelle, cela représente environ 1,61 € par jour.
             </SectionHeading>
           </Reveal>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
@@ -646,23 +559,6 @@ export function LandingPage() {
           </p>
         </section>
 
-        {/* FAQ */}
-        <section className="mx-auto w-full max-w-3xl px-4 pt-24 sm:px-8">
-          <Reveal>
-            <SectionHeading eyebrow="Questions fréquentes" title="Vous vous posez sûrement ces questions" />
-          </Reveal>
-          <div className="mt-10 space-y-3">
-            {HOME_FAQ.map((item, index) => (
-              <FaqItem key={item.question} question={item.question} answer={item.answer} index={index} />
-            ))}
-          </div>
-          <p className="mt-6 text-center text-sm">
-            <Link to="/faq" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
-              Voir toutes les questions →
-            </Link>
-          </p>
-        </section>
-
         {/* CTA final */}
         <section className="mx-auto w-full max-w-7xl px-4 pb-10 pt-24 sm:px-8 lg:px-10">
           <Reveal>
@@ -670,10 +566,11 @@ export function LandingPage() {
               <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
               <div className="relative flex flex-col items-center gap-5">
                 <h2 className="max-w-3xl font-display text-2xl font-bold text-white sm:text-4xl">
-                  Prêt à offrir une expérience moderne à vos clients ?
+                  Et si vous découvriez Nourevo avec votre propre carte ?
                 </h2>
                 <p className="max-w-xl text-sm text-white/80 sm:text-base">
-                  Créez votre carte en quelques minutes et testez Nourevo gratuitement pendant 7 jours.
+                  Essayez-le gratuitement pendant 7 jours, ou parcourez d’abord la démonstration de notre restaurant Le
+                  Jardin Parisien.
                 </p>
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <Link
@@ -686,7 +583,7 @@ export function LandingPage() {
                     to={DEMO_HREF}
                     className="rounded-full border border-white/40 px-8 py-4 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/10"
                   >
-                    ▶ Voir la démo
+                    Découvrir la démonstration
                   </Link>
                 </div>
               </div>
@@ -702,7 +599,7 @@ export function LandingPage() {
                 <NfcCard compact className="hidden w-44 shrink-0 sm:block" />
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">Carte NFC physique</p>
-                  <h2 className="mt-2 font-display text-2xl font-bold text-stone-900 sm:text-3xl">Prêt à équiper vos tables ?</h2>
+                  <h2 className="mt-2 font-display text-2xl font-bold text-stone-900 sm:text-3xl">Des cartes prêtes à poser sur vos tables</h2>
                   <p className="mt-3 max-w-xl text-sm leading-6 text-stone-500 sm:text-base">
                     Vos cartes arrivent déjà configurées pour votre restaurant : il ne vous reste qu’à les poser sur vos
                     tables.
@@ -720,7 +617,7 @@ export function LandingPage() {
                   rel="noreferrer"
                   className="flex items-center justify-center gap-2.5 rounded-full bg-[#25D366] px-6 py-4 text-sm font-bold text-white shadow-md transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg"
                 >
-                  💬 Commander sur WhatsApp
+                  💬 Commander vos cartes sur WhatsApp
                 </a>
                 <a
                   href={`mailto:${CONTACT_EMAIL}`}

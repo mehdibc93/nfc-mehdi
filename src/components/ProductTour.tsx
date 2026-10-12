@@ -14,8 +14,8 @@ type TourStep = {
 const STEPS: TourStep[] = [
   {
     side: 'client',
-    title: 'Le client pose son téléphone sur la carte',
-    text: 'Une carte NFC est posée sur chaque table. Un simple contact ouvre votre menu : pas d’application, pas de QR code à viser.',
+    title: 'Le client approche son téléphone de la carte',
+    text: 'Une carte NFC est posée sur chaque table. Un simple geste ouvre votre carte, sans application ni QR code à viser.',
     visual: 'nfc',
   },
   {
@@ -26,14 +26,14 @@ const STEPS: TourStep[] = [
   },
   {
     side: 'client',
-    title: 'Il choisit, Nourevo suggère',
-    text: 'Une boisson ou un dessert proposé au bon moment, et certains plats visibles en réalité augmentée.',
+    title: 'Vos suggestions, au bon moment',
+    text: 'Une boisson ou un dessert proposé au moment du choix, et certains plats présentés en réalité augmentée.',
     visual: '/images/landing/client-suggestion.jpg',
   },
   {
     side: 'client',
     title: 'Il paie depuis sa table',
-    text: 'Carte, Apple Pay ou Google Pay, avec un pourboire pour l’équipe en un clic — ou à la caisse, si vous préférez.',
+    text: 'Carte, Apple Pay ou Google Pay, avec la possibilité de laisser un pourboire à l’équipe, ou à la caisse si vous le préférez.',
     visual: '/images/landing/client-pourboire.jpg',
   },
   {
@@ -44,8 +44,8 @@ const STEPS: TourStep[] = [
   },
   {
     side: 'restaurant',
-    title: 'Vous savez ce qui rapporte',
-    text: 'Plats les plus commandés, marge plat par plat, recommandations : votre carte s’améliore avec vos chiffres.',
+    title: 'Vous pilotez avec vos chiffres',
+    text: 'Plats les plus commandés, marge plat par plat et recommandations pour faire évoluer votre carte.',
     visual: '/images/landing/resto-rentabilite.jpg',
   },
 ];

@@ -31,7 +31,7 @@ const AUDIENCES: Audience[] = [
       },
       {
         title: 'Le paiement à table, pourboire compris',
-        text: 'Carte, Apple Pay ou Google Pay, et un pourboire pour l’équipe en un clic — sans attendre l’addition.',
+        text: 'Carte, Apple Pay ou Google Pay, avec la possibilité de laisser un pourboire à l’équipe, sans attendre l’addition.',
         visual: { kind: 'phone', src: '/images/landing/client-pourboire.jpg' },
       },
       {
@@ -66,7 +66,7 @@ const AUDIENCES: Audience[] = [
   {
     id: 'ventes',
     icon: '📈',
-    label: 'Pour votre chiffre d’affaires',
+    label: 'Pour piloter votre activité',
     features: [
       {
         title: 'Ce que vos clients regardent et commandent',
@@ -80,7 +80,7 @@ const AUDIENCES: Audience[] = [
       },
       {
         title: 'La vente à emporter et la livraison',
-        text: 'Un lien de commande à votre nom : vos clients commandent depuis chez eux, sans commission.',
+        text: 'Un lien de commande à votre nom : vos habitués commandent depuis chez eux, sans commission Nourevo.',
         visual: { kind: 'phone', src: '/images/landing/client-modes.jpg' },
       },
     ],
