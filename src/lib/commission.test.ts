@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatEuros, monthlyCommission } from './commission';
+import { formatEuros, monthlyCommission, yearlySavings } from './commission';
 
 describe('monthlyCommission', () => {
   it('calcule la commission mensuelle arrondie à l’euro', () => {
@@ -11,6 +11,16 @@ describe('monthlyCommission', () => {
     expect(monthlyCommission(-100, 30)).toBe(0);
     expect(monthlyCommission(1000, 150)).toBe(1000);
     expect(monthlyCommission(Number.NaN, 30)).toBe(0);
+  });
+});
+
+describe('yearlySavings', () => {
+  it('déduit l’abonnement annuel Nourevo de la commission évitée', () => {
+    expect(yearlySavings(750)).toBe(9000 - 588);
+  });
+
+  it('ne descend jamais sous zéro', () => {
+    expect(yearlySavings(20)).toBe(0);
   });
 });
 

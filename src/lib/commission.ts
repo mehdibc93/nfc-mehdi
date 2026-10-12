@@ -9,6 +9,14 @@ export function monthlyCommission(monthlyRevenue: number, commissionPercent: num
   return Math.round((revenue * percent) / 100);
 }
 
+/** Prix annuel de l'offre Nourevo la moins chère (12 × 49 €), déduit de l'économie affichée. */
+export const NOUREVO_YEARLY_PRICE = 588;
+
+/** Ce que le restaurant garde en plus sur un an : commission évitée moins l'abonnement Nourevo. */
+export function yearlySavings(monthlyCommissionAmount: number): number {
+  return Math.max(0, monthlyCommissionAmount * 12 - NOUREVO_YEARLY_PRICE);
+}
+
 /**
  * « 12 600 € » — formatage fait à la main plutôt qu'avec Intl.NumberFormat : le séparateur de
  * milliers d'Intl (espace insécable fine) peut différer entre Node (pré-rendu) et le navigateur,

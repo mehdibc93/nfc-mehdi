@@ -18,14 +18,14 @@ const WHATSAPP_HREF =
   'https://wa.me/33753924902?text=Bonjour%2C%20je%20souhaite%20commander%20une%20carte%20NFC%20pour%20mon%20restaurant.';
 
 // Chiffres clés : faits sur le produit, calculs exacts (offre annuelle : 588 € / 365 jours =
-// 1,61 €) et un chiffre du secteur toujours accompagné de sa source (`sourced`, note ¹ sous
+// 1,61 €, « le prix d'un café ») et un chiffre du secteur toujours accompagné de sa source (`sourced`, note ¹ sous
 // le bandeau) — jamais présenté comme un résultat mesuré chez les clients Nourevo.
 const KEY_FIGURES = [
   { value: '+10–30 %', label: 'de panier moyen constaté avec la commande digitale', sourced: true },
   { value: '0 %', label: 'de commission sur vos ventes' },
   { value: '1 tap', label: 'pour ouvrir votre carte, sans application' },
   { value: '15 min', label: 'pour mettre votre carte en ligne' },
-  { value: '1,61 €', label: "par jour avec l'offre annuelle" },
+  { value: '☕ 1 café', label: "par jour : c'est le prix de l'offre annuelle" },
 ];
 
 // Bénéfices mis en avant dès le haut de page.
@@ -425,8 +425,8 @@ export function LandingPage() {
                 ))}
               </ul>
               <p className="text-sm text-stone-500">
-                À partir de <strong className="font-semibold text-stone-800">49 €/mois</strong>, soit{' '}
-                <strong className="font-semibold text-stone-800">1,61 € par jour</strong> ·{' '}
+                À partir de <strong className="font-semibold text-stone-800">49 €/mois</strong> : le prix{' '}
+                <strong className="font-semibold text-stone-800">d’un café par jour</strong> ☕ ·{' '}
                 <Link to="/tarifs" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
                   voir les offres
                 </Link>
@@ -655,38 +655,48 @@ export function LandingPage() {
 
         {/* Plus de ventes : emporter, livraison, pourboires */}
         <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
-          <Reveal>
-            <div className="grid items-center gap-10 overflow-hidden rounded-3xl bg-gradient-to-br from-navy-600 via-navy-700 to-navy-900 p-8 text-white shadow-glow sm:p-12 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid items-center gap-12 lg:grid-cols-[0.8fr_1.2fr]">
+            <Reveal>
+              {/* Téléphone en fondu vers le bas plutôt que coupé net. */}
+              <div className="relative mx-auto w-full max-w-[280px]">
+                <div className="absolute inset-0 m-auto h-[300px] w-[300px] rounded-full bg-navy-300/15 blur-3xl" />
+                <div className="relative h-[460px] overflow-hidden [mask-image:linear-gradient(to_bottom,black_75%,transparent)]">
+                  <PhoneFrame src="/images/landing/client-modes.jpg" alt="Le client choisit sur place, à emporter ou en livraison" />
+                </div>
+              </div>
+            </Reveal>
+            <Reveal delayMs={100}>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60">Au-delà de la salle</p>
-                <h2 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
-                  Vendez à emporter et en livraison, sans reverser de commission.
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-navy-500">Vente à emporter & livraison</p>
+                <h2 className="mt-2 font-display text-3xl font-bold text-stone-900 sm:text-4xl">
+                  Vos clients commandent aussi depuis chez eux.
                 </h2>
-                <p className="mt-4 text-sm leading-7 text-white/80 sm:text-base">
-                  Partagez votre lien de commande sur Instagram, votre fiche Google ou votre site. Vos clients
-                  choisissent un créneau, paient en ligne ou au retrait, et la commande arrive dans votre Mode Service.
-                  Contrairement aux plateformes de livraison, vous ne reversez aucun pourcentage : vous fixez vos frais
-                  et votre minimum, et vous acceptez ou refusez chaque commande.
+                <p className="mt-4 text-base leading-7 text-stone-600">
+                  Un lien de commande à votre nom, à partager sur Instagram, Google ou votre site. Les commandes arrivent
+                  directement dans votre Mode Service, et l’argent sur votre compte, sans intermédiaire.
                 </p>
-                <ul className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
+                <ul className="mt-8 grid gap-4 sm:grid-cols-2">
                   {[
-                    '🥡 Vente à emporter avec créneaux',
-                    '🛵 Livraison assurée par votre équipe',
-                    '💝 Pourboires en ligne pour votre équipe',
-                    '🔗 Un lien à partager, sans application',
+                    { icon: '🥡', title: 'À emporter, sur créneau', text: 'Le client choisit son heure de retrait et paie en ligne ou au comptoir.' },
+                    { icon: '🛵', title: 'Votre propre livraison', text: 'Vous fixez vos frais, votre minimum et le seuil de livraison offerte.' },
+                    { icon: '💝', title: 'Des pourboires pour l’équipe', text: 'Proposés au paiement par carte, ou après le repas.' },
+                    { icon: '🔗', title: 'Un simple lien', text: 'Aucune application à télécharger pour vos clients.' },
                   ].map((item) => (
-                    <li key={item} className="rounded-2xl bg-white/10 px-4 py-3 font-semibold">
-                      {item}
+                    <li key={item.title} className="flex gap-3 rounded-2xl border border-stone-200/70 bg-white p-4 shadow-soft">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-navy-50 text-xl">{item.icon}</span>
+                      <span>
+                        <span className="block font-semibold text-stone-900">{item.title}</span>
+                        <span className="mt-0.5 block text-sm leading-6 text-stone-500">{item.text}</span>
+                      </span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="mx-auto h-[420px] w-full max-w-[240px] overflow-hidden">
-                <PhoneFrame src="/images/landing/client-modes.jpg" alt="Choix sur place, à emporter ou livraison" />
-              </div>
-              <div className="lg:col-span-2">
-                <DeliveryCommissionCalculator />
-              </div>
+            </Reveal>
+          </div>
+          <Reveal delayMs={100}>
+            <div className="mt-14">
+              <DeliveryCommissionCalculator />
             </div>
           </Reveal>
         </section>
