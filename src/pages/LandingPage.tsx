@@ -673,7 +673,8 @@ export function LandingPage() {
                 </h2>
                 <p className="mt-4 text-base leading-7 text-stone-600">
                   Un lien de commande à votre nom, à partager sur Instagram, Google ou votre site. Les commandes arrivent
-                  directement dans votre Mode Service, et l’argent sur votre compte, sans intermédiaire.
+                  directement dans votre Mode Service, et l’argent sur votre compte, sans intermédiaire. Idéal pour vos
+                  clients fidèles, en complément des plateformes de livraison.
                 </p>
                 <ul className="mt-8 grid gap-4 sm:grid-cols-2">
                   {[
