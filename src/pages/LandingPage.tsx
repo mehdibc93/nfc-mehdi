@@ -88,7 +88,7 @@ const DIFFERENTIATORS = [
     icon: '💸',
     title: 'Un prix fixe, zéro commission',
     description:
-      'Dès 49 €/mois, quel que soit votre chiffre d’affaires : Nourevo ne prélève rien sur vos ventes, même en livraison.',
+      'Là où Uber Eats ou Deliveroo prélèvent environ 15 à 30 % HT de chaque commande livrée (taux indicatifs, voir le simulateur), Nourevo ne prend rien : dès 49 €/mois, quel que soit votre chiffre d’affaires.',
   },
 ];
 
