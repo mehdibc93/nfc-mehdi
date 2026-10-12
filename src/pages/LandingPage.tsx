@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { DashboardPreview } from '../components/DashboardPreview';
+import { SiteFooter } from '../components/SiteFooter';
 import { Reveal } from '../components/Reveal';
 import { useAuth } from '../hooks/useAuth';
 import logoHorizontal from '../assets/logo-horizontal.png';
@@ -885,7 +886,7 @@ export function LandingPage() {
         </section>
 
         {/* Carte NFC physique */}
-        <section className="mx-auto w-full max-w-7xl px-4 pb-20 sm:px-8 lg:px-10">
+        <section id="carte-nfc" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pb-20 sm:px-8 lg:px-10">
           <Reveal>
             <div className="flex flex-col items-start gap-6 rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-10">
               <div className="flex items-center gap-6">
@@ -924,39 +925,7 @@ export function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-stone-900/5 px-4 py-8 sm:px-8 lg:px-10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-xs text-stone-500 sm:flex-row">
-          <div className="flex flex-col items-center gap-1 sm:items-start">
-            <p>© {new Date().getFullYear()} Nourevo</p>
-            <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold text-stone-600 hover:text-navy-700">
-              ✉️ {CONTACT_EMAIL}
-            </a>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            <Link to="/decouvrir-dashboard" className="hover:text-navy-700">
-              Dashboard
-            </Link>
-            <Link to="/tarifs" className="hover:text-navy-700">
-              Tarifs
-            </Link>
-            <Link to="/faq" className="hover:text-navy-700">
-              FAQ
-            </Link>
-            <Link to="/contact" className="hover:text-navy-700">
-              Contact
-            </Link>
-            <Link to="/mentions-legales" className="hover:text-navy-700">
-              Mentions légales
-            </Link>
-            <Link to="/cgu" className="hover:text-navy-700">
-              CGU
-            </Link>
-            <Link to="/confidentialite" className="hover:text-navy-700">
-              Confidentialité
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   StatistiquesPreview,
 } from '../components/DashboardMiniPreviews';
 import { setPublicPageMeta } from '../lib/seo';
+import { SiteFooter } from '../components/SiteFooter';
 
 type DashboardPage = {
   id: string;
@@ -194,123 +195,126 @@ export function DiscoverDashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen px-4 py-14 sm:px-8">
-      <div className="mx-auto max-w-5xl">
-        <Link
-          to="/"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
-        >
-          ← Retour à l'accueil
-        </Link>
+    <>
+      <div className="min-h-screen px-4 py-14 sm:px-8">
+        <div className="mx-auto max-w-5xl">
+          <Link
+            to="/"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
+          >
+            ← Retour à l'accueil
+          </Link>
 
-        <img src={logoHorizontal} alt="Nourevo" className="h-8 w-auto" />
-        <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
-          Votre dashboard, avant même de créer un compte.
-        </h1>
-        <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-navy-300/10 px-3.5 py-1.5 text-xs font-bold text-navy-700">
-          ⏱ Configurez votre restaurant en moins de 15 minutes
-        </p>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-stone-500">
-          Voici à quoi ressemble concrètement l'espace de gestion de votre restaurant sur Nourevo. Les chiffres
-          ci-dessous sont fictifs, à titre d'exemple — mais l'interface est celle que vous utiliserez vraiment.
-        </p>
+          <img src={logoHorizontal} alt="Nourevo" className="h-8 w-auto" />
+          <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
+            Votre dashboard, avant même de créer un compte.
+          </h1>
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-navy-300/10 px-3.5 py-1.5 text-xs font-bold text-navy-700">
+            ⏱ Configurez votre restaurant en moins de 15 minutes
+          </p>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-stone-500">
+            Voici à quoi ressemble concrètement l'espace de gestion de votre restaurant sur Nourevo. Les chiffres
+            ci-dessous sont fictifs, à titre d'exemple — mais l'interface est celle que vous utiliserez vraiment.
+          </p>
 
-        {/* 1. Vue d'ensemble */}
-        <section className="mt-12">
-          <Reveal>
-            <div className="flex items-center gap-3">
-              <SectionBadge number="1" />
-              <div>
-                <p className="font-display text-lg font-bold text-stone-900">L'accueil de votre espace</p>
-                <p className="text-sm text-stone-500">
-                  Vos ventes du jour en un coup d'œil, puis un accès direct à chaque outil.
-                </p>
-              </div>
-            </div>
-          </Reveal>
-          <Reveal delayMs={100}>
-            <div className="mt-5">
-              <DashboardPreview />
-            </div>
-          </Reveal>
-        </section>
-
-        <Transition>Une fois votre carte créée, personnalisez entièrement l'expérience de vos clients.</Transition>
-
-        {/* 2. Les 7 espaces */}
-        <section className="mt-8">
-          <Reveal>
-            <div className="flex items-center gap-3">
-              <SectionBadge number="2" />
-              <div>
-                <p className="font-display text-lg font-bold text-stone-900">Les 7 espaces de votre dashboard</p>
-                <p className="text-sm text-stone-500">Chaque fonctionnalité résout un vrai problème du quotidien.</p>
-              </div>
-            </div>
-          </Reveal>
-          <div className="mt-6 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {DASHBOARD_PAGES.map((page, index) => (
-              <FeatureCard key={page.id} page={page} delayMs={index * 60} onOpenPreview={setPreviewPage} />
-            ))}
-          </div>
-        </section>
-
-        <Transition>Votre restaurant est prêt. Il ne reste plus qu'à suivre vos performances en temps réel.</Transition>
-
-        {/* 3. Personnalisation */}
-        <section className="mt-8 rounded-[2.5rem] bg-navy-300/6 p-6 sm:p-10">
-          <Reveal>
-            <div className="flex items-center gap-3">
-              <SectionBadge number="3" />
-              <div>
-                <p className="font-display text-lg font-bold text-stone-900">Personnalisation illimitée</p>
-                <p className="text-sm text-stone-500">
-                  Votre carte à l'image de votre restaurant, modifiable aussi souvent que vous voulez.
-                </p>
-              </div>
-            </div>
-          </Reveal>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {CUSTOMIZATION_ITEMS.map((item, index) => (
-              <Reveal key={item.label} delayMs={index * 50}>
-                <div className="group flex h-full flex-col rounded-3xl border border-stone-200/70 bg-gradient-to-b from-white to-stone-50/70 p-5 shadow-[0_2px_10px_rgba(17,30,48,0.05)] transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(17,30,48,0.1)]">
-                  <span
-                    className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg shadow-sm transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-110"
-                    style={{ background: `linear-gradient(135deg, ${item.color}3d, ${item.color}12)` }}
-                  >
-                    {item.icon}
-                  </span>
-                  <p className="mt-3 text-sm font-bold text-stone-900">{item.label}</p>
-                  <p className="mt-1 text-xs leading-5 text-stone-500">{item.description}</p>
+          {/* 1. Vue d'ensemble */}
+          <section className="mt-12">
+            <Reveal>
+              <div className="flex items-center gap-3">
+                <SectionBadge number="1" />
+                <div>
+                  <p className="font-display text-lg font-bold text-stone-900">L'accueil de votre espace</p>
+                  <p className="text-sm text-stone-500">
+                    Vos ventes du jour en un coup d'œil, puis un accès direct à chaque outil.
+                  </p>
                 </div>
-              </Reveal>
-            ))}
-          </div>
-        </section>
+              </div>
+            </Reveal>
+            <Reveal delayMs={100}>
+              <div className="mt-5">
+                <DashboardPreview />
+              </div>
+            </Reveal>
+          </section>
 
-        {/* Conclusion */}
-        <section className="mt-16">
-          <Reveal>
-            <div className="flex flex-col items-center gap-5 rounded-[2.5rem] bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 p-10 text-center shadow-glow sm:p-16">
-              <h2 className="max-w-2xl font-display text-2xl font-bold text-white sm:text-3xl">
-                Tout ce dont votre restaurant a besoin, dans une seule plateforme.
-              </h2>
-              <p className="max-w-xl text-sm leading-6 text-white/80 sm:text-base">
-                Créez votre carte, encaissez vos paiements, suivez vos performances, améliorez votre rentabilité et
-                offrez une expérience moderne à vos clients — sans complexité.
-              </p>
-              <Link
-                to="/inscription"
-                className="rounded-full bg-white px-8 py-4 text-sm font-bold text-navy-800 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                Essayer Nourevo
-              </Link>
+          <Transition>Une fois votre carte créée, personnalisez entièrement l'expérience de vos clients.</Transition>
+
+          {/* 2. Les 7 espaces */}
+          <section className="mt-8">
+            <Reveal>
+              <div className="flex items-center gap-3">
+                <SectionBadge number="2" />
+                <div>
+                  <p className="font-display text-lg font-bold text-stone-900">Les 7 espaces de votre dashboard</p>
+                  <p className="text-sm text-stone-500">Chaque fonctionnalité résout un vrai problème du quotidien.</p>
+                </div>
+              </div>
+            </Reveal>
+            <div className="mt-6 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {DASHBOARD_PAGES.map((page, index) => (
+                <FeatureCard key={page.id} page={page} delayMs={index * 60} onOpenPreview={setPreviewPage} />
+              ))}
             </div>
-          </Reveal>
-        </section>
-      </div>
+          </section>
 
-      <PreviewModal page={previewPage} onClose={() => setPreviewPage(null)} />
-    </div>
+          <Transition>Votre restaurant est prêt. Il ne reste plus qu'à suivre vos performances en temps réel.</Transition>
+
+          {/* 3. Personnalisation */}
+          <section className="mt-8 rounded-[2.5rem] bg-navy-300/6 p-6 sm:p-10">
+            <Reveal>
+              <div className="flex items-center gap-3">
+                <SectionBadge number="3" />
+                <div>
+                  <p className="font-display text-lg font-bold text-stone-900">Personnalisation illimitée</p>
+                  <p className="text-sm text-stone-500">
+                    Votre carte à l'image de votre restaurant, modifiable aussi souvent que vous voulez.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {CUSTOMIZATION_ITEMS.map((item, index) => (
+                <Reveal key={item.label} delayMs={index * 50}>
+                  <div className="group flex h-full flex-col rounded-3xl border border-stone-200/70 bg-gradient-to-b from-white to-stone-50/70 p-5 shadow-[0_2px_10px_rgba(17,30,48,0.05)] transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(17,30,48,0.1)]">
+                    <span
+                      className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg shadow-sm transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-110"
+                      style={{ background: `linear-gradient(135deg, ${item.color}3d, ${item.color}12)` }}
+                    >
+                      {item.icon}
+                    </span>
+                    <p className="mt-3 text-sm font-bold text-stone-900">{item.label}</p>
+                    <p className="mt-1 text-xs leading-5 text-stone-500">{item.description}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </section>
+
+          {/* Conclusion */}
+          <section className="mt-16">
+            <Reveal>
+              <div className="flex flex-col items-center gap-5 rounded-[2.5rem] bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 p-10 text-center shadow-glow sm:p-16">
+                <h2 className="max-w-2xl font-display text-2xl font-bold text-white sm:text-3xl">
+                  Tout ce dont votre restaurant a besoin, dans une seule plateforme.
+                </h2>
+                <p className="max-w-xl text-sm leading-6 text-white/80 sm:text-base">
+                  Créez votre carte, encaissez vos paiements, suivez vos performances, améliorez votre rentabilité et
+                  offrez une expérience moderne à vos clients — sans complexité.
+                </p>
+                <Link
+                  to="/inscription"
+                  className="rounded-full bg-white px-8 py-4 text-sm font-bold text-navy-800 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  Essayer Nourevo
+                </Link>
+              </div>
+            </Reveal>
+          </section>
+        </div>
+
+        <PreviewModal page={previewPage} onClose={() => setPreviewPage(null)} />
+      </div>
+      <SiteFooter />
+    </>
   );
 }
