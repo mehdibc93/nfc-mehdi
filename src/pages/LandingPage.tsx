@@ -16,14 +16,79 @@ const DEMO_HREF = '/r/le-jardin-parisien?demo=1';
 const WHATSAPP_HREF =
   'https://wa.me/33753924902?text=Bonjour%2C%20je%20souhaite%20commander%20une%20carte%20NFC%20pour%20mon%20restaurant.';
 
-// Chiffres clés : uniquement des faits sur le produit ou des calculs exacts (offre annuelle :
-// 588 € / 365 jours = 1,61 €), jamais de statistique de performance non mesurée.
+// Chiffres clés : faits sur le produit, calculs exacts (offre annuelle : 588 € / 365 jours =
+// 1,61 €) et un chiffre du secteur toujours accompagné de sa source (`sourced`, note ¹ sous
+// le bandeau) — jamais présenté comme un résultat mesuré chez les clients Nourevo.
 const KEY_FIGURES = [
-  { value: '1 tap', label: 'pour ouvrir votre carte, sans application' },
+  { value: '+10–30 %', label: 'de panier moyen constaté avec la commande digitale', sourced: true },
   { value: '0 %', label: 'de commission sur vos ventes' },
-  { value: '5', label: 'langues, traduites en un clic' },
+  { value: '1 tap', label: 'pour ouvrir votre carte, sans application' },
   { value: '15 min', label: 'pour mettre votre carte en ligne' },
   { value: '1,61 €', label: "par jour avec l'offre annuelle" },
+];
+
+// Bénéfices mis en avant dès le haut de page.
+const HERO_BENEFITS: { icon: string; content: ReactNode }[] = [
+  {
+    icon: '📈',
+    content: (
+      <>
+        <strong className="font-semibold text-stone-900">Un panier moyen plus élevé</strong> : suggestions de boisson
+        et de dessert, suppléments et photos à chaque commande —{' '}
+        <a href="#source-panier" className="whitespace-nowrap font-semibold text-navy-700 underline-offset-2 hover:underline">
+          +10 à 30 % constatés dans le secteur¹
+        </a>
+        .
+      </>
+    ),
+  },
+  {
+    icon: '😊',
+    content: (
+      <>
+        <strong className="font-semibold text-stone-900">Une meilleure expérience client</strong> : ils consultent,
+        commandent, paient et laissent un pourboire depuis leur table, sans attendre.
+      </>
+    ),
+  },
+  {
+    icon: '🎨',
+    content: (
+      <>
+        <strong className="font-semibold text-stone-900">Un restaurant à votre image</strong> : vos couleurs, vos
+        photos, votre vidéo d’accueil — pas un menu générique.
+      </>
+    ),
+  },
+];
+
+// Ce que Nourevo fait autrement : uniquement des faits vérifiables sur le produit (pas de
+// superlatif du type « les seuls », impossible à prouver face aux concurrents).
+const DIFFERENTIATORS = [
+  {
+    icon: '🎨',
+    title: 'Un restaurant à votre image',
+    description:
+      'Couleur de vos boutons, photo de couverture, vidéo d’accueil et animation d’attente personnalisées : vos clients reconnaissent votre établissement dès l’ouverture de la carte.',
+  },
+  {
+    icon: '📲',
+    title: 'Une carte NFC, pas un autocollant',
+    description:
+      'Vos cartes NFC sont fournies et déjà configurées : un simple contact suffit, là où le QR code oblige à ouvrir l’appareil photo et à viser.',
+  },
+  {
+    icon: '🧩',
+    title: 'Tout réuni dans un seul outil',
+    description:
+      'Menu, commande, paiement, emporter, livraison, pourboires, statistiques et rentabilité : plus besoin d’empiler plusieurs abonnements.',
+  },
+  {
+    icon: '💸',
+    title: 'Un prix fixe, zéro commission',
+    description:
+      'Dès 49 €/mois, quel que soit votre chiffre d’affaires : Nourevo ne prélève rien sur vos ventes, même en livraison.',
+  },
 ];
 
 const HERO_TRUST = ["7 jours d'essai gratuit", '0 % de commission sur vos ventes', 'Prêt en 15 minutes'];
@@ -324,6 +389,17 @@ export function LandingPage() {
                 Commande, paiement, pourboires, emporter, livraison et statistiques, au même endroit.
               </p>
 
+              <ul className="space-y-3">
+                {HERO_BENEFITS.map((benefit) => (
+                  <li key={benefit.icon} className="flex items-start gap-3 text-sm leading-6 text-stone-600 sm:text-base">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-base shadow-soft">
+                      {benefit.icon}
+                    </span>
+                    <span>{benefit.content}</span>
+                  </li>
+                ))}
+              </ul>
+
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
                   to={primaryCta.to}
@@ -410,12 +486,57 @@ export function LandingPage() {
               <div key={figure.value} className="rounded-3xl border border-stone-200/70 bg-white px-5 py-6 text-center shadow-soft">
                 <dt className="sr-only">{figure.label}</dt>
                 <dd>
-                  <span className="block font-display text-3xl font-bold text-navy-800 sm:text-4xl">{figure.value}</span>
-                  <span className="mt-1 block text-sm leading-5 text-stone-500">{figure.label}</span>
+                  <span className="block whitespace-nowrap font-display text-3xl font-bold text-navy-800 sm:text-4xl">{figure.value}</span>
+                  <span className="mt-1 block text-sm leading-5 text-stone-500">
+                    {figure.label}
+                    {figure.sourced && '¹'}
+                  </span>
                 </dd>
               </div>
             ))}
           </dl>
+          <p id="source-panier" className="mx-auto mt-4 max-w-4xl scroll-mt-28 text-center text-xs leading-5 text-stone-500">
+            ¹ Hausse du panier moyen observée dans la restauration avec la commande digitale et les suggestions
+            automatiques (bornes, commande en ligne), selon des chiffres publiés par des acteurs du secteur —{' '}
+            <a
+              href="https://www.qsrmagazine.com/technology/study-kiosk-demand-rise-quick-service"
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              QSR Magazine
+            </a>
+            ,{' '}
+            <a
+              href="https://blog.getbite.com/articles/from-10-to-30-the-real-revenue-impact-of-restaurant-kiosks"
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              Bite
+            </a>
+            . Résultats variables selon l’établissement, non garantis.
+          </p>
+        </section>
+
+        {/* Ce que Nourevo fait autrement */}
+        <section className="mx-auto w-full max-w-7xl px-4 pt-20 sm:px-8 lg:px-10">
+          <Reveal>
+            <SectionHeading eyebrow="Pourquoi Nourevo" title="Ce que nous faisons autrement">
+              Une solution pensée pour que chaque restaurant garde son identité — et ses marges.
+            </SectionHeading>
+          </Reveal>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {DIFFERENTIATORS.map((item, index) => (
+              <Reveal key={item.title} delayMs={index * 80}>
+                <div className="h-full rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-navy-50 text-2xl">{item.icon}</span>
+                  <h3 className="mt-4 font-display text-lg font-bold text-stone-900">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-stone-500">{item.description}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </section>
 
         {/* Comment ça marche, côté client */}
