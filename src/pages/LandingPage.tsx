@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { DashboardPreview } from '../components/DashboardPreview';
 import { SiteFooter } from '../components/SiteFooter';
+import { NfcCard, PhoneFrame } from '../components/LandingVisuals';
+import { ProductTour } from '../components/ProductTour';
+import { FeatureExplorer } from '../components/FeatureExplorer';
 import { Reveal } from '../components/Reveal';
 import { useAuth } from '../hooks/useAuth';
 import logoHorizontal from '../assets/logo-horizontal.png';
-import logoMark from '../assets/logo-mark.png';
 import { setPublicPageMeta } from '../lib/seo';
 import { PLANS } from '../lib/plans';
 import { FAQ_ITEMS } from '../lib/faq';
@@ -95,79 +96,11 @@ const DIFFERENTIATORS = [
 
 const HERO_TRUST = ["7 jours d'essai gratuit", '0 % de commission sur vos ventes', 'Prêt en 15 minutes'];
 
-// Parcours du client à table, illustré par de vraies captures de la carte de démonstration
-// (public/images/landing, générées depuis /r/le-jardin-parisien).
-const CUSTOMER_STEPS = [
-  {
-    number: '1',
-    title: 'Il approche son téléphone',
-    description:
-      'Une carte NFC est posée sur chaque table. Un simple contact ouvre votre menu : pas d’application à installer, pas de QR code à viser.',
-    visual: 'nfc' as const,
-  },
-  {
-    number: '2',
-    title: 'Il découvre votre carte',
-    description:
-      'Photos, descriptions, allergènes, 5 langues, suggestions du chef… et même certains plats en réalité augmentée.',
-    visual: '/images/landing/client-plat.jpg',
-  },
-  {
-    number: '3',
-    title: 'Il commande et paie',
-    description:
-      'Sur place, à emporter ou en livraison ; par carte, Apple Pay, Google Pay ou à la caisse. La commande arrive aussitôt en cuisine.',
-    visual: '/images/landing/client-modes.jpg',
-  },
-];
-
 const NFC_VS_QR = [
   { label: 'Pour ouvrir le menu', qr: 'Ouvrir l’appareil photo, viser, attendre la mise au point', nfc: 'Un simple contact avec la carte' },
   { label: 'En salle sombre ou en terrasse', qr: 'Reflets et lumière faible gênent la lecture', nfc: 'Fonctionne quelle que soit la lumière' },
   { label: 'Image de votre établissement', qr: 'Autocollant générique, souvent abîmé', nfc: 'Carte élégante aux couleurs de Nourevo' },
   { label: 'Après l’ouverture du menu', qr: 'Souvent un simple PDF à faire défiler', nfc: 'Commande, paiement, pourboire et suivi en direct' },
-];
-
-const PILLARS: { icon: string; color: string; title: string; subtitle: string; items: string[] }[] = [
-  {
-    icon: '📱',
-    color: '#0072B2',
-    title: 'Pour vos clients',
-    subtitle: 'Une expérience fluide, sans attendre un serveur.',
-    items: [
-      'Menu en photos, traduit en 5 langues',
-      'Filtres allergènes et régimes alimentaires',
-      'Paiement par carte, Apple Pay ou Google Pay',
-      'Pourboire en un clic, au paiement ou après le repas',
-      'Suivi de la commande en direct',
-    ],
-  },
-  {
-    icon: '🧑‍🍳',
-    color: '#009E73',
-    title: 'Pour votre équipe',
-    subtitle: 'Moins d’allers-retours, plus de temps pour le service.',
-    items: [
-      'Mode Service : commandes reçues en temps réel',
-      'Appel serveur et demande d’addition depuis la table',
-      'Plat épuisé ? Il disparaît tout seul de la carte',
-      'Menus midi et soir qui changent automatiquement',
-      'Accès du personnel protégé par code PIN',
-    ],
-  },
-  {
-    icon: '📈',
-    color: '#D55E00',
-    title: 'Pour votre chiffre d’affaires',
-    subtitle: 'Vendre plus, et savoir ce qui rapporte vraiment.',
-    items: [
-      'Vente à emporter et livraison, avec vos propres frais',
-      'Suggestions boisson et dessert pour un panier plus élevé',
-      'Avis Google demandés au bon moment',
-      'Statistiques et rentabilité plat par plat',
-      'Réductions programmées (happy hour, menu du midi…)',
-    ],
-  },
 ];
 
 const COMPARISON = [
@@ -215,56 +148,6 @@ function SectionHeading({ eyebrow, title, children }: { eyebrow: string; title: 
       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-navy-500">{eyebrow}</p>
       <h2 className="mt-2 font-display text-3xl font-bold text-stone-900 sm:text-4xl">{title}</h2>
       {children && <p className="mt-3 text-sm leading-6 text-stone-500 sm:text-base">{children}</p>}
-    </div>
-  );
-}
-
-// Cadre de téléphone autour d'une vraie capture de la carte client.
-function PhoneFrame({ src, alt, eager = false, className = '' }: { src: string; alt: string; eager?: boolean; className?: string }) {
-  return (
-    <div className={`rounded-[2.4rem] bg-stone-900 p-2 shadow-card ring-1 ring-black/10 ${className}`}>
-      <div className="overflow-hidden rounded-[2rem] bg-white">
-        <img
-          src={src}
-          alt={alt}
-          width={780}
-          height={1688}
-          loading={eager ? 'eager' : 'lazy'}
-          decoding="async"
-          className="block h-auto w-full"
-        />
-      </div>
-    </div>
-  );
-}
-
-// Carte NFC posée sur la table, avec les ondes du « tap ». La largeur est donnée par
-// `className` ; `compact` pour les petits formats (texte réduit au strict nécessaire).
-function NfcCard({ className = 'w-full', compact = false }: { className?: string; compact?: boolean }) {
-  return (
-    <div
-      className={`relative aspect-[1.586] rounded-2xl bg-gradient-to-br from-navy-600 via-navy-700 to-navy-900 p-4 text-white shadow-glow ring-1 ring-white/10 sm:p-5 ${className}`}
-    >
-      <div className="flex items-center gap-2">
-        <img src={logoMark} alt="" className={`rounded-md bg-white/90 p-0.5 ${compact ? 'h-5 w-5' : 'h-6 w-6'}`} />
-        <span className={`font-bold uppercase ${compact ? 'text-[10px] tracking-[0.2em]' : 'text-xs tracking-[0.3em]'}`}>Nourevo</span>
-      </div>
-      <div className={compact ? 'absolute right-3 top-3' : 'absolute right-4 top-4 sm:right-5 sm:top-5'} aria-hidden="true">
-        <span className="absolute inset-0 rounded-full bg-white/30 motion-safe:animate-ping" />
-        <svg viewBox="0 0 24 24" className={`relative ${compact ? 'h-5 w-5' : 'h-7 w-7'}`} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-          <path d="M8.5 8.5a5 5 0 0 1 0 7" />
-          <path d="M11.5 6a8.5 8.5 0 0 1 0 12" />
-          <path d="M14.5 3.5a12 12 0 0 1 0 17" />
-        </svg>
-      </div>
-      {compact ? (
-        <p className="absolute bottom-3 left-4 right-4 text-xs font-semibold leading-snug">Approchez votre téléphone</p>
-      ) : (
-        <p className="absolute bottom-4 left-4 right-4 text-sm font-semibold leading-snug sm:bottom-5 sm:left-5 sm:text-base">
-          Approchez votre téléphone
-          <span className="block text-xs font-normal text-white/70">pour voir le menu et commander</span>
-        </p>
-      )}
     </div>
   );
 }
@@ -481,6 +364,26 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* Nourevo en 30 secondes : le principe, montré plutôt qu'expliqué */}
+        <section id="comment-ca-marche" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-20 sm:px-8 lg:px-10">
+          <Reveal>
+            <SectionHeading eyebrow="Comment ça marche" title="Nourevo en 30 secondes">
+              Suivez une commande, de la table à la cuisine. Ce sont de vraies captures de l’application.
+            </SectionHeading>
+          </Reveal>
+          <div className="mt-12">
+            <ProductTour />
+          </div>
+          <div className="mt-8 flex justify-center">
+            <Link
+              to={DEMO_HREF}
+              className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-7 py-4 text-sm font-bold text-white shadow-glow transition-all duration-300 hover:-translate-y-0.5"
+            >
+              ▶ Essayer la démo comme un client
+            </Link>
+          </div>
+        </section>
+
         {/* Chiffres clés */}
         <section className="mx-auto w-full max-w-7xl px-4 pt-14 sm:px-8 lg:px-10">
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -541,50 +444,16 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Comment ça marche, côté client */}
-        <section id="comment-ca-marche" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-20 sm:px-8 lg:px-10">
+        {/* Fonctionnalités, à découvrir en cliquant */}
+        <section id="fonctionnalites" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
-            <SectionHeading eyebrow="Comment ça marche" title="Pour vos clients, 3 gestes suffisent">
-              Voici exactement ce que voit un client à votre table — ce sont de vraies captures de la carte de
-              démonstration.
+            <SectionHeading eyebrow="Fonctionnalités" title="Cliquez, et voyez par vous-même">
+              Choisissez un public, puis une fonctionnalité : l’écran correspondant s’affiche.
             </SectionHeading>
           </Reveal>
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
-            {CUSTOMER_STEPS.map((step, index) => (
-              <Reveal key={step.number} delayMs={index * 100}>
-                <div className="flex h-full flex-col rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-navy-600 to-navy-800 font-display font-bold text-white">
-                      {step.number}
-                    </span>
-                    <h3 className="font-display text-lg font-bold text-stone-900">{step.title}</h3>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-stone-500">{step.description}</p>
-                  <div className="mt-6 flex flex-1 items-end justify-center rounded-2xl bg-gradient-to-b from-stone-50 to-navy-50/60 px-6 pt-6">
-                    {step.visual === 'nfc' ? (
-                      <div className="mb-10 w-full max-w-[260px]">
-                        <NfcCard />
-                      </div>
-                    ) : (
-                      <div className="h-[340px] w-full max-w-[220px] overflow-hidden">
-                        <PhoneFrame src={step.visual} alt={step.title} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Reveal>
-            ))}
+          <div className="mt-10">
+            <FeatureExplorer />
           </div>
-          <Reveal delayMs={150}>
-            <div className="mt-10 flex justify-center">
-              <Link
-                to={DEMO_HREF}
-                className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-7 py-4 text-sm font-bold text-white shadow-glow transition-all duration-300 hover:-translate-y-0.5"
-              >
-                ▶ Essayer la démo comme un client
-              </Link>
-            </div>
-          </Reveal>
         </section>
 
         {/* NFC ou QR code */}
@@ -617,41 +486,6 @@ export function LandingPage() {
               </div>
             </div>
           </Reveal>
-        </section>
-
-        {/* Fonctionnalités, par public */}
-        <section id="fonctionnalites" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-24 sm:px-8 lg:px-10">
-          <Reveal>
-            <SectionHeading eyebrow="Fonctionnalités" title="Une plateforme, pas juste une carte">
-              Tout ce qu’il faut pour servir, encaisser et piloter votre restaurant, sans jongler entre plusieurs
-              outils.
-            </SectionHeading>
-          </Reveal>
-          <div className="mt-12 grid gap-6 lg:grid-cols-3">
-            {PILLARS.map((pillar, index) => (
-              <Reveal key={pillar.title} delayMs={index * 100}>
-                <div className="relative h-full overflow-hidden rounded-3xl border border-stone-200/70 bg-white p-7 shadow-soft">
-                  <span className="absolute inset-x-0 top-0 h-1" style={{ background: pillar.color }} />
-                  <span
-                    className="flex h-12 w-12 items-center justify-center rounded-2xl text-2xl"
-                    style={{ background: `linear-gradient(135deg, ${pillar.color}33, ${pillar.color}10)` }}
-                  >
-                    {pillar.icon}
-                  </span>
-                  <h3 className="mt-4 font-display text-xl font-bold text-stone-900">{pillar.title}</h3>
-                  <p className="mt-1 text-sm text-stone-500">{pillar.subtitle}</p>
-                  <ul className="mt-5 space-y-3">
-                    {pillar.items.map((item) => (
-                      <li key={item} className="flex items-start gap-2.5 text-sm leading-6 text-stone-700">
-                        <span className="mt-0.5 text-emerald-600">✓</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </Reveal>
-            ))}
-          </div>
         </section>
 
         {/* Plus de ventes : emporter, livraison, pourboires */}
@@ -731,31 +565,6 @@ export function LandingPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          </Reveal>
-        </section>
-
-        {/* Dashboard */}
-        <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
-          <Reveal>
-            <SectionHeading eyebrow="Votre espace de gestion" title="Tout se pilote depuis un seul dashboard">
-              Carte, commandes, paiements, statistiques, rentabilité : un seul endroit, sur ordinateur, tablette ou
-              téléphone.
-            </SectionHeading>
-          </Reveal>
-          <Reveal delayMs={100}>
-            <div className="mx-auto mt-10 max-w-4xl">
-              <DashboardPreview />
-            </div>
-          </Reveal>
-          <Reveal delayMs={150}>
-            <div className="mt-8 flex justify-center">
-              <Link
-                to="/decouvrir-dashboard"
-                className="rounded-full border border-stone-200/70 bg-white px-6 py-3.5 text-sm font-bold text-navy-700 shadow-soft transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-navy-300/40"
-              >
-                🔎 Visiter le dashboard en détail →
-              </Link>
             </div>
           </Reveal>
         </section>

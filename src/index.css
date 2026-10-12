@@ -142,3 +142,13 @@ body::before {
     animation: none;
   }
 }
+
+/* Barre de progression de l'étape active de la démo animée (ProductTour). */
+@keyframes tourProgress {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
