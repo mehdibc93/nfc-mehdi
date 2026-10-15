@@ -14,6 +14,7 @@ import { FAQ_ITEMS } from '../lib/faq';
 import { PAYMENT_LOGOS, STRIPE_LOGO } from '../lib/paymentLogos';
 import { CONTACT_EMAIL } from '../lib/site';
 import { DeliveryCommissionCalculator } from '../components/DeliveryCommissionCalculator';
+import { TESTIMONIALS } from '../lib/testimonials';
 
 const DEMO_HREF = '/r/le-jardin-parisien?demo=1';
 const WHATSAPP_HREF =
@@ -68,6 +69,41 @@ const BENEFITS = [
     title: 'Un modèle simple et transparent',
     description:
       'Un abonnement fixe, des cartes NFC fournies et aucune commission prélevée par Nourevo sur vos ventes. Les paiements arrivent directement sur votre compte.',
+  },
+];
+
+// « Ce qui change au quotidien » : avant / avec Nourevo. Pas des avis : des situations du service,
+// chacune liée à une fonctionnalité réelle (Mode Service, demandes de table, stock, rentabilité...).
+const DAILY_CHANGES = [
+  {
+    icon: '🔔',
+    before: 'Les commandes passent de main en main avant d’arriver en cuisine.',
+    after: 'Les commandes arrivent directement dans le Mode Service, avec une alerte sonore.',
+  },
+  {
+    icon: '💳',
+    before: 'Vos clients attendent l’addition pour pouvoir partir.',
+    after: 'Vos clients règlent depuis leur table, par carte ou à la caisse, quand ils le souhaitent.',
+  },
+  {
+    icon: '🙋',
+    before: 'On fait le tour de la salle pour savoir qui a besoin de quoi.',
+    after: 'Une demande d’addition ou de serveur s’affiche aussitôt dans le Mode Service.',
+  },
+  {
+    icon: '📦',
+    before: 'Un plat épuisé est annoncé au client après sa commande.',
+    after: 'Le stock se met à jour à chaque commande ; à zéro, le plat n’est plus proposé.',
+  },
+  {
+    icon: '✏️',
+    before: 'Un prix ou un plat qui change, et la carte papier est à réimprimer.',
+    after: 'Vous modifiez votre carte en quelques secondes, en ligne aussitôt.',
+  },
+  {
+    icon: '📈',
+    before: 'Difficile de savoir quels plats rapportent vraiment.',
+    after: 'Les plats les plus consultés, les plus commandés et leur marge, au même endroit.',
   },
 ];
 
@@ -427,6 +463,31 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* Ce qui change au quotidien */}
+        <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
+          <Reveal>
+            <SectionHeading eyebrow="Au quotidien" title="Ce qui change pour votre équipe">
+              Moins d’allers-retours, moins de ressaisie, plus de temps pour vos clients.
+            </SectionHeading>
+          </Reveal>
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {DAILY_CHANGES.map((item, index) => (
+              <Reveal key={item.icon} delayMs={(index % 3) * 80}>
+                <div className="flex h-full flex-col rounded-3xl border border-stone-200/70 bg-white p-7 shadow-soft">
+                  <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-2xl bg-navy-50 text-2xl">
+                    {item.icon}
+                  </span>
+                  <p className="mt-5 text-sm leading-6 text-stone-400">
+                    <span className="font-semibold uppercase tracking-[0.18em] text-[11px] text-stone-400">Avant · </span>
+                    {item.before}
+                  </p>
+                  <p className="mt-3 font-display text-lg font-bold leading-snug text-stone-900">{item.after}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
         {/* NFC ou QR code */}
         <section className="mx-auto w-full max-w-5xl px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
@@ -544,6 +605,55 @@ export function LandingPage() {
             </Link>
           </p>
         </section>
+
+        {/* Avis de restaurateurs : affichés seulement quand de vrais avis existent (src/lib/testimonials.ts). */}
+        {TESTIMONIALS.length > 0 && (
+          <section className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-8 lg:px-10">
+            <Reveal>
+              <SectionHeading eyebrow="Ils utilisent Nourevo" title="Ce qu’en disent les restaurateurs" />
+            </Reveal>
+            <div
+              className={`mt-12 grid gap-5 ${TESTIMONIALS.length === 1 ? 'mx-auto max-w-2xl' : TESTIMONIALS.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}
+            >
+              {TESTIMONIALS.map((item, index) => (
+                <Reveal key={item.name + item.restaurant} delayMs={(index % 3) * 80}>
+                  <figure className="flex h-full flex-col justify-between rounded-3xl border border-stone-200/70 bg-white p-7 shadow-soft">
+                    <blockquote className="text-base leading-7 text-stone-700">
+                      « {item.quote} »
+                    </blockquote>
+                    <figcaption className="mt-6 flex items-center gap-3 border-t border-stone-100 pt-5">
+                      {item.photo ? (
+                        <img
+                          src={item.photo}
+                          alt=""
+                          width={48}
+                          height={48}
+                          loading="lazy"
+                          className="h-12 w-12 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-navy-600 to-navy-800 font-display text-lg font-bold text-white"
+                        >
+                          {item.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span>
+                        <span className="block font-semibold text-stone-900">{item.name}</span>
+                        <span className="block text-sm text-stone-500">
+                          {item.role}, {item.restaurant}
+                          {item.city ? ` · ${item.city}` : ''}
+                        </span>
+                        {item.since && <span className="block text-xs text-stone-400">{item.since}</span>}
+                      </span>
+                    </figcaption>
+                  </figure>
+                </Reveal>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Tarifs */}
         <section className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-8 lg:px-10">
