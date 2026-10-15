@@ -3,7 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabaseClient';
-import { mapCategory, mapDish, mapRestaurantWithMenu, toDishRowPatch, toRestaurantRowPatch } from '../lib/mappers';
+import { mapCategory, mapDish, mapOrder, mapRestaurantWithMenu, toDishRowPatch, toRestaurantRowPatch } from '../lib/mappers';
 import type { Dish, RestaurantWithMenu } from '../lib/types';
 import { slugify } from '../lib/slug';
 import { money } from '../lib/format';
@@ -31,6 +31,8 @@ import {
 } from '../lib/profitability';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
+import { DashboardHome } from '../components/DashboardHome';
+import type { DashboardOverview } from '../components/DashboardHome';
 import { useDt } from '../lib/dashboardLocale';
 import { useOrderNotifications } from '../hooks/useOrderNotifications';
 import { setPageMeta } from '../lib/seo';
@@ -104,7 +106,7 @@ export function DashboardPage() {
   const [bulkAddPhotos, setBulkAddPhotos] = useState<File[]>([]);
   const [addingBulkDishes, setAddingBulkDishes] = useState(false);
   const [duplicatingDishId, setDuplicatingDishId] = useState<string | null>(null);
-  const [overview, setOverview] = useState<{ views: number; orders: number; revenue: number } | null>(null);
+  const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [refreshingStripeStatus, setRefreshingStripeStatus] = useState(false);
   const [managingStripeAccount, setManagingStripeAccount] = useState(false);
@@ -224,7 +226,7 @@ export function DashboardPage() {
       });
   }, [user]);
 
-  // Vue d'ensemble : quelques chiffres du jour (vues, commandes, chiffre d'affaires).
+  // Vue d'ensemble : chiffres du jour (vues, commandes, chiffre d'affaires) et dernières commandes.
   useEffect(() => {
     if (!restaurant) return undefined;
     let cancelled = false;
@@ -238,14 +240,21 @@ export function DashboardPage() {
         .eq('restaurant_id', restaurant.id)
         .eq('event_type', 'view')
         .gte('created_at', since),
-      supabase.from('orders').select('total').eq('restaurant_id', restaurant.id).neq('status', 'refused').gte('created_at', since),
+      supabase
+        .from('orders')
+        .select('*')
+        .eq('restaurant_id', restaurant.id)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false }),
     ]).then(([{ count: viewsCount }, { data: todayOrders }]) => {
       if (cancelled) return;
-      const orders = (todayOrders ?? []) as { total: number }[];
+      const all = (todayOrders ?? []).map(mapOrder);
+      const counted = all.filter((order) => order.status !== 'refused');
       setOverview({
         views: viewsCount ?? 0,
-        orders: orders.length,
-        revenue: orders.reduce((sum, order) => sum + (order.total ?? 0), 0),
+        orders: counted.length,
+        revenue: counted.reduce((sum, order) => sum + (order.total ?? 0), 0),
+        recentOrders: all.slice(0, 5),
       });
     });
     return () => {
@@ -1372,11 +1381,7 @@ export function DashboardPage() {
     );
   }
 
-  const ownerDisplayName = user?.email?.split('@')[0] ?? 'vous';
   const totalDishes = restaurant.categories.reduce((sum, category) => sum + category.dishes.length, 0);
-  const totalCategories = restaurant.categories.length;
-  const navCardClass =
-    'rounded-3xl border border-stone-200/70 bg-white p-5 text-left shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-navy-300/40 sm:p-6';
 
   const dismissChecklist = () => {
     localStorage.setItem(`tc_onboarding_dismissed_${restaurant.id}`, '1');
@@ -1413,19 +1418,17 @@ export function DashboardPage() {
     <div className="min-h-screen pb-20">
       {routeTab === null ? (
         <header className="sticky top-0 z-40 border-b border-stone-900/5 bg-[#f6f8fb]/80 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-            <div className="flex items-center gap-3">
+          <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+            <div className="flex items-center gap-4">
+              <Link to="/" className="hidden shrink-0 border-r border-stone-200 pr-4 sm:block">
+                <img src={logoHorizontal} alt="Nourevo" className="h-6 w-auto" />
+              </Link>
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-navy-600 via-navy-700 to-navy-800 font-display text-lg font-bold text-white">
                 {restaurant.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <Link to="/" className="inline-block">
-                  <img src={logoHorizontal} alt="Nourevo" className="h-5 w-auto" />
-                </Link>
-                <p className="font-display text-lg font-semibold leading-tight text-stone-900">
-                  {dt('Bonjour', 'Hello')} {ownerDisplayName} 👋
-                </p>
-                <p className="text-xs text-stone-400">{restaurant.name}</p>
+                <p className="font-display text-lg font-semibold leading-tight text-stone-900">{restaurant.name}</p>
+                <p className="max-w-[220px] truncate text-xs text-stone-400">{user?.email}</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1436,7 +1439,7 @@ export function DashboardPage() {
                 rel="noreferrer"
                 className="rounded-full border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700"
               >
-                {dt('Voir ma page publique ↗', 'View my public page ↗')}
+                {dt('Ma carte ↗', 'My menu ↗')}
               </a>
               <button
                 onClick={handleLogout}
@@ -1478,123 +1481,17 @@ export function DashboardPage() {
         </div>
       )}
 
-      <main className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-8">
+      <main className={`mx-auto space-y-6 px-4 py-8 sm:px-8 ${routeTab === null ? 'max-w-6xl' : 'max-w-5xl'}`}>
         {routeTab === null && (
-        <>
-        {showOnboardingChecklist && (
-          <section className="rounded-3xl border border-navy-300/25 bg-navy-300/5 p-6">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-display text-lg font-bold text-stone-900">{dt('Bien démarrer', 'Get started')}</h2>
-              <button
-                type="button"
-                onClick={dismissChecklist}
-                className="text-xs font-semibold text-stone-400 transition-colors duration-300 hover:text-stone-600"
-              >
-                {dt('Masquer', 'Hide')}
-              </button>
-            </div>
-            <div className="mt-4 space-y-3">
-              {checklistItems.map((item) => (
-                <div key={item.label} className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">{item.done ? '✅' : '⬜'}</span>
-                    <p className={`text-sm ${item.done ? 'text-stone-400 line-through' : 'font-semibold text-stone-800'}`}>
-                      {item.label}
-                    </p>
-                  </div>
-                  {!item.done && (
-                    <button
-                      type="button"
-                      onClick={item.onAction}
-                      className="rounded-full border border-navy-400 bg-navy-300/10 px-4 py-1.5 text-xs font-semibold text-navy-700 transition-all duration-300 hover:bg-navy-300/20"
-                    >
-                      {item.actionLabel}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <section>
-          <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-400">
-            {dt("Vue d'ensemble — aujourd'hui", 'Overview — today')}
-          </h2>
-          <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-3xl border border-stone-200/70 bg-white p-5 shadow-soft">
-              <p className="text-2xl">👀</p>
-              <p className="mt-2 text-2xl font-bold text-stone-900">{overview ? overview.views : '—'}</p>
-              <p className="text-xs text-stone-400">{dt('Vues du menu', 'Menu views')}</p>
-            </div>
-            <div className="rounded-3xl border border-stone-200/70 bg-white p-5 shadow-soft">
-              <p className="text-2xl">🍽️</p>
-              <p className="mt-2 text-2xl font-bold text-stone-900">{overview ? overview.orders : '—'}</p>
-              <p className="text-xs text-stone-400">{dt('Commandes', 'Orders')}</p>
-            </div>
-            <div className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-5">
-              <p className="text-2xl">💰</p>
-              <p className="mt-2 text-2xl font-bold text-navy-700">{overview ? money(overview.revenue) : '—'}</p>
-              <p className="text-xs text-navy-700/70">{dt("Chiffre d'affaires", 'Revenue')}</p>
-            </div>
-            <Link to="/dashboard/configuration" className="rounded-3xl border border-stone-200/70 bg-white p-5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-navy-300/40">
-              <p className="text-2xl">🔐</p>
-              <p className="mt-2 text-sm font-semibold text-stone-900">{dt('Configuration', 'Settings')}</p>
-              <p className="text-xs text-stone-400">
-                {restaurant.servicePin ? dt('🔒 PIN activé', '🔒 PIN enabled') : dt('Code PIN, NFC, avis', 'PIN code, NFC, reviews')}
-              </p>
-            </Link>
-          </div>
-        </section>
-
-        <nav className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <Link to="/dashboard/carte" className={navCardClass}>
-            <span className="text-2xl">📋</span>
-            <p className="mt-2 font-semibold text-stone-900">{dt('Carte', 'Menu')}</p>
-            <p className="text-xs text-stone-400">
-              {dt(
-                `${totalCategories} catégorie${totalCategories > 1 ? 's' : ''} · ${totalDishes} plat${totalDishes > 1 ? 's' : ''}`,
-                `${totalCategories} categor${totalCategories > 1 ? 'ies' : 'y'} · ${totalDishes} dish${totalDishes > 1 ? 'es' : ''}`,
-              )}
-            </p>
-          </Link>
-          <Link to="/dashboard/restaurant" className={navCardClass}>
-            <span className="text-2xl">🏠</span>
-            <p className="mt-2 font-semibold text-stone-900">{dt('Restaurant', 'Restaurant')}</p>
-            <p className="text-xs text-stone-400">{dt('Infos, photo, traductions', 'Info, photo, translations')}</p>
-          </Link>
-          <Link to="/dashboard/paiements" className={navCardClass}>
-            <span className="text-2xl">{restaurant.stripeOnboarded ? '✅' : '💳'}</span>
-            <p className="mt-2 font-semibold text-stone-900">{dt('Paiements', 'Payments')}</p>
-            <p className="text-xs text-stone-400">{restaurant.stripeOnboarded ? dt('Stripe connecté', 'Stripe connected') : dt('Non connecté', 'Not connected')}</p>
-          </Link>
-          <Link to="/dashboard/stats" className={navCardClass}>
-            <span className="text-2xl">📊</span>
-            <p className="mt-2 font-semibold text-stone-900">{dt('Statistiques', 'Statistics')}</p>
-            <p className="text-xs text-stone-400">{dt('Vues, paniers, conversions', 'Views, carts, conversions')}</p>
-          </Link>
-          <Link to="/dashboard/rentabilite" className={navCardClass}>
-            <span className="text-2xl">💰</span>
-            <p className="mt-2 font-semibold text-stone-900">{dt('Rentabilité', 'Profitability')}</p>
-            <p className="text-xs text-stone-400">{dt('Marge et plats les plus rentables', 'Margin and most profitable dishes')}</p>
-          </Link>
-          <Link to="/service" className={`relative ${navCardClass}`}>
-            {pendingRequestsCount > 0 && (
-              <span className="absolute right-5 top-5 h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
-            )}
-            <span className="text-2xl">🔔</span>
-            <p className="mt-2 font-semibold text-stone-900">{dt('Mode Service', 'Service Mode')}</p>
-            <p className={`text-xs ${pendingRequestsCount > 0 ? 'font-semibold text-red-600' : 'text-stone-400'}`}>
-              {pendingRequestsCount > 0
-                ? dt(
-                    `${pendingRequestsCount} demande${pendingRequestsCount > 1 ? 's' : ''} en attente`,
-                    `${pendingRequestsCount} pending request${pendingRequestsCount > 1 ? 's' : ''}`,
-                  )
-                : dt('Aucune demande en attente', 'No pending requests')}
-            </p>
-          </Link>
-        </nav>
-        </>
+          <DashboardHome
+            restaurant={restaurant}
+            overview={overview}
+            pendingRequestsCount={pendingRequestsCount}
+            checklistItems={checklistItems}
+            showChecklist={showOnboardingChecklist}
+            onDismissChecklist={dismissChecklist}
+            onToast={setToast}
+          />
         )}
 
         {routeTab === 'payments' && (
