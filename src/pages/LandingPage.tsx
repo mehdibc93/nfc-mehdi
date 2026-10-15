@@ -32,46 +32,6 @@ const HERO_BENEFITS = [
 // carte bancaire est demandée à l'inscription (voir billing-create-checkout et la FAQ).
 const HERO_TRUST = ['7 jours offerts sur votre premier abonnement', 'Aucune commission sur vos ventes', 'Aucune application pour vos clients'];
 
-// Bénéfices pour l'établissement : uniquement des fonctionnalités présentes dans le produit.
-const BENEFITS = [
-  {
-    icon: '🎨',
-    title: 'Une carte à votre image',
-    description:
-      'Couleur de vos boutons, photo de couverture, vidéo d’accueil et animation d’attente : vos clients retrouvent l’identité de votre établissement dès l’ouverture de la carte.',
-  },
-  {
-    icon: '📲',
-    title: 'Aucune application à installer',
-    description:
-      'Un simple geste sur la carte NFC posée sur la table, ou un lien, et votre carte s’ouvre dans le navigateur du téléphone. Rien à télécharger, rien à expliquer.',
-  },
-  {
-    icon: '🍽️',
-    title: 'Consulter, commander, payer à table',
-    description:
-      'Vos clients parcourent la carte dans leur langue, commandent quand ils le souhaitent et règlent par carte, Apple Pay, Google Pay ou à la caisse.',
-  },
-  {
-    icon: '✨',
-    title: 'Valorisez votre carte et vos suggestions',
-    description:
-      'Photos, suggestions du chef, boisson ou dessert proposés au bon moment, suppléments, et certains plats présentés en réalité augmentée.',
-  },
-  {
-    icon: '🧭',
-    title: 'Un seul espace pour le service',
-    description:
-      'Les commandes arrivent en temps réel dans le Mode Service ; la carte, les horaires, les stocks et les statistiques se gèrent au même endroit.',
-  },
-  {
-    icon: '🤝',
-    title: 'Un modèle simple et transparent',
-    description:
-      'Un abonnement fixe, des cartes NFC fournies et aucune commission prélevée par Nourevo sur vos ventes. Les paiements arrivent directement sur votre compte.',
-  },
-];
-
 // « Ce qui change au quotidien » : avant / avec Nourevo. Pas des avis : des situations du service,
 // chacune liée à une fonctionnalité réelle (Mode Service, demandes de table, stock, rentabilité...).
 const DAILY_CHANGES = [
@@ -114,23 +74,8 @@ const NFC_VS_QR = [
   { label: 'Une fois la carte ouverte', qr: 'Selon les solutions, une simple carte à consulter', nfc: 'Commande, paiement, pourboire et suivi de la commande' },
 ];
 
-const SETUP_STEPS = [
-  {
-    number: '1',
-    title: 'Composez votre carte',
-    description: 'Ajoutez vos plats, vos photos et vos prix depuis votre espace, puis choisissez vos couleurs. Aucune compétence technique n’est nécessaire.',
-  },
-  {
-    number: '2',
-    title: 'Recevez vos cartes NFC',
-    description: 'Elles arrivent déjà configurées pour votre établissement : il ne reste qu’à les poser sur vos tables.',
-  },
-  {
-    number: '3',
-    title: 'Accueillez vos premières commandes',
-    description: 'Connectez votre compte Stripe pour le paiement en ligne : l’argent arrive directement sur votre compte bancaire.',
-  },
-];
+// Mise en place, résumée au-dessus des tarifs.
+const SETUP_STEPS = ['Composez votre carte', 'Recevez vos cartes NFC', 'Accueillez vos premières commandes'];
 
 // Questions les plus utiles à un restaurateur qui découvre Nourevo (la liste complète est sur /faq).
 const HOME_FAQ_QUESTIONS = [
@@ -375,19 +320,13 @@ export function LandingPage() {
                   Le plus simple pour comprendre, c’est de le voir. Lancez la vidéo, puis essayez la démonstration
                   vous-même, comme un client à table.
                 </p>
-                <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+                <div className="mt-6 flex justify-center lg:justify-start">
                   <Link
                     to={DEMO_HREF}
                     className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-7 py-4 text-sm font-bold text-white shadow-glow transition-all duration-300 hover:-translate-y-0.5"
                   >
                     Essayer la démonstration
                   </Link>
-                  <a
-                    href="#comment-ca-marche"
-                    className="rounded-full border border-stone-200 bg-white px-7 py-4 text-sm font-bold text-stone-700 transition-all duration-300 hover:border-navy-300/50 hover:text-navy-700"
-                  >
-                    Voir étape par étape
-                  </a>
                 </div>
               </div>
               <div className="mx-auto w-full max-w-[280px] rounded-[2.4rem] bg-stone-900 p-2 shadow-card ring-1 ring-black/10">
@@ -428,46 +367,12 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Bénéfices pour l'établissement et ses clients */}
-        <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
-          <Reveal>
-            <SectionHeading eyebrow="Pour votre établissement" title="Moderniser l’expérience, sans perdre votre identité">
-              Bistrot de quartier, brasserie ou restaurant d’hôtel : Nourevo s’adapte à votre carte et à votre façon de
-              recevoir.
-            </SectionHeading>
-          </Reveal>
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {BENEFITS.map((item, index) => (
-              <Reveal key={item.title} delayMs={(index % 3) * 80}>
-                <div className="h-full rounded-3xl border border-stone-200/70 bg-white p-7 shadow-soft">
-                  <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-2xl bg-navy-50 text-2xl">
-                    {item.icon}
-                  </span>
-                  <h3 className="mt-5 font-display text-lg font-bold text-stone-900">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-stone-600">{item.description}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
-        {/* Fonctionnalités, à découvrir en cliquant */}
-        <section id="fonctionnalites" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-24 sm:px-8 lg:px-10">
-          <Reveal>
-            <SectionHeading eyebrow="Fonctionnalités" title="Un outil pensé pour le quotidien du service">
-              Choisissez un point de vue, puis une fonctionnalité : l’écran correspondant s’affiche.
-            </SectionHeading>
-          </Reveal>
-          <div className="mt-10">
-            <FeatureExplorer />
-          </div>
-        </section>
-
         {/* Ce qui change au quotidien */}
         <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
             <SectionHeading eyebrow="Au quotidien" title="Ce qui change pour votre équipe">
-              Moins d’allers-retours, moins de ressaisie, plus de temps pour vos clients.
+              Une carte à vos couleurs, aucune commission sur vos ventes, et pour votre équipe : moins
+              d’allers-retours, moins de ressaisie, plus de temps pour vos clients.
             </SectionHeading>
           </Reveal>
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -488,36 +393,16 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* NFC ou QR code */}
-        <section className="mx-auto w-full max-w-5xl px-4 pt-24 sm:px-8 lg:px-10">
+        {/* Fonctionnalités, à découvrir en cliquant */}
+        <section id="fonctionnalites" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
-            <SectionHeading eyebrow="La carte NFC" title="Pourquoi une carte NFC sur vos tables ?">
-              Le QR code a rendu de grands services. La carte NFC offre un geste plus simple et une présentation plus
-              soignée.
+            <SectionHeading eyebrow="Fonctionnalités" title="Un outil pensé pour le quotidien du service">
+              Choisissez un point de vue, puis une fonctionnalité : l’écran correspondant s’affiche.
             </SectionHeading>
           </Reveal>
-          <Reveal delayMs={100}>
-            <div className="mt-10 overflow-hidden rounded-3xl border border-stone-200/70 bg-white shadow-soft">
-              <div className="hidden grid-cols-3 gap-4 border-b border-stone-200/70 bg-stone-50 px-6 py-4 text-xs font-semibold uppercase tracking-wide text-stone-500 sm:grid">
-                <span />
-                <span>QR code</span>
-                <span>Carte NFC Nourevo</span>
-              </div>
-              <div className="divide-y divide-stone-100">
-                {NFC_VS_QR.map((row) => (
-                  <div key={row.label} className="grid grid-cols-1 gap-2 px-6 py-5 sm:grid-cols-3 sm:items-center sm:gap-4">
-                    <span className="text-sm font-bold text-stone-800">{row.label}</span>
-                    <span className="flex items-start gap-2 text-sm text-stone-500">
-                      <span className="text-rose-400">✕</span> {row.qr}
-                    </span>
-                    <span className="flex items-start gap-2 rounded-xl bg-emerald-50/70 px-3 py-1.5 text-sm font-semibold text-navy-700 sm:bg-transparent sm:px-0 sm:py-0">
-                      <span className="text-emerald-600">✓</span> {row.nfc}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Reveal>
+          <div className="mt-10">
+            <FeatureExplorer />
+          </div>
         </section>
 
         {/* Vente à emporter et livraison */}
@@ -569,41 +454,66 @@ export function LandingPage() {
           </Reveal>
         </section>
 
-        {/* Mise en place */}
-        <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
+        {/* NFC ou QR code */}
+        <section id="carte-nfc" className="mx-auto w-full max-w-5xl scroll-mt-24 px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
-            <SectionHeading eyebrow="Mise en place" title="Une mise en place simple, en trois étapes" />
+            <SectionHeading eyebrow="La carte NFC" title="Pourquoi une carte NFC sur vos tables ?">
+              Le QR code a rendu de grands services. La carte NFC offre un geste plus simple et une présentation plus
+              soignée.
+            </SectionHeading>
           </Reveal>
-          <div className="mt-10 grid gap-5 sm:grid-cols-3">
-            {SETUP_STEPS.map((step, index) => (
-              <Reveal key={step.number} delayMs={index * 100}>
-                <div className="h-full rounded-3xl border border-stone-200/70 bg-white p-7 shadow-soft">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-navy-600 to-navy-800 font-display text-base font-bold text-white shadow-glow">
-                    {step.number}
-                  </span>
-                  <h3 className="mt-4 font-display text-lg font-bold text-stone-900">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-stone-500">{step.description}</p>
+          <Reveal delayMs={100}>
+            <div className="mt-10 overflow-hidden rounded-3xl border border-stone-200/70 bg-white shadow-soft">
+              <div className="hidden grid-cols-3 gap-4 border-b border-stone-200/70 bg-stone-50 px-6 py-4 text-xs font-semibold uppercase tracking-wide text-stone-500 sm:grid">
+                <span />
+                <span>QR code</span>
+                <span>Carte NFC Nourevo</span>
+              </div>
+              <div className="divide-y divide-stone-100">
+                {NFC_VS_QR.map((row) => (
+                  <div key={row.label} className="grid grid-cols-1 gap-2 px-6 py-5 sm:grid-cols-3 sm:items-center sm:gap-4">
+                    <span className="text-sm font-bold text-stone-800">{row.label}</span>
+                    <span className="flex items-start gap-2 text-sm text-stone-500">
+                      <span className="text-rose-400">✕</span> {row.qr}
+                    </span>
+                    <span className="flex items-start gap-2 rounded-xl bg-emerald-50/70 px-3 py-1.5 text-sm font-semibold text-navy-700 sm:bg-transparent sm:px-0 sm:py-0">
+                      <span className="text-emerald-600">✓</span> {row.nfc}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+          <Reveal delayMs={100}>
+            <div className="mt-6 flex flex-col items-start gap-6 rounded-3xl bg-gradient-to-br from-navy-50 to-white p-7 ring-1 ring-navy-100 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+              <div className="flex items-center gap-6">
+                <NfcCard compact className="hidden w-40 shrink-0 sm:block" />
+                <div>
+                  <h3 className="font-display text-xl font-bold text-stone-900">Des cartes prêtes à poser sur vos tables</h3>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">
+                    Elles arrivent déjà configurées pour votre restaurant. Livraison en France sous 2 à 4 jours ouvrés,
+                    remise en main propre possible en Île-de-France.
+                  </p>
                 </div>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
-        {/* FAQ */}
-        <section className="mx-auto w-full max-w-3xl px-4 pt-24 sm:px-8">
-          <Reveal>
-            <SectionHeading eyebrow="Questions fréquentes" title="Les questions que l’on nous pose souvent" />
+              </div>
+              <div className="flex w-full shrink-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+                <a
+                  href={WHATSAPP_HREF}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3.5 text-sm font-bold text-white shadow-md transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  💬 Commander sur WhatsApp
+                </a>
+                <a
+                  href={`mailto:${CONTACT_EMAIL}`}
+                  className="text-center text-sm font-semibold text-navy-700 underline-offset-2 hover:underline sm:text-right"
+                >
+                  ou par email : {CONTACT_EMAIL}
+                </a>
+              </div>
+            </div>
           </Reveal>
-          <div className="mt-10 space-y-3">
-            {HOME_FAQ.map((item, index) => (
-              <FaqItem key={item.question} question={item.question} answer={item.answer} index={index} />
-            ))}
-          </div>
-          <p className="mt-6 text-center text-sm">
-            <Link to="/faq" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
-              Voir toutes les questions →
-            </Link>
-          </p>
         </section>
 
         {/* Avis de restaurateurs : affichés seulement quand de vrais avis existent (src/lib/testimonials.ts). */}
@@ -663,7 +573,24 @@ export function LandingPage() {
               premier abonnement. Avec l’offre annuelle, cela représente environ 1,61 € par jour.
             </SectionHeading>
           </Reveal>
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <ol className="mx-auto mt-8 flex max-w-4xl flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-center">
+            {SETUP_STEPS.map((step, index) => (
+              <li key={step} className="flex items-center gap-2 sm:contents">
+                <span className="flex flex-1 items-center gap-2.5 rounded-full border border-stone-200/70 bg-white px-4 py-2 text-sm font-semibold text-stone-700 shadow-soft sm:flex-none">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-navy-700 text-xs font-bold text-white">
+                    {index + 1}
+                  </span>
+                  {step}
+                </span>
+                {index < SETUP_STEPS.length - 1 && (
+                  <span aria-hidden="true" className="hidden text-stone-300 sm:inline">
+                    →
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
             {PLANS.map((plan, index) => (
               <Reveal key={plan.id} delayMs={index * 100}>
                 <div
@@ -712,8 +639,25 @@ export function LandingPage() {
           </p>
         </section>
 
+        {/* FAQ */}
+        <section className="mx-auto w-full max-w-3xl px-4 pt-24 sm:px-8">
+          <Reveal>
+            <SectionHeading eyebrow="Questions fréquentes" title="Les questions que l’on nous pose souvent" />
+          </Reveal>
+          <div className="mt-10 space-y-3">
+            {HOME_FAQ.map((item, index) => (
+              <FaqItem key={item.question} question={item.question} answer={item.answer} index={index} />
+            ))}
+          </div>
+          <p className="mt-6 text-center text-sm">
+            <Link to="/faq" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
+              Voir toutes les questions →
+            </Link>
+          </p>
+        </section>
+
         {/* CTA final */}
-        <section className="mx-auto w-full max-w-7xl px-4 pb-10 pt-24 sm:px-8 lg:px-10">
+        <section className="mx-auto w-full max-w-7xl px-4 pb-20 pt-24 sm:px-8 lg:px-10">
           <Reveal>
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-600 via-navy-700 to-navy-900 p-10 text-center shadow-glow sm:p-14">
               <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
@@ -744,44 +688,6 @@ export function LandingPage() {
           </Reveal>
         </section>
 
-        {/* Carte NFC physique */}
-        <section id="carte-nfc" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pb-20 sm:px-8 lg:px-10">
-          <Reveal>
-            <div className="flex flex-col items-start gap-6 rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-10">
-              <div className="flex items-center gap-6">
-                <NfcCard compact className="hidden w-44 shrink-0 sm:block" />
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">Carte NFC physique</p>
-                  <h2 className="mt-2 font-display text-2xl font-bold text-stone-900 sm:text-3xl">Des cartes prêtes à poser sur vos tables</h2>
-                  <p className="mt-3 max-w-xl text-sm leading-6 text-stone-500 sm:text-base">
-                    Vos cartes arrivent déjà configurées pour votre restaurant : il ne vous reste qu’à les poser sur vos
-                    tables.
-                  </p>
-                  <div className="mt-3 flex flex-col gap-1 text-sm leading-6 text-stone-500">
-                    <span>📦 Livraison en France sous 2 à 4 jours ouvrés.</span>
-                    <span>🤝 Remise en main propre possible en Île-de-France.</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex shrink-0 flex-col items-stretch gap-3 sm:items-end">
-                <a
-                  href={WHATSAPP_HREF}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-center gap-2.5 rounded-full bg-[#25D366] px-6 py-4 text-sm font-bold text-white shadow-md transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg"
-                >
-                  💬 Commander vos cartes sur WhatsApp
-                </a>
-                <a
-                  href={`mailto:${CONTACT_EMAIL}`}
-                  className="text-center text-sm font-semibold text-navy-700 underline-offset-2 hover:underline sm:text-right"
-                >
-                  ✉️ ou par email : {CONTACT_EMAIL}
-                </a>
-              </div>
-            </div>
-          </Reveal>
-        </section>
       </main>
 
       <SiteFooter />
