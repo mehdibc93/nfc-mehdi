@@ -46,8 +46,8 @@ export function LegalNoticePage() {
               <section>
                 <h2 className="font-display text-lg font-bold text-stone-900">2. Hébergement</h2>
                 <p className="mt-2">
-                  <strong>Hébergement du site (frontend)</strong> : [Nom de l'hébergeur, ex. Vercel Inc. / Netlify Inc.],
-                  [adresse de l'hébergeur].
+                  <strong>Hébergement du site (frontend)</strong> : Vercel Inc., 440 N Barranca Ave #4133, Covina, CA
+                  91723, États-Unis.
                   <br />
                   <strong>Hébergement des données (base de données, authentification, stockage)</strong> : Supabase Inc.,
                   970 Toa Payoh North #07-04, Singapore 318992.
