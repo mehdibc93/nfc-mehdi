@@ -8,8 +8,8 @@ type Props = {
   updateRestaurantField: (patch: Partial<RestaurantWithMenu>) => void;
 };
 
-// Réglages « Pourboires » (onglet Restaurant du dashboard). Les pourboires passent uniquement
-// par le paiement en ligne Stripe : sans compte Stripe actif, l'option n'est pas proposée.
+// Réglages « Pourboires » (onglet Restaurant du dashboard). Proposés au paiement, en ligne ou sur
+// place (ajoutés au montant à encaisser) ; le pourboire « après le repas » nécessite Stripe.
 export function TipsSettings({ restaurant, updateRestaurantField }: Props) {
   const dt = useDt();
   // Saisie libre « 5, 10, 15 » : enregistrée normalisée dès qu'elle est valide.
@@ -33,7 +33,7 @@ export function TipsSettings({ restaurant, updateRestaurantField }: Props) {
       <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
         {dt('Pourboires', 'Tips')}{' '}
         <span className="font-normal normal-case tracking-normal text-stone-500">
-          ({dt('facultatif — paiement en ligne uniquement', 'optional — online payment only')})
+          ({dt('facultatif', 'optional')})
         </span>
       </p>
       <div className="mt-2 rounded-2xl border border-stone-200 bg-white p-4">
@@ -83,8 +83,8 @@ export function TipsSettings({ restaurant, updateRestaurantField }: Props) {
           {restaurant.tipsEnabled && !restaurant.stripeOnboarded && (
             <p className="mt-3 rounded-xl bg-amber-50 p-2 text-xs text-amber-700">
               {dt(
-                "Les pourboires passent par le paiement en ligne : activez-le dans l'onglet Paiements, sinon l'option n'apparaîtra pas à vos clients.",
-                'Tips go through online payment: enable it in the Payments tab, otherwise customers will not see the option.',
+                "Sans paiement en ligne, le pourboire est proposé uniquement au paiement sur place. Activez le paiement en ligne (onglet Paiements) pour le proposer aussi par carte et après le repas.",
+                'Without online payment, tips are only offered when paying on site. Enable online payment (Payments tab) to also offer them by card and after the meal.',
               )}
             </p>
           )}
@@ -92,8 +92,8 @@ export function TipsSettings({ restaurant, updateRestaurantField }: Props) {
       </div>
       <p className="mt-2 text-xs text-stone-500">
         {dt(
-          "Proposé au moment de payer par carte, puis via un bouton « Laisser un pourboire » sur l'écran de suivi de la commande. Le pourboire est versé sur votre compte Stripe et affiché à part dans le Mode Service — il n'est pas compté dans votre chiffre d'affaires.",
-          'Offered when paying by card, then through a "Leave a tip" button on the order tracking screen. Tips go to your Stripe account and are shown separately in Service Mode — they are not counted in your revenue.',
+          "Proposé au moment de payer : par carte, il est encaissé avec la commande ; à la caisse, au retrait ou à la livraison, il s'ajoute au montant à encaisser. Avec le paiement en ligne, un bouton « Laisser un pourboire » est aussi proposé après le repas. Le pourboire est affiché à part dans le Mode Service et n'est pas compté dans votre chiffre d'affaires.",
+          'Offered at checkout: by card it is charged with the order; at the counter, on pickup or on delivery it is added to the amount to collect. With online payment, a "Leave a tip" button is also offered after the meal. Tips are shown separately in Service Mode and are not counted in your revenue.',
         )}
       </p>
     </div>

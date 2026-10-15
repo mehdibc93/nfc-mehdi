@@ -532,6 +532,7 @@ export function ServicePage() {
                     {order.tipAmount > 0 && (
                       <span className="rounded-full bg-pink-50 px-2.5 py-1 text-xs font-semibold text-pink-700">
                         💝 {dt('Pourboire', 'Tip')} {money(order.tipAmount)}
+                        {!order.paid && ` · ${dt('à encaisser', 'to collect')}`}
                       </span>
                     )}
                     <span className={`text-xs font-semibold ${order.paid ? 'text-emerald-600' : 'text-stone-400'}`}>

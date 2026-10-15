@@ -443,7 +443,7 @@ export function LandingPage() {
                   {[
                     { icon: '🥡', title: 'À emporter, sur créneau', text: 'Le client choisit son heure de retrait et paie en ligne ou au comptoir.' },
                     { icon: '🛵', title: 'Votre propre livraison', text: 'Vous fixez vos frais, votre minimum et le seuil de livraison offerte.' },
-                    { icon: '💝', title: 'Des pourboires pour l’équipe', text: 'Proposés au paiement par carte, ou après le repas.' },
+                    { icon: '💝', title: 'Des pourboires pour l’équipe', text: 'Proposés au paiement, par carte ou à la caisse, et après le repas.' },
                     { icon: '🔗', title: 'Un simple lien', text: 'Aucune application à télécharger pour vos clients.' },
                   ].map((item) => (
                     <li key={item.title} className="flex gap-3 rounded-2xl border border-stone-200/70 bg-white p-4 shadow-soft">

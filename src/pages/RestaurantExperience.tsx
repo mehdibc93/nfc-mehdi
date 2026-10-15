@@ -445,10 +445,12 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const grandTotal = total + deliveryFee;
 
   // Pourboires : uniquement avec le paiement en ligne, calculés sur le montant des plats.
+  // Pourboire au paiement : en ligne (Stripe) ou réglé sur place avec la commande (caisse, retrait,
+  // livraison). Le pourboire « après le repas » reste un paiement en ligne, donc réservé à Stripe.
   const tipsAvailable = restaurant.tipsEnabled && restaurant.stripeOnboarded;
   const tipAmountFor = (choice: TipChoice, custom: string) =>
     choice === 'custom' ? parseTipInput(custom) ?? 0 : typeof choice === 'number' ? tipFromPercent(total, choice) : 0;
-  const tipOffered = tipsAvailable && paymentMode === 'app';
+  const tipOffered = restaurant.tipsEnabled && (paymentMode !== 'app' || restaurant.stripeOnboarded);
   const checkoutTip = tipOffered ? tipAmountFor(tipChoice, customTip) : 0;
   const tipInvalid = tipOffered && tipChoice === 'custom' && parseTipInput(customTip) === null;
   const amountToPay = grandTotal + checkoutTip;
@@ -1853,7 +1855,9 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
             {tipOffered && (
               <div className="mt-6 rounded-3xl border border-stone-200 bg-white p-5">
                 <p className="font-semibold text-stone-900">💝 {tr('tips.title')}</p>
-                <p className="mt-1 text-xs text-stone-500">{tr('tips.subtitle')}</p>
+                <p className="mt-1 text-xs text-stone-500">
+                  {paymentMode === 'app' ? tr('tips.subtitle') : tr('tips.subtitleOnSite')}
+                </p>
                 {renderTipChoices(tipChoice, setTipChoice, customTip, setCustomTip, true)}
               </div>
             )}
