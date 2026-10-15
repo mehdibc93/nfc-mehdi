@@ -328,6 +328,49 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* Vidéo de présentation (format vertical). Elle a du son : lecture à la demande. */}
+        <section className="mx-auto w-full max-w-6xl px-4 pt-20 sm:px-8 lg:px-10">
+          <Reveal>
+            <div className="grid items-center gap-10 rounded-[2rem] border border-stone-200/70 bg-white p-6 shadow-soft sm:p-10 lg:grid-cols-[1fr_auto] lg:gap-16">
+              <div className="text-center lg:text-left">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-navy-500">En vidéo</p>
+                <h2 className="mt-2 font-display text-3xl font-bold text-stone-900 sm:text-4xl">Nourevo en 37 secondes</h2>
+                <p className="mt-3 text-sm leading-6 text-stone-500 sm:text-base">
+                  Le plus simple pour comprendre, c’est de le voir. Lancez la vidéo, puis essayez la démonstration
+                  vous-même, comme un client à table.
+                </p>
+                <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+                  <Link
+                    to={DEMO_HREF}
+                    className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-7 py-4 text-sm font-bold text-white shadow-glow transition-all duration-300 hover:-translate-y-0.5"
+                  >
+                    Essayer la démonstration
+                  </Link>
+                  <a
+                    href="#comment-ca-marche"
+                    className="rounded-full border border-stone-200 bg-white px-7 py-4 text-sm font-bold text-stone-700 transition-all duration-300 hover:border-navy-300/50 hover:text-navy-700"
+                  >
+                    Voir étape par étape
+                  </a>
+                </div>
+              </div>
+              <div className="mx-auto w-full max-w-[280px] rounded-[2.4rem] bg-stone-900 p-2 shadow-card ring-1 ring-black/10">
+                {/* `#t=0.1` : affiche la première image comme aperçu, y compris sur iPhone. */}
+                <video
+                  src="/videos/nourevo-presentation.mp4#t=0.1"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  width={720}
+                  height={1280}
+                  aria-label="Vidéo de présentation de Nourevo"
+                  className="block aspect-[9/16] h-auto w-full rounded-[2rem] bg-stone-800 object-cover"
+                />
+              </div>
+            </div>
+          </Reveal>
+        </section>
+
         {/* Démonstration : le principe, montré plutôt qu'expliqué */}
         <section id="comment-ca-marche" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-20 sm:px-8 lg:px-10">
           <Reveal>
