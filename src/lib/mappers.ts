@@ -184,7 +184,7 @@ export function mapRestaurant(row: RestaurantRow): Restaurant {
     deliveryMinOrder: Number(row.delivery_min_order ?? 0),
     deliveryFreeFrom: row.delivery_free_from == null ? null : Number(row.delivery_free_from),
     // Idem pour migration_028 (pourboires).
-    tipsEnabled: row.tips_enabled ?? false,
+    tipsEnabled: row.tips_enabled ?? true,
     tipPercentages: row.tip_percentages?.length ? row.tip_percentages : DEFAULT_TIP_PERCENTAGES,
   };
 }
