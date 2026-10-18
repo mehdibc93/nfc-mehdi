@@ -28,7 +28,7 @@ export function NfcCardPage() {
   return (
     <>
       <SiteHeader />
-      <main className="text-stone-900">
+      <main className="overflow-x-clip text-stone-900">
         <PageIntro eyebrow="La carte NFC" title="Un geste, et votre carte s’ouvre">
           Le client approche son téléphone de la carte posée sur la table : votre carte s’ouvre, sans application et
           sans scanner.

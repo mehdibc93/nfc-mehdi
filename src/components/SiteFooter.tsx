@@ -15,6 +15,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
     links: [
       { label: 'Comment ça marche', to: '/#comment-ca-marche', external: true },
       { label: 'Fonctionnalités', to: '/fonctionnalites' },
+      { label: 'Avantages', to: '/avantages' },
       { label: 'Emporter & livraison', to: '/emporter-livraison' },
       { label: 'Carte NFC', to: '/carte-nfc' },
       { label: 'Tarifs', to: '/tarifs' },

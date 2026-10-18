@@ -51,7 +51,7 @@ export function FeaturesPage() {
   return (
     <>
       <SiteHeader />
-      <main className="text-stone-900">
+      <main className="overflow-x-clip text-stone-900">
         <PageIntro eyebrow="Fonctionnalités" title="Tout le service, au même endroit">
           Une carte à vos couleurs pour vos clients, un espace simple pour votre équipe, et aucune commission sur vos
           ventes.

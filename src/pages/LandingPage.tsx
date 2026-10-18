@@ -43,6 +43,13 @@ const EXPLORE = [
     image: '/images/landing/resto-service.jpg',
   },
   {
+    to: '/avantages',
+    icon: '✨',
+    title: 'Avantages',
+    text: 'Vendre mieux, servir plus vite, ravir vos clients : ce que vous y gagnez.',
+    image: '/images/landing/client-suggestion.jpg',
+  },
+  {
     to: '/emporter-livraison',
     icon: '🛵',
     title: 'Emporter & livraison',
@@ -272,7 +279,7 @@ export function LandingPage() {
           <Reveal>
             <SectionHeading eyebrow="En savoir plus" title="Explorez Nourevo" />
           </Reveal>
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {EXPLORE.map((item, index) => (
               <Reveal key={item.to} delayMs={index * 80}>
                 <Link

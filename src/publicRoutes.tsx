@@ -8,6 +8,7 @@ import { LegalNoticePage } from './pages/LegalNoticePage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { FeaturesPage } from './pages/FeaturesPage';
+import { AdvantagesPage } from './pages/AdvantagesPage';
 import { TakeawayDeliveryPage } from './pages/TakeawayDeliveryPage';
 import { NfcCardPage } from './pages/NfcCardPage';
 
@@ -20,6 +21,7 @@ import { NfcCardPage } from './pages/NfcCardPage';
 const PUBLIC_ROUTES = [
   { path: '/', element: <LandingPage /> },
   { path: '/fonctionnalites', element: <FeaturesPage /> },
+  { path: '/avantages', element: <AdvantagesPage /> },
   { path: '/emporter-livraison', element: <TakeawayDeliveryPage /> },
   { path: '/carte-nfc', element: <NfcCardPage /> },
   { path: '/tarifs', element: <PricingPage /> },

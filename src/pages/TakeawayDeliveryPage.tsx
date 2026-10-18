@@ -28,7 +28,7 @@ export function TakeawayDeliveryPage() {
   return (
     <>
       <SiteHeader />
-      <main className="text-stone-900">
+      <main className="overflow-x-clip text-stone-900">
         <PageIntro eyebrow="Vente à emporter & livraison" title="Vos clients commandent aussi depuis chez eux">
           En direct, sans commission, en complément des plateformes de livraison. Les commandes rejoignent votre Mode
           Service.

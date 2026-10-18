@@ -110,6 +110,14 @@ export const PUBLIC_PAGES: PublicPageMeta[] = [
     priority: 0.9,
   },
   {
+    path: '/avantages',
+    title: 'Avantages — Nourevo',
+    description:
+      'Vendre mieux, servir plus vite, ravir vos clients et piloter vos chiffres : les avantages de Nourevo pour votre restaurant, comparés à la carte papier et au menu QR.',
+    changefreq: 'monthly',
+    priority: 0.9,
+  },
+  {
     path: '/emporter-livraison',
     title: 'Vente à emporter et livraison sans commission — Nourevo',
     description:

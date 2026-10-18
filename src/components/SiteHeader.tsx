@@ -8,6 +8,7 @@ const WHATSAPP_HREF =
 
 export const SITE_NAV = [
   { to: '/fonctionnalites', label: 'Fonctionnalités' },
+  { to: '/avantages', label: 'Avantages' },
   { to: '/emporter-livraison', label: 'Emporter & livraison' },
   { to: '/carte-nfc', label: 'Carte NFC' },
   { to: '/tarifs', label: 'Tarifs' },
@@ -26,7 +27,7 @@ export function SiteHeader() {
   };
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
-    `rounded-full px-3 py-2 text-sm font-semibold transition-colors duration-300 ${
+    `whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition-colors duration-300 ${
       isActive ? 'bg-navy-50 text-navy-700' : 'text-stone-600 hover:text-navy-700'
     }`;
 
@@ -37,7 +38,7 @@ export function SiteHeader() {
           <img src={logoHorizontal} alt="Nourevo" className="h-8 w-auto sm:h-9" />
         </Link>
 
-        <nav aria-label="Navigation principale" className="hidden items-center gap-1 lg:flex">
+        <nav aria-label="Navigation principale" className="hidden items-center gap-1 xl:flex">
           {SITE_NAV.map((item) => (
             <NavLink key={item.to} to={item.to} className={navClass}>
               {item.label}
@@ -50,7 +51,7 @@ export function SiteHeader() {
             href={WHATSAPP_HREF}
             target="_blank"
             rel="noreferrer"
-            className="hidden items-center gap-1.5 rounded-full bg-[#25D366] px-4 py-2 text-sm font-bold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 xl:flex"
+            className="hidden items-center gap-1.5 rounded-full bg-[#25D366] px-4 py-2 text-sm font-bold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 2xl:flex"
           >
             💬 WhatsApp
           </a>
@@ -59,13 +60,13 @@ export function SiteHeader() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="hidden rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700 sm:block"
+                className="hidden whitespace-nowrap rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700 sm:block"
               >
                 Déconnexion
               </button>
               <Link
                 to="/dashboard"
-                className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-2 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5"
+                className="whitespace-nowrap rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-2 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5"
               >
                 Mon dashboard
               </Link>
@@ -74,13 +75,13 @@ export function SiteHeader() {
             <>
               <Link
                 to="/connexion"
-                className="hidden rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700 sm:block"
+                className="hidden whitespace-nowrap rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-600 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700 sm:block"
               >
                 Se connecter
               </Link>
               <Link
                 to="/inscription"
-                className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-2 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5"
+                className="whitespace-nowrap rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-4 py-2 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5"
               >
                 Essai gratuit
               </Link>
@@ -92,7 +93,7 @@ export function SiteHeader() {
             aria-expanded={menuOpen}
             aria-controls="site-menu"
             aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 lg:hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 xl:hidden"
           >
             <span aria-hidden="true" className="text-lg leading-none">
               {menuOpen ? '✕' : '☰'}
@@ -106,7 +107,7 @@ export function SiteHeader() {
         id="site-menu"
         aria-label="Navigation principale (mobile)"
         hidden={!menuOpen}
-        className="border-t border-stone-900/5 bg-white px-4 pb-5 pt-2 sm:px-8 lg:hidden"
+        className="border-t border-stone-900/5 bg-white px-4 pb-5 pt-2 sm:px-8 xl:hidden"
       >
         <ul className="space-y-1">
           {SITE_NAV.map((item) => (
