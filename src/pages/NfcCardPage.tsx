@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { SiteHeader } from '../components/SiteHeader';
 import { SiteFooter } from '../components/SiteFooter';
-import { NfcCard } from '../components/LandingVisuals';
+import { NfcCard, PhoneFrame } from '../components/LandingVisuals';
 import { Reveal } from '../components/Reveal';
 import { CtaBand, PageIntro, SectionHeading } from '../components/MarketingBlocks';
 import { setPublicPageMeta } from '../lib/seo';
@@ -34,8 +34,17 @@ export function NfcCardPage() {
           sans scanner.
         </PageIntro>
 
-        <div className="mx-auto mt-8 flex w-56 justify-center sm:w-64">
-          <NfcCard className="w-full -rotate-3" />
+        {/* Le geste : la carte sur la table, le téléphone qui s'en approche */}
+        <div className="relative mx-auto mt-10 w-full max-w-[380px] px-4">
+          <div className="absolute inset-0 m-auto h-[300px] w-[300px] rounded-full bg-navy-300/20 blur-3xl" />
+          <PhoneFrame
+            src="/images/landing/client-menu.jpg"
+            alt="La carte du restaurant ouverte sur le téléphone après le geste"
+            className="relative ml-auto w-[62%] motion-safe:animate-float"
+          />
+          <div className="absolute bottom-6 left-2 w-[58%] -rotate-6">
+            <NfcCard />
+          </div>
         </div>
 
         <section className="mx-auto w-full max-w-5xl px-4 pt-20 sm:px-8 lg:px-10">

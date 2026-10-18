@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { SiteHeader } from '../components/SiteHeader';
 import { SiteFooter } from '../components/SiteFooter';
-import { NfcCard, PhoneFrame } from '../components/LandingVisuals';
+import { BrowserFrame, NfcCard, PhoneFrame } from '../components/LandingVisuals';
 import { ProductTour } from '../components/ProductTour';
 import { Reveal } from '../components/Reveal';
 import { CtaBand, SectionHeading, usePrimaryCta } from '../components/MarketingBlocks';
@@ -20,24 +20,41 @@ import { TESTIMONIALS } from '../lib/testimonials';
 // carte bancaire est demandée à l'inscription (voir billing-create-checkout et la FAQ).
 const HERO_TRUST = ['7 jours offerts sur votre premier abonnement', 'Aucune commission sur vos ventes', 'Aucune application pour vos clients'];
 
+// Repères chiffrés : uniquement des faits sur l'offre, pas de résultats annoncés chez les clients.
+const KEY_FACTS = [
+  { value: '0 %', label: 'de commission Nourevo sur vos ventes' },
+  { value: '5', label: 'langues proposées à vos clients' },
+  { value: '7 jours', label: 'd’essai gratuit' },
+  { value: '0', label: 'application à installer' },
+];
+
+const DASHBOARD_POINTS = [
+  'Les commandes du jour et votre chiffre d’affaires en un coup d’œil',
+  'Le Mode Service pour suivre chaque table en temps réel',
+  'Votre carte, vos prix et vos stocks modifiables à tout moment',
+];
+
 const EXPLORE = [
   {
     to: '/fonctionnalites',
     icon: '🧭',
     title: 'Fonctionnalités',
     text: 'Commandes, paiement, stocks, statistiques : ce qui change pour votre équipe.',
+    image: '/images/landing/resto-service.jpg',
   },
   {
     to: '/emporter-livraison',
     icon: '🛵',
     title: 'Emporter & livraison',
     text: 'Vos clients commandent en direct, sans commission. Calculez vos économies.',
+    image: '/images/landing/client-modes.jpg',
   },
   {
     to: '/carte-nfc',
     icon: '📲',
     title: 'La carte NFC',
     text: 'Un geste du téléphone, sans application ni QR code. Livrée prête à poser.',
+    image: null,
   },
 ];
 
@@ -54,7 +71,7 @@ export function LandingPage() {
       <SiteHeader />
       <main className="relative overflow-hidden text-stone-900">
         {/* Haut de page : la promesse + le concept montré (carte NFC + vraie carte client) */}
-        <section className="relative mx-auto w-full max-w-7xl px-4 pb-16 pt-12 sm:px-8 sm:pt-16 lg:px-10 lg:pb-24">
+        <section className="relative mx-auto w-full max-w-7xl px-4 pb-12 pt-12 sm:px-8 sm:pt-16 lg:px-10 lg:pb-16">
           <div className="pointer-events-none absolute -left-32 -top-24 h-[380px] w-[380px] rounded-full bg-navy-300/15 blur-3xl" />
           <div className="relative grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-10">
             <div className="space-y-7">
@@ -115,6 +132,21 @@ export function LandingPage() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Repères chiffrés */}
+        <section className="mx-auto w-full max-w-7xl px-4 pb-14 sm:px-8 lg:px-10">
+          <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {KEY_FACTS.map((fact) => (
+              <div key={fact.label} className="rounded-3xl border border-stone-200/70 bg-white px-6 py-5 text-center shadow-soft">
+                <dt className="sr-only">{fact.label}</dt>
+                <dd>
+                  <span className="block font-display text-3xl font-bold text-navy-800 sm:text-4xl">{fact.value}</span>
+                  <span className="mt-1 block text-sm leading-5 text-stone-500">{fact.label}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
         {/* Moyens de paiement */}
@@ -195,6 +227,46 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* L'espace restaurateur, en vraie capture */}
+        <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
+          <div className="grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14">
+            <Reveal>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-navy-500">Votre espace</p>
+                <h2 className="mt-2 font-display text-3xl font-bold text-stone-900 sm:text-4xl">
+                  Tout votre restaurant, sur un seul écran
+                </h2>
+                <ul className="mt-6 space-y-3">
+                  {DASHBOARD_POINTS.map((point) => (
+                    <li key={point} className="flex items-start gap-3 text-base leading-7 text-stone-600">
+                      <span aria-hidden="true" className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
+                        ✓
+                      </span>
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/decouvrir-dashboard"
+                  className="mt-8 inline-flex rounded-full border border-stone-300 bg-white px-7 py-4 text-sm font-bold text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:border-navy-300 hover:text-navy-700"
+                >
+                  Découvrir l’espace restaurateur
+                </Link>
+              </div>
+            </Reveal>
+            <Reveal delayMs={100}>
+              <div className="relative">
+                <div className="absolute -inset-6 rounded-[2.5rem] bg-navy-300/15 blur-3xl" />
+                <BrowserFrame
+                  src="/images/landing/resto-dashboard.jpg"
+                  alt="L’accueil de l’espace restaurateur : commandes du jour, chiffre d’affaires, panier moyen et dernières commandes"
+                  className="relative"
+                />
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
         {/* Portes d'entrée vers les pages détaillées */}
         <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
@@ -205,15 +277,43 @@ export function LandingPage() {
               <Reveal key={item.to} delayMs={index * 80}>
                 <Link
                   to={item.to}
-                  className="group flex h-full flex-col rounded-3xl border border-stone-200/70 bg-white p-7 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-navy-300/50 hover:shadow-card"
+                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200/70 bg-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-navy-300/50 hover:shadow-card"
                 >
-                  <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-2xl bg-navy-50 text-2xl">
-                    {item.icon}
+                  {/* Aperçu visuel de la page */}
+                  {/* Le haut de la capture, coupé en bas comme un écran qui dépasse de la carte. */}
+                  <span
+                    aria-hidden="true"
+                    className={`relative flex h-48 justify-center overflow-hidden bg-gradient-to-br from-navy-50 via-white to-navy-100/60 ${
+                      item.image ? 'items-start pt-7' : 'items-center'
+                    }`}
+                  >
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className={`relative shadow-card transition-transform duration-500 group-hover:-translate-y-1 ${
+                          item.image.includes('/resto-')
+                            ? 'w-[88%] rounded-t-xl border border-stone-200/80'
+                            : 'w-[50%] rounded-t-[1.6rem] border-[5px] border-b-0 border-stone-900'
+                        }`}
+                      />
+                    ) : (
+                      <span className="block w-[58%] -rotate-6 transition-transform duration-500 group-hover:-rotate-3">
+                        <NfcCard compact />
+                      </span>
+                    )}
                   </span>
-                  <span className="mt-5 font-display text-xl font-bold text-stone-900">{item.title}</span>
-                  <span className="mt-2 flex-1 text-sm leading-6 text-stone-500">{item.text}</span>
-                  <span className="mt-5 text-sm font-bold text-navy-700">
-                    Découvrir <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
+                  <span className="flex flex-1 flex-col p-7">
+                    <span className="flex items-center gap-2 font-display text-xl font-bold text-stone-900">
+                      <span aria-hidden="true">{item.icon}</span>
+                      {item.title}
+                    </span>
+                    <span className="mt-2 flex-1 text-sm leading-6 text-stone-500">{item.text}</span>
+                    <span className="mt-5 text-sm font-bold text-navy-700">
+                      Découvrir <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
+                    </span>
                   </span>
                 </Link>
               </Reveal>

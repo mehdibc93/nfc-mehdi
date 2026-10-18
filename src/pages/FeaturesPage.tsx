@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { SiteHeader } from '../components/SiteHeader';
 import { SiteFooter } from '../components/SiteFooter';
 import { FeatureExplorer } from '../components/FeatureExplorer';
+import { BrowserFrame, PhoneFrame } from '../components/LandingVisuals';
 import { Reveal } from '../components/Reveal';
 import { CtaBand, PageIntro, SectionHeading } from '../components/MarketingBlocks';
 import { setPublicPageMeta } from '../lib/seo';
@@ -56,7 +57,24 @@ export function FeaturesPage() {
           ventes.
         </PageIntro>
 
-        <section className="mx-auto w-full max-w-7xl px-4 pt-14 sm:px-8 lg:px-10">
+        {/* Les deux côtés de Nourevo : l'espace restaurateur et la carte client */}
+        <div className="mx-auto w-full max-w-5xl px-4 pt-10 sm:px-8">
+          <div className="relative pb-10 pr-[18%] sm:pr-[14%]">
+            <div className="absolute inset-x-10 top-10 h-3/4 rounded-full bg-navy-300/20 blur-3xl" />
+            <BrowserFrame
+              src="/images/landing/resto-dashboard.jpg"
+              alt="L’espace restaurateur Nourevo : commandes du jour, chiffre d’affaires et dernières commandes"
+              className="relative"
+            />
+            <PhoneFrame
+              src="/images/landing/client-menu.jpg"
+              alt="La carte client sur téléphone"
+              className="absolute bottom-0 right-0 w-[30%] sm:w-[24%]"
+            />
+          </div>
+        </div>
+
+        <section className="mx-auto w-full max-w-7xl px-4 pt-20 sm:px-8 lg:px-10">
           <Reveal>
             <SectionHeading eyebrow="Au quotidien" title="Ce qui change pour votre équipe">
               Moins d’allers-retours, moins de ressaisie, plus de temps pour vos clients.

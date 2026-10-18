@@ -4,7 +4,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { PhoneFrame } from '../components/LandingVisuals';
 import { Reveal } from '../components/Reveal';
 import { DeliveryCommissionCalculator } from '../components/DeliveryCommissionCalculator';
-import { CtaBand, PageIntro } from '../components/MarketingBlocks';
+import { CtaBand, PageIntro, SectionHeading } from '../components/MarketingBlocks';
 import { setPublicPageMeta } from '../lib/seo';
 
 const TAKEAWAY_POINTS = [
@@ -12,6 +12,12 @@ const TAKEAWAY_POINTS = [
   { icon: '🛵', title: 'Votre propre livraison', text: 'Vous fixez vos frais, votre minimum et le seuil de livraison offerte.' },
   { icon: '💝', title: 'Des pourboires pour l’équipe', text: 'Proposés au paiement, par carte ou à la caisse, et après le repas.' },
   { icon: '🔗', title: 'Un simple lien', text: 'À partager sur votre site, votre fiche Google ou vos réseaux. Aucune application.' },
+];
+
+const TAKEAWAY_STEPS = [
+  { title: 'Partagez votre lien', text: 'Sur votre site, votre fiche Google, Instagram ou par message.' },
+  { title: 'Le client commande', text: 'Il choisit à emporter ou en livraison, son créneau, et paie selon vos réglages.' },
+  { title: 'Vous préparez', text: 'La commande arrive dans le Mode Service avec le nom, le téléphone et l’heure.' },
 ];
 
 export function TakeawayDeliveryPage() {
@@ -52,6 +58,25 @@ export function TakeawayDeliveryPage() {
                 ))}
               </ul>
             </Reveal>
+          </div>
+        </section>
+
+        <section className="mx-auto w-full max-w-6xl px-4 pt-20 sm:px-8 lg:px-10">
+          <Reveal>
+            <SectionHeading eyebrow="Comment ça marche" title="Du lien à la cuisine" />
+          </Reveal>
+          <div className="mt-10 grid gap-5 sm:grid-cols-3">
+            {TAKEAWAY_STEPS.map((step, index) => (
+              <Reveal key={step.title} delayMs={index * 100}>
+                <div className="relative h-full rounded-3xl border border-stone-200/70 bg-white p-7 shadow-soft">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-navy-600 to-navy-800 font-display text-base font-bold text-white shadow-glow">
+                    {index + 1}
+                  </span>
+                  <h3 className="mt-4 font-display text-lg font-bold text-stone-900">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-stone-500">{step.text}</p>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </section>
 
