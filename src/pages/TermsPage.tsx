@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import logoHorizontal from '../assets/logo-horizontal.png';
 import { setPublicPageMeta } from '../lib/seo';
 import { SiteFooter } from '../components/SiteFooter';
+import { SiteHeader } from '../components/SiteHeader';
 
 export function TermsPage() {
   useEffect(() => {
@@ -11,18 +10,11 @@ export function TermsPage() {
 
   return (
     <>
+      <SiteHeader />
       <div className="min-h-screen px-4 py-14">
         <div className="mx-auto max-w-3xl">
-          <Link
-            to="/"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
-          >
-            ← Retour à l'accueil
-          </Link>
-
           <div className="rounded-3xl border border-stone-200/70 bg-white p-8 shadow-soft sm:p-10">
-            <img src={logoHorizontal} alt="Nourevo" className="h-7 w-auto" />
-            <h1 className="mt-3 font-display text-3xl font-bold text-stone-900">
+            <h1 className="font-display text-3xl font-bold text-stone-900">
               Conditions générales d'utilisation
             </h1>
             <p className="mt-2 text-sm text-stone-400">Dernière mise à jour : à compléter avant publication.</p>

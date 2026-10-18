@@ -13,9 +13,10 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Produit',
     links: [
-      { label: 'Fonctionnalités', to: '/#fonctionnalites', external: true },
       { label: 'Comment ça marche', to: '/#comment-ca-marche', external: true },
-      { label: 'Carte NFC', to: '/#carte-nfc', external: true },
+      { label: 'Fonctionnalités', to: '/fonctionnalites' },
+      { label: 'Emporter & livraison', to: '/emporter-livraison' },
+      { label: 'Carte NFC', to: '/carte-nfc' },
       { label: 'Tarifs', to: '/tarifs' },
       { label: 'Découvrir le dashboard', to: '/decouvrir-dashboard' },
     ],

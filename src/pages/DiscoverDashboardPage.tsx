@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import logoHorizontal from '../assets/logo-horizontal.png';
 import { DashboardPreview } from '../components/DashboardPreview';
 import { Reveal, Transition } from '../components/Reveal';
 import {
@@ -15,6 +14,7 @@ import {
 } from '../components/DashboardMiniPreviews';
 import { setPublicPageMeta } from '../lib/seo';
 import { SiteFooter } from '../components/SiteFooter';
+import { SiteHeader } from '../components/SiteHeader';
 
 type DashboardPage = {
   id: string;
@@ -196,17 +196,10 @@ export function DiscoverDashboardPage() {
 
   return (
     <>
+      <SiteHeader />
       <div className="min-h-screen px-4 py-14 sm:px-8">
         <div className="mx-auto max-w-5xl">
-          <Link
-            to="/"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
-          >
-            ← Retour à l'accueil
-          </Link>
-
-          <img src={logoHorizontal} alt="Nourevo" className="h-8 w-auto" />
-          <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
             Votre dashboard, avant même de créer un compte.
           </h1>
           <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-navy-300/10 px-3.5 py-1.5 text-xs font-bold text-navy-700">

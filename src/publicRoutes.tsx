@@ -7,6 +7,9 @@ import { ContactPage } from './pages/ContactPage';
 import { LegalNoticePage } from './pages/LegalNoticePage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
+import { FeaturesPage } from './pages/FeaturesPage';
+import { TakeawayDeliveryPage } from './pages/TakeawayDeliveryPage';
+import { NfcCardPage } from './pages/NfcCardPage';
 
 // Pages publiques, pré-rendues en HTML statique au build (scripts/prerender.mjs) puis
 // hydratées côté client. Partagées entre App.tsx et entry-server.tsx pour que le HTML
@@ -16,6 +19,9 @@ import { PrivacyPage } from './pages/PrivacyPage';
 // Chaque chemin doit aussi avoir ses métadonnées dans src/lib/pageMeta.ts.
 const PUBLIC_ROUTES = [
   { path: '/', element: <LandingPage /> },
+  { path: '/fonctionnalites', element: <FeaturesPage /> },
+  { path: '/emporter-livraison', element: <TakeawayDeliveryPage /> },
+  { path: '/carte-nfc', element: <NfcCardPage /> },
   { path: '/tarifs', element: <PricingPage /> },
   { path: '/faq', element: <FaqPage /> },
   { path: '/decouvrir-dashboard', element: <DiscoverDashboardPage /> },

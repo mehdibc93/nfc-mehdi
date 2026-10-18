@@ -102,6 +102,30 @@ export const PUBLIC_PAGES: PublicPageMeta[] = [
     priority: 1.0,
   },
   {
+    path: '/fonctionnalites',
+    title: 'Fonctionnalités — Nourevo',
+    description:
+      'Carte digitale, commande et paiement à table, Mode Service en temps réel, stocks, statistiques et rentabilité : ce que Nourevo change au quotidien pour votre équipe.',
+    changefreq: 'monthly',
+    priority: 0.9,
+  },
+  {
+    path: '/emporter-livraison',
+    title: 'Vente à emporter et livraison sans commission — Nourevo',
+    description:
+      'Vos clients commandent en direct à emporter ou en livraison, sans commission. Créneaux, frais de livraison, pourboires, et un simulateur d’économies face à Uber Eats et Deliveroo.',
+    changefreq: 'monthly',
+    priority: 0.8,
+  },
+  {
+    path: '/carte-nfc',
+    title: 'Carte NFC pour restaurant — Nourevo',
+    description:
+      'Un geste du téléphone sur la carte posée sur la table, et votre carte s’ouvre : sans application ni QR code. Cartes fournies et configurées, prêtes en trois étapes.',
+    changefreq: 'monthly',
+    priority: 0.8,
+  },
+  {
     path: '/tarifs',
     title: 'Tarifs — Nourevo',
     description:

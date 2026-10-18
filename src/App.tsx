@@ -14,6 +14,7 @@ import { ProfitabilityPage } from './pages/ProfitabilityPage';
 import { ConfigurationPage } from './pages/ConfigurationPage';
 import { RestaurantExperience } from './pages/RestaurantExperience';
 import { publicRoutes } from './publicRoutes';
+import { ScrollToTop } from './components/ScrollToTop';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -67,6 +68,7 @@ function RequireActiveSubscription({ children }: { children: ReactNode }) {
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {publicRoutes}
         <Route path="/connexion" element={<LoginPage />} />

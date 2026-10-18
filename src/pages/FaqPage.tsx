@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import logoHorizontal from '../assets/logo-horizontal.png';
 import { setPublicPageMeta } from '../lib/seo';
 import { useAuth } from '../hooks/useAuth';
 import { FAQ_ITEMS } from '../lib/faq';
 import { SiteFooter } from '../components/SiteFooter';
+import { SiteHeader } from '../components/SiteHeader';
 
 export function FaqPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -16,17 +16,10 @@ export function FaqPage() {
 
   return (
     <>
+      <SiteHeader />
       <div className="min-h-screen px-4 py-14 sm:px-8">
         <div className="mx-auto max-w-3xl">
-          <Link
-            to="/"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-stone-500 transition-colors duration-300 hover:text-navy-700"
-          >
-            ← Retour à l'accueil
-          </Link>
-
-          <img src={logoHorizontal} alt="Nourevo" className="h-8 w-auto" />
-          <h1 className="mt-4 font-display text-3xl font-bold text-stone-900 sm:text-4xl">
+          <h1 className="font-display text-3xl font-bold text-stone-900 sm:text-4xl">
             Questions fréquentes
           </h1>
           <p className="mt-3 text-base leading-7 text-stone-500">
