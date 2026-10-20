@@ -6,10 +6,11 @@ import logoHorizontal from '../assets/logo-horizontal.png';
 import { setPageMeta } from '../lib/seo';
 import { DashboardLanguageSwitch } from '../components/DashboardLanguageSwitch';
 import { useDt } from '../lib/dashboardLocale';
+import { authErrorMessage } from '../lib/authErrors';
 
 export function SignupPage() {
   const dt = useDt();
-  const { signUp } = useAuth();
+  const { signUp, resendConfirmation } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,6 +26,29 @@ export function SignupPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
+  // Renvoi de l'email de confirmation : 60 s d'attente entre deux envois (limite de Supabase).
+  const [resendIn, setResendIn] = useState(0);
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [resendError, setResendError] = useState('');
+
+  useEffect(() => {
+    if (resendIn <= 0) return undefined;
+    const timer = window.setTimeout(() => setResendIn((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendIn]);
+
+  const handleResend = async () => {
+    setResendStatus('sending');
+    setResendError('');
+    const { error: resendErr } = await resendConfirmation(email);
+    if (resendErr) {
+      setResendStatus('error');
+      setResendError(authErrorMessage(resendErr.message, dt));
+      return;
+    }
+    setResendStatus('sent');
+    setResendIn(60);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,7 +61,7 @@ export function SignupPage() {
     const { data, error: signUpError } = await signUp(email, password);
     setSubmitting(false);
     if (signUpError) {
-      setError(signUpError.message);
+      setError(authErrorMessage(signUpError.message, dt));
       return;
     }
     if (data.session) {
@@ -46,6 +70,7 @@ export function SignupPage() {
     }
     // Confirmation email requise avant de pouvoir se connecter (réglage par défaut de Supabase Auth)
     setConfirmationSent(true);
+    setResendIn(60);
   };
 
   if (confirmationSent) {
@@ -65,8 +90,33 @@ export function SignupPage() {
           <p className="mt-3 text-sm text-stone-500">
             {dt('Un email de confirmation a été envoyé à', 'A confirmation email has been sent to')}{' '}
             <span className="font-semibold text-stone-700">{email}</span>.{' '}
-            {dt('Cliquez sur le lien reçu puis connectez-vous.', 'Click the link you received, then log in.')}
+            {dt(
+              'Cliquez sur le lien reçu : vous arriverez directement sur votre espace.',
+              'Click the link you received: you will land straight in your space.',
+            )}
           </p>
+          <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+            {dt(
+              'Rien reçu après quelques minutes ? Regardez dans vos courriers indésirables (spam), puis renvoyez l’email.',
+              'Nothing after a few minutes? Check your spam folder, then resend the email.',
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resendIn > 0 || resendStatus === 'sending'}
+            className="mt-4 w-full rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-700 transition-all duration-300 hover:border-navy-300/40 hover:text-navy-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {resendStatus === 'sending'
+              ? dt('Envoi…', 'Sending…')
+              : resendIn > 0
+                ? dt(`Renvoyer l’email (dans ${resendIn} s)`, `Resend the email (in ${resendIn}s)`)
+                : dt('Renvoyer l’email', 'Resend the email')}
+          </button>
+          {resendStatus === 'sent' && (
+            <p className="mt-2 text-xs font-semibold text-emerald-700">{dt('Email renvoyé.', 'Email sent again.')}</p>
+          )}
+          {resendStatus === 'error' && <p className="mt-2 text-xs font-semibold text-red-500">{resendError}</p>}
           <Link
             to="/connexion"
             className="mt-6 inline-block w-full rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-5 py-3.5 text-sm font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5"

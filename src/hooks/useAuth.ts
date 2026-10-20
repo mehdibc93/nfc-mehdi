@@ -20,7 +20,16 @@ export function useAuth() {
     return () => subscription.subscription.unsubscribe();
   }, []);
 
-  const signUp = (email: string, password: string) => supabase.auth.signUp({ email, password });
+  // Le lien de l'email de confirmation ramène sur le domaine d'où l'on s'inscrit (nourevo.fr en
+  // production), directement au dashboard : la session est récupérée depuis l'URL au chargement.
+  // Ce domaine doit figurer dans Authentication > URL Configuration > Redirect URLs (Supabase).
+  const confirmationRedirect = () => `${window.location.origin}/dashboard`;
+
+  const signUp = (email: string, password: string) =>
+    supabase.auth.signUp({ email, password, options: { emailRedirectTo: confirmationRedirect() } });
+
+  const resendConfirmation = (email: string) =>
+    supabase.auth.resend({ type: 'signup', email, options: { emailRedirectTo: confirmationRedirect() } });
 
   const signIn = (email: string, password: string) =>
     supabase.auth.signInWithPassword({ email, password });
@@ -40,6 +49,7 @@ export function useAuth() {
     loading,
     isAuthenticated: Boolean(session),
     signUp,
+    resendConfirmation,
     signIn,
     signOut,
     sendPasswordReset,
