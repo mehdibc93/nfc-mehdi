@@ -5,7 +5,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { BrowserFrame, NfcCard, PhoneFrame } from '../components/LandingVisuals';
 import { ProductTour } from '../components/ProductTour';
 import { Reveal } from '../components/Reveal';
-import { CtaBand, SectionHeading, usePrimaryCta } from '../components/MarketingBlocks';
+import { CtaBand, DemoButton, SectionHeading, usePrimaryCta } from '../components/MarketingBlocks';
 import { useAuth } from '../hooks/useAuth';
 import { setPublicPageMeta } from '../lib/seo';
 import { PLANS } from '../lib/plans';
@@ -186,13 +186,9 @@ export function LandingPage() {
                 >
                   {primaryCta.label}
                 </Link>
-                <Link
-                  to={DEMO_HREF}
-                  className="rounded-full border border-stone-300 bg-white px-7 py-4 text-center text-sm font-bold text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:border-navy-300 hover:text-navy-700"
-                >
-                  Essayer la démo comme un client
-                </Link>
+                <DemoButton label="Essayer la démo comme un client" />
               </div>
+              <p className="-mt-3 text-xs text-stone-500">Sans inscription : parcourez la carte et commandez comme un client.</p>
 
               <div className="space-y-2">
                 <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-stone-600">
@@ -334,12 +330,7 @@ export function LandingPage() {
                   vous-même, comme un client à table.
                 </p>
                 <div className="mt-6 flex justify-center lg:justify-start">
-                  <Link
-                    to={DEMO_HREF}
-                    className="rounded-full bg-white px-7 py-4 text-sm font-bold text-navy-800 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
-                  >
-                    Essayer la démonstration
-                  </Link>
+                  <DemoButton />
                 </div>
               </div>
               <div className="relative mx-auto w-full max-w-[260px] rounded-[2.4rem] bg-stone-900 p-2 shadow-card ring-1 ring-white/10">

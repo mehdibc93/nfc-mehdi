@@ -31,6 +31,37 @@ export function PageIntro({ eyebrow, title, children }: { eyebrow: string; title
   );
 }
 
+// Bouton « démo » : une seule apparence partout sur le site (ambre + ▶), pour qu'il se remarque à
+// côté du bouton principal d'essai gratuit (bleu marine).
+export function DemoButton({
+  label = 'Essayer la démo',
+  size = 'lg',
+  className = '',
+}: {
+  label?: string;
+  size?: 'sm' | 'lg';
+  className?: string;
+}) {
+  return (
+    <Link
+      to={DEMO_HREF}
+      className={`group inline-flex items-center justify-center gap-2.5 whitespace-nowrap rounded-full bg-amber-300 font-bold text-amber-950 shadow-[0_10px_30px_-10px_rgba(245,158,11,0.7)] ring-1 ring-amber-400/60 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-amber-200 ${
+        size === 'lg' ? 'px-7 py-4 text-sm' : 'px-4 py-2 text-sm'
+      } ${className}`}
+    >
+      <span
+        aria-hidden="true"
+        className={`flex shrink-0 items-center justify-center rounded-full bg-amber-950 text-amber-300 transition-transform duration-300 group-hover:scale-110 ${
+          size === 'lg' ? 'h-6 w-6 text-[10px]' : 'h-5 w-5 text-[9px]'
+        }`}
+      >
+        ▶
+      </span>
+      {label}
+    </Link>
+  );
+}
+
 export function usePrimaryCta() {
   const { isAuthenticated } = useAuth();
   return isAuthenticated
@@ -58,12 +89,7 @@ export function CtaBand({ title = 'Et si vous découvriez Nourevo avec votre pro
               >
                 {primaryCta.label}
               </Link>
-              <Link
-                to={DEMO_HREF}
-                className="rounded-full border border-white/40 px-8 py-4 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/10"
-              >
-                Découvrir la démonstration
-              </Link>
+              <DemoButton label="Essayer la démo, sans inscription" />
             </div>
           </div>
         </div>
