@@ -5,7 +5,7 @@ import { SiteHeader } from '../components/SiteHeader';
 import { SiteFooter } from '../components/SiteFooter';
 import { BrowserFrame, PhoneFrame } from '../components/LandingVisuals';
 import { Reveal } from '../components/Reveal';
-import { CtaBand, PageIntro, SectionHeading } from '../components/MarketingBlocks';
+import { CtaBand, PageIntro, SectionHeading, usePrimaryCta } from '../components/MarketingBlocks';
 import { setPublicPageMeta } from '../lib/seo';
 
 // Page « Avantages » : les bénéfices regroupés par objectif du restaurateur, chacun illustré par
@@ -113,15 +113,33 @@ const ADVANTAGES: Advantage[] = [
   },
 ];
 
-// Comparaison par type de solution (pas de concurrent nommé) : ✓ oui, ✕ non, ~ selon les solutions.
-const COMPARISON: { label: string; paper: '✓' | '✕' | '~'; qr: '✓' | '✕' | '~' }[] = [
-  { label: 'Prix et plats modifiables en un instant', paper: '✕', qr: '✓' },
-  { label: 'Photos et traduction en 5 langues', paper: '✕', qr: '~' },
-  { label: 'Commande depuis la table', paper: '✕', qr: '~' },
-  { label: 'Paiement et pourboire à table', paper: '✕', qr: '~' },
-  { label: 'Commandes en temps réel en cuisine', paper: '✕', qr: '~' },
-  { label: 'Statistiques et marge par plat', paper: '✕', qr: '~' },
-  { label: 'Ouverture d’un simple geste, sans viser', paper: '✓', qr: '✕' },
+// Comparaison par type de solution (pas de concurrent nommé), lignes regroupées par thème.
+// yes : oui, no : non, partial : selon les solutions.
+type Support = 'yes' | 'no' | 'partial';
+const COMPARISON: { group: string; rows: { label: string; paper: Support; qr: Support }[] }[] = [
+  {
+    group: 'Votre carte',
+    rows: [
+      { label: 'Prix et plats modifiables en un instant', paper: 'no', qr: 'yes' },
+      { label: 'Photos et traduction en 5 langues', paper: 'no', qr: 'partial' },
+      { label: 'Ouverture d’un simple geste, sans viser', paper: 'yes', qr: 'no' },
+    ],
+  },
+  {
+    group: 'Le service',
+    rows: [
+      { label: 'Commande depuis la table', paper: 'no', qr: 'partial' },
+      { label: 'Paiement et pourboire à table', paper: 'no', qr: 'partial' },
+      { label: 'Commandes en temps réel en cuisine', paper: 'no', qr: 'partial' },
+    ],
+  },
+  {
+    group: 'Votre gestion',
+    rows: [
+      { label: 'Statistiques et marge par plat', paper: 'no', qr: 'partial' },
+      { label: 'Invitation à laisser un avis Google', paper: 'no', qr: 'partial' },
+    ],
+  },
 ];
 
 const COMMITMENTS = [
@@ -173,12 +191,32 @@ function AdvantageVisual({ visual }: { visual: Visual }) {
   );
 }
 
-function Mark({ value }: { value: '✓' | '✕' | '~' }) {
-  if (value === '✓') return <span className="font-bold text-emerald-600">✓<span className="sr-only"> oui</span></span>;
-  if (value === '✕') return <span className="text-rose-400">✕<span className="sr-only"> non</span></span>;
+function Mark({ value, highlight = false }: { value: Support; highlight?: boolean }) {
+  if (value === 'yes') {
+    return (
+      <span
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+          highlight ? 'bg-white text-navy-700 shadow-soft' : 'bg-emerald-100 text-emerald-700'
+        }`}
+      >
+        ✓<span className="sr-only"> oui</span>
+      </span>
+    );
+  }
+  if (value === 'no') {
+    return (
+      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-xs font-bold text-stone-400">
+        ✕<span className="sr-only"> non</span>
+      </span>
+    );
+  }
   return (
-    <span className="font-bold text-stone-400">
-      ~<span className="sr-only"> selon les solutions</span>
+    <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-amber-50 px-2 text-xs font-semibold text-amber-700 ring-1 ring-amber-200/70">
+      <span aria-hidden="true" className="sm:hidden">
+        ~
+      </span>
+      <span className="hidden sm:inline">Selon l’outil</span>
+      <span className="sr-only sm:hidden"> selon les solutions</span>
     </span>
   );
 }
@@ -195,6 +233,7 @@ function Bullet({ children }: { children: ReactNode }) {
 }
 
 export function AdvantagesPage() {
+  const primaryCta = usePrimaryCta();
   useEffect(() => {
     setPublicPageMeta('/avantages');
   }, []);
@@ -256,45 +295,95 @@ export function AdvantagesPage() {
           ))}
         </div>
 
-        {/* Comparaison par type de solution */}
+        {/* Comparaison par type de solution : la colonne Nourevo est mise en avant comme une carte. */}
         <section className="mx-auto w-full max-w-4xl px-4 pt-28 sm:px-8">
           <Reveal>
-            <SectionHeading eyebrow="Comparatif" title="Carte papier, menu QR ou Nourevo ?" />
+            <SectionHeading eyebrow="Comparatif" title="Carte papier, menu QR ou Nourevo ?">
+              Ce que chaque solution permet vraiment, du premier coup d’œil au suivi de vos chiffres.
+            </SectionHeading>
           </Reveal>
           <Reveal delayMs={100}>
-            <div className="mt-10 overflow-hidden rounded-3xl border border-stone-200/70 bg-white shadow-soft">
-              <table className="w-full border-collapse text-left">
+            <div className="relative mt-16 rounded-3xl border border-stone-200/70 bg-white shadow-soft">
+              {/* Colonne Nourevo, en relief derrière les cellules (même largeur que la 4e colonne). */}
+              <div aria-hidden="true" className="absolute -bottom-4 -top-6 right-0 w-[19%] rounded-3xl bg-gradient-to-b from-navy-600 via-navy-700 to-navy-900 shadow-glow sm:w-[20%]" />
+              <span className="absolute -top-10 right-0 z-10 flex w-[19%] justify-center sm:w-[20%]">
+                <span className="whitespace-nowrap rounded-full bg-amber-300 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-950 shadow-soft sm:text-[11px]">
+                  Le plus complet
+                </span>
+              </span>
+              <table className="relative w-full table-fixed border-collapse text-left">
+                <colgroup>
+                  <col className="w-[43%] sm:w-[40%]" />
+                  <col className="w-[19%] sm:w-[20%]" />
+                  <col className="w-[19%] sm:w-[20%]" />
+                  <col className="w-[19%] sm:w-[20%]" />
+                </colgroup>
                 <thead>
-                  <tr className="border-b border-stone-200/70 bg-stone-50 text-xs font-semibold uppercase tracking-wide text-stone-500">
-                    <th scope="col" className="px-4 py-4 sm:px-6">
+                  <tr className="text-center text-[11px] font-semibold uppercase tracking-wide sm:text-xs">
+                    <th scope="col" className="px-4 pb-4 pt-6 sm:px-6">
                       <span className="sr-only">Fonctionnalité</span>
                     </th>
-                    <th scope="col" className="px-2 py-4 text-center sm:px-4">Papier</th>
-                    <th scope="col" className="px-2 py-4 text-center sm:px-4">Menu QR</th>
-                    <th scope="col" className="bg-navy-50 px-2 py-4 text-center text-navy-700 sm:px-4">Nourevo</th>
+                    <th scope="col" className="px-1 pb-4 pt-6 text-stone-500">
+                      <span aria-hidden="true" className="mb-1 block text-xl">📄</span>
+                      Carte papier
+                    </th>
+                    <th scope="col" className="px-1 pb-4 pt-6 text-stone-500">
+                      <span aria-hidden="true" className="mb-1 block text-xl">▦</span>
+                      Menu QR
+                    </th>
+                    <th scope="col" className="px-1 pb-4 pt-6 text-white">
+                      <span aria-hidden="true" className="mb-1 block text-xl">✨</span>
+                      Nourevo
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
-                  {COMPARISON.map((row) => (
-                    <tr key={row.label}>
-                      <th scope="row" className="px-4 py-4 text-[13px] font-semibold leading-5 text-stone-800 sm:px-6 sm:text-sm">
-                        {row.label}
+                {COMPARISON.map((group) => (
+                  <tbody key={group.group}>
+                    <tr>
+                      <th
+                        scope="colgroup"
+                        colSpan={3}
+                        className="border-t border-stone-100 bg-stone-50/70 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-navy-500 sm:px-6"
+                      >
+                        {group.group}
                       </th>
-                      <td className="px-2 py-4 text-center sm:px-4">
-                        <Mark value={row.paper} />
-                      </td>
-                      <td className="px-2 py-4 text-center sm:px-4">
-                        <Mark value={row.qr} />
-                      </td>
-                      <td className="bg-navy-50/60 px-2 py-4 text-center sm:px-4">
-                        <Mark value="✓" />
-                      </td>
+                      <td aria-hidden="true" />
                     </tr>
-                  ))}
-                </tbody>
+                    {group.rows.map((row) => (
+                      <tr key={row.label}>
+                        <th scope="row" className="border-t border-stone-100 px-4 py-4 text-[13px] font-semibold leading-5 text-stone-800 sm:px-6 sm:text-sm">
+                          {row.label}
+                        </th>
+                        <td className="border-t border-stone-100 px-1 py-4 text-center">
+                          <Mark value={row.paper} />
+                        </td>
+                        <td className="border-t border-stone-100 px-1 py-4 text-center">
+                          <Mark value={row.qr} />
+                        </td>
+                        <td className="border-t border-white/10 px-1 py-4 text-center">
+                          <Mark value="yes" highlight />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                ))}
+                <tfoot>
+                  <tr>
+                    <td colSpan={3} className="border-t border-stone-100 px-4 py-5 text-xs text-stone-400 sm:px-6">
+                      <span className="sm:hidden">~ : selon les solutions</span>
+                    </td>
+                    <td className="px-1 py-5 text-center">
+                      <Link
+                        to={primaryCta.to}
+                        className="inline-flex whitespace-nowrap rounded-full bg-white px-3 py-2 text-xs font-bold text-navy-800 transition-all duration-300 hover:-translate-y-0.5 sm:px-4 sm:text-sm"
+                      >
+                        Essayer
+                      </Link>
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
-            <p className="mt-3 text-center text-xs text-stone-400">~ : selon les solutions</p>
           </Reveal>
         </section>
 
