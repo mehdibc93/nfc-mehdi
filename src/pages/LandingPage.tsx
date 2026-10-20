@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SiteHeader } from '../components/SiteHeader';
 import { SiteFooter } from '../components/SiteFooter';
@@ -9,12 +9,14 @@ import { CtaBand, SectionHeading, usePrimaryCta } from '../components/MarketingB
 import { useAuth } from '../hooks/useAuth';
 import { setPublicPageMeta } from '../lib/seo';
 import { PLANS } from '../lib/plans';
+import { FAQ_ITEMS } from '../lib/faq';
 import { PAYMENT_LOGOS, STRIPE_LOGO } from '../lib/paymentLogos';
 import { DEMO_HREF } from '../lib/site';
 import { TESTIMONIALS } from '../lib/testimonials';
 
-// L'accueil reste court : la promesse, le concept en vidéo et en images, puis une porte d'entrée
-// vers chaque page détaillée (fonctionnalités, emporter & livraison, carte NFC) et les tarifs.
+// Accueil pensé pour convertir : la promesse, la preuve (vidéo, vraies captures), les bénéfices,
+// le fonctionnement, des mises en situation, le prix, les objections, puis l'appel à l'action.
+// Les pages détaillées (avantages, fonctionnalités, emporter & livraison, carte NFC) prennent le relais.
 
 // Réassurance sous les boutons. L'essai de 7 jours ne vaut que pour le premier abonnement et la
 // carte bancaire est demandée à l'inscription (voir billing-create-checkout et la FAQ).
@@ -28,42 +30,126 @@ const KEY_FACTS = [
   { value: '0', label: 'application à installer' },
 ];
 
+// Bénéfices, chacun relié à des fonctionnalités réelles et à la page qui les détaille.
+const BENEFITS = [
+  {
+    eyebrow: 'Vendre mieux',
+    title: 'Plus envie de commander',
+    text: 'Photos, suggestion d’une boisson puis d’un dessert au bon moment, réductions programmées.',
+    image: '/images/landing/client-suggestion.jpg',
+    to: '/avantages#vendre',
+  },
+  {
+    eyebrow: 'Servir plus vite',
+    title: 'Un service sans allers-retours',
+    text: 'Les commandes arrivent en cuisine en temps réel, le client paie depuis sa table.',
+    image: '/images/landing/resto-service.jpg',
+    to: '/avantages#service',
+  },
+  {
+    eyebrow: 'Ravir vos clients',
+    title: 'Une carte que chacun comprend',
+    text: 'Cinq langues, les allergènes de chaque plat, le suivi de la commande en direct.',
+    image: '/images/landing/client-langues.jpg',
+    to: '/avantages#clients',
+  },
+  {
+    eyebrow: 'Vendre en direct',
+    title: 'À emporter et en livraison',
+    text: 'Vos habitués commandent chez vous, sans commission, avec le même lien.',
+    image: '/images/landing/client-modes.jpg',
+    to: '/emporter-livraison',
+  },
+];
+
 const DASHBOARD_POINTS = [
   'Les commandes du jour et votre chiffre d’affaires en un coup d’œil',
   'Le Mode Service pour suivre chaque table en temps réel',
   'Votre carte, vos prix et vos stocks modifiables à tout moment',
 ];
 
-const EXPLORE = [
+// Mises en situation : des scènes types du service, présentées comme des exemples (pas des avis
+// clients). Chacune ne décrit que ce que l'application fait réellement.
+const SCENES = [
   {
-    to: '/fonctionnalites',
-    icon: '🧭',
-    title: 'Fonctionnalités',
-    text: 'Commandes, paiement, stocks, statistiques : ce qui change pour votre équipe.',
-    image: '/images/landing/resto-service.jpg',
+    icon: '🌍',
+    who: 'Des touristes espagnols',
+    when: 'Samedi, 20 h',
+    story: 'Ils ouvrent la carte en espagnol, regardent les photos, vérifient les allergènes et commandent sans appeler le serveur.',
+    feature: 'Carte en 5 langues',
   },
   {
-    to: '/avantages',
-    icon: '✨',
-    title: 'Avantages',
-    text: 'Vendre mieux, servir plus vite, ravir vos clients : ce que vous y gagnez.',
-    image: '/images/landing/client-suggestion.jpg',
+    icon: '⏱️',
+    who: 'Un client en pause déjeuner',
+    when: 'Mardi, 12 h 40',
+    story: 'Il commande dès qu’il s’assoit et règle depuis sa table avec Apple Pay. Il repart à l’heure, sans attendre l’addition.',
+    feature: 'Paiement à table',
   },
   {
-    to: '/emporter-livraison',
-    icon: '🛵',
-    title: 'Emporter & livraison',
-    text: 'Vos clients commandent en direct, sans commission. Calculez vos économies.',
-    image: '/images/landing/client-modes.jpg',
+    icon: '🍷',
+    who: 'Une table qui hésite',
+    when: 'Vendredi, 21 h',
+    story: 'Au moment de valider, la carte lui suggère un verre de vin pour accompagner le plat, puis un dessert maison.',
+    feature: 'Suggestions au bon moment',
   },
   {
-    to: '/carte-nfc',
-    icon: '📲',
-    title: 'La carte NFC',
-    text: 'Un geste du téléphone, sans application ni QR code. Livrée prête à poser.',
-    image: null,
+    icon: '🧑‍🍳',
+    who: 'Un serveur, un soir de rush',
+    when: 'Samedi, 21 h 30',
+    story: 'La table 7 demande l’addition : la demande s’affiche dans le Mode Service. Il y va directement, sans faire le tour de la salle.',
+    feature: 'Mode Service',
+  },
+  {
+    icon: '🏠',
+    who: 'Un habitué du quartier',
+    when: 'Dimanche, 19 h',
+    story: 'Il commande à emporter depuis le lien partagé sur Instagram et choisit le créneau de 20 h 15. La commande arrive en cuisine.',
+    feature: 'Emporter & livraison',
+  },
+  {
+    icon: '📊',
+    who: 'La gérante',
+    when: 'Lundi, 10 h',
+    story: 'Elle voit quels plats ont été les plus regardés et commandés, et ce que chacun lui rapporte. Elle ajuste un prix en une minute.',
+    feature: 'Statistiques et rentabilité',
   },
 ];
+
+const GUARANTEES = ['7 jours d’essai gratuit', 'Sans engagement avec l’offre Liberté', 'Cartes NFC fournies et configurées', 'Aucune commission sur vos ventes'];
+
+// Les objections les plus fréquentes avant de se lancer (la liste complète est sur /faq).
+const HOME_FAQ_QUESTIONS = [
+  'Vos clients doivent-ils télécharger une application ?',
+  "Ai-je besoin d'un matériel spécial ?",
+  'Comment mes clients paient-ils leur commande ?',
+  'Y a-t-il un engagement ?',
+  'Est-ce compatible avec tous les téléphones ?',
+];
+const HOME_FAQ = HOME_FAQ_QUESTIONS.map((question) => FAQ_ITEMS.find((item) => item.question === question)).filter(
+  (item): item is (typeof FAQ_ITEMS)[number] => Boolean(item),
+);
+
+function FaqItem({ question, answer, index }: { question: string; answer: string; index: number }) {
+  const [open, setOpen] = useState(index === 0);
+  return (
+    <div className="rounded-3xl border border-stone-200/70 bg-white shadow-soft">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-controls={`home-faq-${index}`}
+        className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+      >
+        <span className="font-display text-base font-bold text-stone-900">{question}</span>
+        <span className={`shrink-0 text-xl text-navy-700 transition-transform duration-300 ${open ? 'rotate-45' : ''}`}>+</span>
+      </button>
+      {/* Toujours dans le HTML (masqué si fermé) pour rester lisible par les moteurs de recherche. */}
+      <p id={`home-faq-${index}`} hidden={!open} className="px-6 pb-5 text-sm leading-6 text-stone-500">
+        {answer}
+      </p>
+    </div>
+  );
+}
 
 export function LandingPage() {
   const { isAuthenticated } = useAuth();
@@ -77,13 +163,13 @@ export function LandingPage() {
     <>
       <SiteHeader />
       <main className="relative overflow-hidden text-stone-900">
-        {/* Haut de page : la promesse + le concept montré (carte NFC + vraie carte client) */}
+        {/* 1. La promesse + le concept montré (carte NFC + vraie carte client) */}
         <section className="relative mx-auto w-full max-w-7xl px-4 pb-12 pt-12 sm:px-8 sm:pt-16 lg:px-10 lg:pb-16">
           <div className="pointer-events-none absolute -left-32 -top-24 h-[380px] w-[380px] rounded-full bg-navy-300/15 blur-3xl" />
           <div className="relative grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-10">
             <div className="space-y-7">
               <p className="inline-flex items-center gap-2 rounded-full border border-navy-300/30 bg-white/70 px-4 py-1.5 text-xs font-semibold text-navy-700">
-                Carte digitale · Commande à table · Gestion simplifiée
+                Carte digitale · Commande et paiement à table · Gestion du service
               </p>
               <h1 className="font-display text-4xl font-bold leading-[1.08] tracking-tight text-stone-900 sm:text-5xl lg:text-[3.5rem]">
                 Une expérience à table qui ressemble à votre restaurant.
@@ -104,7 +190,7 @@ export function LandingPage() {
                   to={DEMO_HREF}
                   className="rounded-full border border-stone-300 bg-white px-7 py-4 text-center text-sm font-bold text-stone-700 transition-all duration-300 hover:-translate-y-0.5 hover:border-navy-300 hover:text-navy-700"
                 >
-                  Découvrir la démonstration
+                  Essayer la démo comme un client
                 </Link>
               </div>
 
@@ -137,11 +223,14 @@ export function LandingPage() {
               <div className="absolute -right-2 top-10 hidden rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-stone-800 shadow-card sm:block">
                 ✅ Commande envoyée en cuisine
               </div>
+              <div className="absolute -right-4 bottom-24 hidden rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-stone-800 shadow-card lg:block">
+                💳 Payé à table · 42,50 €
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Repères chiffrés */}
+        {/* 2. Repères chiffrés */}
         <section className="mx-auto w-full max-w-7xl px-4 pb-14 sm:px-8 lg:px-10">
           <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {KEY_FACTS.map((fact) => (
@@ -156,7 +245,7 @@ export function LandingPage() {
           </dl>
         </section>
 
-        {/* Moyens de paiement */}
+        {/* 3. Moyens de paiement */}
         <section className="border-y border-stone-200/70 bg-white/70">
           <div className="mx-auto max-w-7xl px-4 py-10 text-center sm:px-8 lg:px-10">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
@@ -185,27 +274,75 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Vidéo de présentation (format vertical). Elle a du son : lecture à la demande. */}
-        <section className="mx-auto w-full max-w-6xl px-4 pt-20 sm:px-8 lg:px-10">
+        {/* 4. Les bénéfices, chacun illustré et relié à sa page détaillée */}
+        <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
-            <div className="grid items-center gap-10 rounded-[2rem] border border-stone-200/70 bg-white p-6 shadow-soft sm:p-10 lg:grid-cols-[1fr_auto] lg:gap-16">
-              <div className="text-center lg:text-left">
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-navy-500">En vidéo</p>
-                <h2 className="mt-2 font-display text-3xl font-bold text-stone-900 sm:text-4xl">Nourevo en 37 secondes</h2>
-                <p className="mt-3 text-sm leading-6 text-stone-500 sm:text-base">
+            <SectionHeading eyebrow="Ce que vous y gagnez" title="Vendre mieux, servir plus vite, ravir vos clients">
+              Tout ce qui se passe entre l’arrivée du client et l’encaissement, en plus simple.
+            </SectionHeading>
+          </Reveal>
+          <div className="mt-12 grid gap-5 sm:grid-cols-2">
+            {BENEFITS.map((item, index) => (
+              <Reveal key={item.title} delayMs={(index % 2) * 100}>
+                <Link
+                  to={item.to}
+                  className="group grid h-full overflow-hidden rounded-3xl border border-stone-200/70 bg-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-navy-300/50 hover:shadow-card lg:grid-cols-[1fr_0.8fr]"
+                >
+                  <span className="flex flex-col p-7 sm:p-8">
+                    <span className="text-xs font-semibold uppercase tracking-[0.24em] text-navy-500">{item.eyebrow}</span>
+                    <span className="mt-2 font-display text-2xl font-bold leading-tight text-stone-900">{item.title}</span>
+                    <span className="mt-3 flex-1 text-sm leading-6 text-stone-500">{item.text}</span>
+                    <span className="mt-6 text-sm font-bold text-navy-700">
+                      En savoir plus{' '}
+                      <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
+                    </span>
+                  </span>
+                  {/* Le haut de la capture, coupé en bas comme un écran qui dépasse de la carte. */}
+                  {/* Positionnée en absolu : la capture ne fixe pas la hauteur de la carte, c'est le texte. */}
+                  <span
+                    aria-hidden="true"
+                    className="relative h-56 overflow-hidden bg-gradient-to-br from-navy-50 via-white to-navy-100/60 lg:h-auto lg:min-h-[17rem]"
+                  >
+                    <img
+                      src={item.image}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className={`absolute top-7 max-w-none shadow-card transition-transform duration-500 group-hover:-translate-y-1 ${
+                        item.image.includes('/resto-')
+                          ? 'left-[8%] w-[190%] rounded-tl-xl border border-stone-200/80 sm:w-[260%] lg:w-[230%]'
+                          : 'left-1/2 w-[46%] -translate-x-1/2 rounded-t-[1.6rem] border-[5px] border-b-0 border-stone-900 sm:w-[52%] lg:w-[68%]'
+                      }`}
+                    />
+                  </span>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        {/* 5. La preuve en vidéo */}
+        <section className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-8 lg:px-10">
+          <Reveal>
+            <div className="relative grid items-center gap-10 overflow-hidden rounded-[2rem] bg-gradient-to-br from-navy-600 via-navy-700 to-navy-900 p-6 shadow-glow sm:p-10 lg:grid-cols-[1fr_auto] lg:gap-16">
+              <div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+              <div className="relative text-center lg:text-left">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-navy-200">En vidéo</p>
+                <h2 className="mt-2 font-display text-3xl font-bold text-white sm:text-4xl">Nourevo en 37 secondes</h2>
+                <p className="mt-3 text-sm leading-6 text-white/75 sm:text-base">
                   Le plus simple pour comprendre, c’est de le voir. Lancez la vidéo, puis essayez la démonstration
                   vous-même, comme un client à table.
                 </p>
                 <div className="mt-6 flex justify-center lg:justify-start">
                   <Link
                     to={DEMO_HREF}
-                    className="rounded-full bg-gradient-to-r from-navy-600 via-navy-700 to-navy-800 px-7 py-4 text-sm font-bold text-white shadow-glow transition-all duration-300 hover:-translate-y-0.5"
+                    className="rounded-full bg-white px-7 py-4 text-sm font-bold text-navy-800 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
                   >
                     Essayer la démonstration
                   </Link>
                 </div>
               </div>
-              <div className="mx-auto w-full max-w-[280px] rounded-[2.4rem] bg-stone-900 p-2 shadow-card ring-1 ring-black/10">
+              <div className="relative mx-auto w-full max-w-[260px] rounded-[2.4rem] bg-stone-900 p-2 shadow-card ring-1 ring-white/10">
                 {/* `#t=0.1` : affiche la première image comme aperçu, y compris sur iPhone. */}
                 <video
                   src="/videos/nourevo-presentation.mp4#t=0.1"
@@ -222,8 +359,8 @@ export function LandingPage() {
           </Reveal>
         </section>
 
-        {/* Démonstration : le principe, montré plutôt qu'expliqué */}
-        <section id="comment-ca-marche" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-20 sm:px-8 lg:px-10">
+        {/* 6. Le fonctionnement, étape par étape */}
+        <section id="comment-ca-marche" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
             <SectionHeading eyebrow="Comment ça marche" title="Un service, de la table à la cuisine">
               Ce que vivent vos clients et votre équipe, étape par étape.
@@ -234,7 +371,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* L'espace restaurateur, en vraie capture */}
+        {/* 7. L'espace restaurateur, en vraie capture */}
         <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
           <div className="grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14">
             <Reveal>
@@ -274,58 +411,37 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Portes d'entrée vers les pages détaillées */}
+        {/* 8. Mises en situation : à quoi ressemble un service avec Nourevo (exemples, pas des avis). */}
         <section className="mx-auto w-full max-w-7xl px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
-            <SectionHeading eyebrow="En savoir plus" title="Explorez Nourevo" />
+            <SectionHeading eyebrow="Mises en situation" title="Une semaine avec Nourevo">
+              Six moments du quotidien d’un restaurant, et ce que Nourevo y change.
+            </SectionHeading>
           </Reveal>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {EXPLORE.map((item, index) => (
-              <Reveal key={item.to} delayMs={index * 80}>
-                <Link
-                  to={item.to}
-                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200/70 bg-white shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-navy-300/50 hover:shadow-card"
-                >
-                  {/* Aperçu visuel de la page */}
-                  {/* Le haut de la capture, coupé en bas comme un écran qui dépasse de la carte. */}
-                  <span
-                    aria-hidden="true"
-                    className={`relative flex h-48 justify-center overflow-hidden bg-gradient-to-br from-navy-50 via-white to-navy-100/60 ${
-                      item.image ? 'items-start pt-7' : 'items-center'
-                    }`}
-                  >
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className={`relative shadow-card transition-transform duration-500 group-hover:-translate-y-1 ${
-                          item.image.includes('/resto-')
-                            ? 'w-[88%] rounded-t-xl border border-stone-200/80'
-                            : 'w-[50%] rounded-t-[1.6rem] border-[5px] border-b-0 border-stone-900'
-                        }`}
-                      />
-                    ) : (
-                      <span className="block w-[58%] -rotate-6 transition-transform duration-500 group-hover:-rotate-3">
-                        <NfcCard compact />
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex flex-1 flex-col p-7">
-                    <span className="flex items-center gap-2 font-display text-xl font-bold text-stone-900">
-                      <span aria-hidden="true">{item.icon}</span>
-                      {item.title}
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {SCENES.map((scene, index) => (
+              <Reveal key={scene.who} delayMs={(index % 3) * 80}>
+                <figure className="flex h-full flex-col rounded-3xl border border-stone-200/70 bg-white p-7 shadow-soft">
+                  <div className="flex items-center gap-3">
+                    <span aria-hidden="true" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-navy-50 to-navy-100 text-2xl">
+                      {scene.icon}
                     </span>
-                    <span className="mt-2 flex-1 text-sm leading-6 text-stone-500">{item.text}</span>
-                    <span className="mt-5 text-sm font-bold text-navy-700">
-                      Découvrir <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
-                    </span>
+                    <figcaption>
+                      <span className="block font-display font-bold text-stone-900">{scene.who}</span>
+                      <span className="block text-xs text-stone-400">{scene.when}</span>
+                    </figcaption>
+                  </div>
+                  <p className="mt-5 flex-1 text-[15px] leading-7 text-stone-600">{scene.story}</p>
+                  <span className="mt-5 inline-flex w-fit rounded-full bg-navy-50 px-3 py-1 text-xs font-semibold text-navy-700">
+                    {scene.feature}
                   </span>
-                </Link>
+                </figure>
               </Reveal>
             ))}
           </div>
+          <p className="mt-6 text-center text-xs text-stone-400">
+            Situations types, à titre d’illustration, sur la base des fonctionnalités de Nourevo.
+          </p>
         </section>
 
         {/* Avis de restaurateurs : affichés seulement quand de vrais avis existent (src/lib/testimonials.ts). */}
@@ -377,13 +493,21 @@ export function LandingPage() {
           </section>
         )}
 
-        {/* Tarifs */}
+        {/* 9. Le prix, avec les garanties juste au-dessus des formules */}
         <section className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>
             <SectionHeading eyebrow="Tarifs" title="Une offre claire, sans commission">
-              Toutes les fonctionnalités dans chaque formule, cartes NFC fournies, 7 jours d’essai gratuit.
+              Toutes les fonctionnalités dans chaque formule.
             </SectionHeading>
           </Reveal>
+          <ul className="mx-auto mt-6 flex max-w-4xl flex-wrap justify-center gap-2">
+            {GUARANTEES.map((label) => (
+              <li key={label} className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-sm font-semibold text-emerald-800">
+                <span aria-hidden="true">✓</span>
+                {label}
+              </li>
+            ))}
+          </ul>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
             {PLANS.map((plan, index) => (
               <Reveal key={plan.id} delayMs={index * 100}>
@@ -426,17 +550,31 @@ export function LandingPage() {
               </Reveal>
             ))}
           </div>
-          <p className="mt-6 text-center text-sm text-stone-500">
+          <p className="mt-6 text-center text-sm">
             <Link to="/tarifs" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
               Comparer les offres en détail →
-            </Link>
-            <span className="mx-2 text-stone-300">·</span>
-            <Link to="/faq" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
-              Questions fréquentes →
             </Link>
           </p>
         </section>
 
+        {/* 10. Les objections les plus fréquentes */}
+        <section className="mx-auto w-full max-w-3xl px-4 pt-24 sm:px-8">
+          <Reveal>
+            <SectionHeading eyebrow="Questions fréquentes" title="Avant de vous lancer" />
+          </Reveal>
+          <div className="mt-10 space-y-3">
+            {HOME_FAQ.map((item, index) => (
+              <FaqItem key={item.question} question={item.question} answer={item.answer} index={index} />
+            ))}
+          </div>
+          <p className="mt-6 text-center text-sm">
+            <Link to="/faq" className="font-semibold text-navy-700 underline-offset-2 hover:underline">
+              Voir toutes les questions →
+            </Link>
+          </p>
+        </section>
+
+        {/* 11. L'appel à l'action */}
         <CtaBand />
       </main>
       <SiteFooter />
