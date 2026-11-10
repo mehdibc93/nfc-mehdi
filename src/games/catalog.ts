@@ -131,9 +131,16 @@ export const PARTY_CATALOG: CatalogEntry[] = [
 ];
 
 /** Jeux classiques (plateau et cartes), pour les réglages du tableau de bord. */
-export const CLASSIC_CATALOG: { id: string; emoji: string; fr: string; en: string }[] = [
-  { id: 'cards', emoji: '🃏', fr: 'Couleurs (jeu de cartes)', en: 'Colours (card game)' },
-  { id: 'billiards', emoji: '🎱', fr: 'Billard', en: 'Pool' },
-  { id: 'connect4', emoji: '🔴', fr: 'Puissance 4', en: 'Connect 4' },
-  { id: 'tictactoe', emoji: '❌', fr: 'Morpion', en: 'Tic-tac-toe' },
+export const CLASSIC_CATALOG: { id: string; emoji: string; fr: string; en: string; textFr: string; textEn: string }[] = [
+  { id: 'cards', emoji: '🃏', fr: 'Couleurs (jeu de cartes)', en: 'Colours (card game)', textFr: 'Le jeu de cartes culte, contre des robots ou entre amis', textEn: 'The cult card game, vs robots or with friends' },
+  { id: 'billiards', emoji: '🎱', fr: 'Billard', en: 'Pool', textFr: 'Le 8 américain, à 2', textEn: '8-ball, 2 players' },
+  { id: 'connect4', emoji: '🔴', fr: 'Puissance 4', en: 'Connect 4', textFr: 'Alignez 4 jetons, à 2', textEn: 'Line up 4 discs, 2 players' },
+  { id: 'tictactoe', emoji: '❌', fr: 'Morpion', en: 'Tic-tac-toe', textFr: 'Le classique en 3 × 3, à 2', textEn: 'The 3 × 3 classic, 2 players' },
 ];
+
+export const ALL_GAME_IDS = [...PARTY_CATALOG.map((game) => game.id), ...CLASSIC_CATALOG.map((game) => game.id)];
+
+/** La salle de jeux s'affiche si elle est activée et qu'au moins un jeu n'est pas masqué. */
+export function gamesOffered(enabled: boolean, hidden: string[]): boolean {
+  return enabled && ALL_GAME_IDS.some((id) => !hidden.includes(id));
+}

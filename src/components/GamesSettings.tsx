@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { RestaurantWithMenu } from '../lib/types';
 import { useDt } from '../lib/dashboardLocale';
 import { supabase } from '../lib/supabaseClient';
-import { CLASSIC_CATALOG, PARTY_CATALOG } from '../games/catalog';
+import { ALL_GAME_IDS, CLASSIC_CATALOG, PARTY_CATALOG } from '../games/catalog';
 
 type Props = {
   restaurant: RestaurantWithMenu;
@@ -63,19 +63,29 @@ export function GamesSettings({ restaurant, updateRestaurantField }: Props) {
     return classic ? `${classic.emoji} ${dt(classic.fr, classic.en)}` : id;
   };
 
-  const chip = (id: string, label: string) => {
+  const activeCount = ALL_GAME_IDS.filter((id) => !hidden.has(id)).length;
+
+  // Une ligne par jeu : icône, nom, description et interrupteur.
+  const row = (id: string, emoji: string, title: string, text: string) => {
     const on = !hidden.has(id);
     return (
-      <button
-        key={id}
-        type="button"
-        onClick={() => toggleGame(id)}
-        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-          on ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-stone-200 bg-white text-stone-400 line-through'
-        }`}
-      >
-        {label}
-      </button>
+      <li key={id} className={`flex items-center gap-3 rounded-xl px-2 py-2 transition-colors ${on ? '' : 'opacity-60'}`}>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl ${on ? 'bg-amber-50' : 'bg-stone-100 grayscale'}`}>{emoji}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-stone-800">{title}</span>
+          <span className="block truncate text-xs text-stone-500">{text}</span>
+        </span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-label={title}
+          onClick={() => toggleGame(id)}
+          className={`flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-300 ${on ? 'justify-end bg-emerald-500' : 'justify-start bg-stone-300'}`}
+        >
+          <span className="h-5 w-5 rounded-full bg-white shadow-sm" />
+        </button>
+      </li>
     );
   };
 
@@ -110,11 +120,40 @@ export function GamesSettings({ restaurant, updateRestaurantField }: Props) {
         </div>
 
         <div className={`mt-4 transition-opacity duration-300 ${restaurant.gamesEnabled ? '' : 'pointer-events-none opacity-40'}`}>
-          <p className="text-xs font-semibold text-stone-600">{dt('Jeux proposés (touchez pour masquer ou afficher)', 'Games offered (tap to hide or show)')}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {PARTY_CATALOG.map((game) => chip(game.id, `${game.emoji} ${dt(game.title.fr, game.title.en)}`))}
-            {CLASSIC_CATALOG.map((game) => chip(game.id, `${game.emoji} ${dt(game.fr, game.en)}`))}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-stone-600">
+              {dt('Choisissez les jeux proposés', 'Choose which games to offer')} · {activeCount}/{ALL_GAME_IDS.length}
+            </p>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => updateRestaurantField({ gamesHidden: [] })}
+                className="rounded-full border border-stone-200 px-3 py-1 text-xs font-semibold text-stone-600 hover:border-stone-400"
+              >
+                {dt('Tout activer', 'Enable all')}
+              </button>
+              <button
+                type="button"
+                onClick={() => updateRestaurantField({ gamesHidden: [...ALL_GAME_IDS] })}
+                className="rounded-full border border-stone-200 px-3 py-1 text-xs font-semibold text-stone-600 hover:border-stone-400"
+              >
+                {dt('Tout désactiver', 'Disable all')}
+              </button>
+            </div>
           </div>
+          {activeCount === 0 && (
+            <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+              {dt('Aucun jeu activé : la salle de jeux n’apparaîtra pas chez vos clients.', 'No game enabled: your customers won’t see the game room.')}
+            </p>
+          )}
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400">{dt('Jeux d’ambiance', 'Party games')}</p>
+          <ul className="mt-1 divide-y divide-stone-100">
+            {PARTY_CATALOG.map((game) => row(game.id, game.emoji, dt(game.title.fr, game.title.en), dt(game.text.fr, game.text.en)))}
+          </ul>
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400">{dt('Jeux classiques', 'Classic games')}</p>
+          <ul className="mt-1 divide-y divide-stone-100">
+            {CLASSIC_CATALOG.map((game) => row(game.id, game.emoji, dt(game.fr, game.en), dt(game.textFr, game.textEn)))}
+          </ul>
 
           {usage && (
             <div className="mt-4 rounded-xl bg-stone-50 px-3 py-3">

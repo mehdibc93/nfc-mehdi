@@ -28,6 +28,7 @@ import { setPageMeta } from '../lib/seo';
 import { SITE_URL } from '../lib/site';
 import { gameTx } from '../games/gameText';
 import { useTableChallenges } from '../games/lobbyShared';
+import { gamesOffered } from '../games/catalog';
 
 // Salle de jeux (billard, cartes…) chargée seulement quand le client l'ouvre.
 const GameLounge = lazy(() => import('../games/GameLounge').then((module) => ({ default: module.GameLounge })));
@@ -352,6 +353,8 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [gamesOpen, setGamesOpen] = useState(false);
   const [challengeToJoin, setChallengeToJoin] = useState<string | null>(null);
+  // Salle de jeux : activée par le restaurateur, avec au moins un jeu proposé.
+  const gamesOn = gamesOffered(restaurant.gamesEnabled, restaurant.gamesHidden);
   const gameDishes = useMemo(
     () => menuDishes.map((dish) => ({ name: dish.name, price: dish.price, image: dish.image, category: dish.category })),
     [menuDishes],
@@ -378,7 +381,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const tableChallenges = useTableChallenges(
     restaurant.id,
     selectedTable,
-    restaurant.gamesEnabled && phase === 'success' && isDineIn && !gamesOpen && liveOrderStatus !== 'refused',
+    gamesOn && phase === 'success' && isDineIn && !gamesOpen && liveOrderStatus !== 'refused',
   );
 
   useEffect(() => {
@@ -2054,7 +2057,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               </div>
             </div>
 
-            {restaurant.gamesEnabled && isDineIn && liveOrderStatus !== 'refused' && tableChallenges.length > 0 && (
+            {gamesOn && isDineIn && liveOrderStatus !== 'refused' && tableChallenges.length > 0 && (
               <div className="animate-pop rounded-3xl border-2 border-amber-300 bg-amber-50 p-5">
                 {tableChallenges.slice(0, 2).map((challenge) => (
                   <div key={challenge.id} className="flex flex-wrap items-center justify-between gap-3 [&+&]:mt-3">
@@ -2080,7 +2083,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               </div>
             )}
 
-            {restaurant.gamesEnabled && isDineIn && liveOrderStatus !== 'refused' && (
+            {gamesOn && isDineIn && liveOrderStatus !== 'refused' && (
               <button
                 type="button"
                 onClick={() => {
@@ -2366,7 +2369,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
       {showFloatingControls && isDineIn && (phase === 'menu' || phase === 'checkout') && (
         <div className="fixed bottom-4 right-4 z-[55] flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
           {/* Pour ceux qui attendent leurs amis avant de commander. */}
-          {restaurant.gamesEnabled && (
+          {gamesOn && (
           <button
             type="button"
             onClick={() => {
@@ -2405,7 +2408,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         {phase === 'success' && renderSuccess()}
       </main>
 
-      {gamesOpen && restaurant.gamesEnabled && (
+      {gamesOpen && gamesOn && (
         <Suspense fallback={<div className="fixed inset-0 z-[70] bg-[#f7f4ee]" />}>
           <GameLounge
             restaurantId={restaurant.id}
