@@ -378,7 +378,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const tableChallenges = useTableChallenges(
     restaurant.id,
     selectedTable,
-    phase === 'success' && isDineIn && !gamesOpen && liveOrderStatus !== 'refused',
+    restaurant.gamesEnabled && phase === 'success' && isDineIn && !gamesOpen && liveOrderStatus !== 'refused',
   );
 
   useEffect(() => {
@@ -2054,7 +2054,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               </div>
             </div>
 
-            {isDineIn && liveOrderStatus !== 'refused' && tableChallenges.length > 0 && (
+            {restaurant.gamesEnabled && isDineIn && liveOrderStatus !== 'refused' && tableChallenges.length > 0 && (
               <div className="animate-pop rounded-3xl border-2 border-amber-300 bg-amber-50 p-5">
                 {tableChallenges.slice(0, 2).map((challenge) => (
                   <div key={challenge.id} className="flex flex-wrap items-center justify-between gap-3 [&+&]:mt-3">
@@ -2080,7 +2080,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               </div>
             )}
 
-            {isDineIn && liveOrderStatus !== 'refused' && (
+            {restaurant.gamesEnabled && isDineIn && liveOrderStatus !== 'refused' && (
               <button
                 type="button"
                 onClick={() => {
@@ -2366,6 +2366,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
       {showFloatingControls && isDineIn && (phase === 'menu' || phase === 'checkout') && (
         <div className="fixed bottom-4 right-4 z-[55] flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
           {/* Pour ceux qui attendent leurs amis avant de commander. */}
+          {restaurant.gamesEnabled && (
           <button
             type="button"
             onClick={() => {
@@ -2376,6 +2377,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
           >
             🎮 {gameTx(language)('menu.play')}
           </button>
+          )}
           <button
             type="button"
             onClick={() => requestTableService('waiter')}
@@ -2403,13 +2405,14 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         {phase === 'success' && renderSuccess()}
       </main>
 
-      {gamesOpen && (
+      {gamesOpen && restaurant.gamesEnabled && (
         <Suspense fallback={<div className="fixed inset-0 z-[70] bg-[#f7f4ee]" />}>
           <GameLounge
             restaurantId={restaurant.id}
             table={phase === 'success' && isDineIn ? selectedTable : null}
             tableCount={restaurant.tableCount}
             dishes={gameDishes}
+            hiddenGames={restaurant.gamesHidden}
             defaultName={customerName}
             locale={language}
             joinRoomId={challengeToJoin}

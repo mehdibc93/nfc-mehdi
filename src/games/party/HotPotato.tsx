@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { LETTER_RUSH_CATEGORIES } from './content';
+import { useParty } from './i18n';
 import { buzz, Card, PartyHeader, pick, PrimaryButton, SecondaryButton } from './ui';
 
 // La patate chaude : une catégorie s'affiche, on dit un mot qui va dedans puis on passe le
@@ -25,8 +25,9 @@ function beep(ctx: AudioContext | null, frequency: number, duration: number, vol
 }
 
 export function HotPotato({ onQuit }: { onQuit: () => void }) {
+  const { t, content } = useParty();
   const [phase, setPhase] = useState<Phase>('intro');
-  const [category, setCategory] = useState(() => pick(LETTER_RUSH_CATEGORIES));
+  const [category, setCategory] = useState(() => pick(content.letterCategories));
   const [passes, setPasses] = useState(0);
   const [heat, setHeat] = useState(0);
   const audio = useRef<AudioContext | null>(null);
@@ -49,7 +50,7 @@ export function HotPotato({ onQuit }: { onQuit: () => void }) {
       }
     }
     void audio.current?.resume();
-    setCategory(pick(LETTER_RUSH_CATEGORIES));
+    setCategory(pick(content.letterCategories));
     setPasses(0);
     setHeat(0);
     setPhase('play');
@@ -74,14 +75,12 @@ export function HotPotato({ onQuit }: { onQuit: () => void }) {
   if (phase === 'intro') {
     return (
       <div>
-        <PartyHeader emoji="💣" title="La patate chaude" onQuit={onQuit} />
+        <PartyHeader onQuit={onQuit} />
         <Card className="text-center">
-          <p className="text-6xl">💣</p>
-          <p className="mt-4 text-sm leading-6 text-stone-500">
-            Une catégorie s’affiche. Dites un mot qui va dedans, puis passez vite le téléphone à votre voisin. La bombe explose au bout d’un temps secret… et celui qui la tient a perdu ! Montez le son 🔊
-          </p>
+          <p className="animate-float text-7xl">💣</p>
+          <p className="mt-4 text-sm leading-6 text-stone-500">{t('potato.intro')}</p>
           <PrimaryButton onClick={start} className="mt-6 w-full">
-            Allumer la mèche
+            {t('potato.light')}
           </PrimaryButton>
         </Card>
       </div>
@@ -91,14 +90,14 @@ export function HotPotato({ onQuit }: { onQuit: () => void }) {
   if (phase === 'boom') {
     return (
       <div>
-        <PartyHeader emoji="💣" title="La patate chaude" onQuit={onQuit} />
-        <Card className="text-center">
+        <PartyHeader onQuit={onQuit} />
+        <Card className="overflow-hidden text-center">
           <p className="animate-pop text-8xl">💥</p>
-          <p className="mt-3 font-display text-3xl font-black">BOUM !</p>
-          <p className="mt-2 text-sm text-stone-500">Celui qui tient le téléphone a perdu ! ({passes} passe{passes > 1 ? 's' : ''})</p>
+          <p className="mt-3 font-display text-4xl font-black text-red-600">{t('potato.boom')}</p>
+          <p className="mt-2 text-sm text-stone-500">{t('potato.lost', { n: passes })}</p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <PrimaryButton onClick={start}>Rejouer</PrimaryButton>
-            <SecondaryButton onClick={onQuit}>Changer de jeu</SecondaryButton>
+            <PrimaryButton onClick={start}>{t('replay')}</PrimaryButton>
+            <SecondaryButton onClick={onQuit}>{t('potato.otherGame')}</SecondaryButton>
           </div>
         </Card>
       </div>
@@ -106,13 +105,18 @@ export function HotPotato({ onQuit }: { onQuit: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex select-none flex-col items-center justify-center gap-6 px-6 text-center text-white" style={{ background: `hsl(${30 - heat * 30} 85% ${45 - heat * 12}%)` }}>
-      <p className="text-8xl" style={{ animation: `pop ${Math.max(0.15, 0.9 * (1 - heat))}s ease-in-out infinite` }}>
+    <div
+      className="fixed inset-0 z-[90] flex select-none flex-col items-center justify-center gap-6 px-6 text-center text-white transition-colors duration-700"
+      style={{ background: `radial-gradient(circle at 50% 35%, hsl(${40 - heat * 40} 95% ${55 - heat * 12}%), hsl(${20 - heat * 20} 85% ${30 - heat * 10}%))` }}
+    >
+      <p className="text-9xl drop-shadow-xl" style={{ animation: `pop ${Math.max(0.15, 0.9 * (1 - heat))}s ease-in-out infinite` }}>
         💣
       </p>
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/70">Dites…</p>
-        <p className="mt-2 font-display text-4xl font-black leading-tight">{category}</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/70">{t('potato.say')}</p>
+        <p key={category} className="mt-2 animate-pop font-display text-4xl font-black leading-tight">
+          {category}
+        </p>
       </div>
       <button
         type="button"
@@ -122,10 +126,10 @@ export function HotPotato({ onQuit }: { onQuit: () => void }) {
         }}
         className="w-full max-w-xs rounded-full bg-white px-6 py-5 font-display text-xl font-black text-stone-900 shadow-card active:scale-95"
       >
-        Dit ! Je passe ➜
+        {t('potato.pass')}
       </button>
-      <button type="button" onClick={() => setCategory(pick(LETTER_RUSH_CATEGORIES))} className="text-sm font-semibold text-white/80 underline">
-        Changer de catégorie
+      <button type="button" onClick={() => setCategory(pick(content.letterCategories))} className="text-sm font-semibold text-white/80 underline">
+        {t('potato.change')}
       </button>
       <button
         type="button"
@@ -135,7 +139,7 @@ export function HotPotato({ onQuit }: { onQuit: () => void }) {
         }}
         className="absolute right-4 top-4 rounded-full bg-black/20 px-4 py-2 text-xs font-semibold"
       >
-        Quitter
+        {t('quit')}
       </button>
     </div>
   );

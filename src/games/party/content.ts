@@ -202,3 +202,45 @@ export const WOULD_YOU_RATHER: [string, string][] = [
   ['Ne plus jamais avoir froid', 'Ne plus jamais avoir chaud'],
   ['Que ton enfant soit un génie insupportable', 'Que ton enfant soit adorable mais pas très doué'],
 ];
+
+export const DARES = [
+  'Imite un serveur qui présente le plat du jour.',
+  'Raconte ton pire rendez-vous.',
+  'Fais un compliment sincère à chaque personne de la table.',
+  'Parle avec un accent pendant le prochain tour.',
+  'Chante le refrain d’une chanson choisie par la table.',
+  'Dis ce que tu commanderais si tout était gratuit.',
+  'Raconte ton souvenir d’enfance le plus gênant.',
+  'Fais deviner un film en mime, sans parler.',
+  'Choisis qui commande le dessert pour toute la table.',
+  'Raconte une anecdote que personne à la table ne connaît.',
+];
+
+export const ROULETTE_QUESTIONS = ['Qui paie l’addition ?', 'Qui choisit le dessert ?', 'Qui commande en premier ?', 'Qui raconte une anecdote ?', 'Qui lance le prochain jeu ?'];
+
+export type ForeheadDeck = { id: string; emoji: string; label: string; words: string[] };
+
+/** Tout le contenu des jeux d'ambiance, pour une langue. */
+export type PartyContent = {
+  forehead: ForeheadDeck[];
+  undercover: [string, string][];
+  letterCategories: string[];
+  letters: string[];
+  quiz: QuizQuestion[];
+  whoOfUs: string[];
+  rather: [string, string][];
+  dares: string[];
+  roulette: string[];
+};
+
+export const FR_CONTENT: PartyContent = {
+  forehead: FOREHEAD_DECKS,
+  undercover: UNDERCOVER_PAIRS,
+  letterCategories: LETTER_RUSH_CATEGORIES,
+  letters: LETTER_RUSH_LETTERS,
+  quiz: QUIZ_QUESTIONS,
+  whoOfUs: WHO_OF_US_PROMPTS,
+  rather: WOULD_YOU_RATHER,
+  dares: DARES,
+  roulette: ROULETTE_QUESTIONS,
+};

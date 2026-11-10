@@ -1,7 +1,7 @@
-import { Confetti } from '../Confetti';
 import { useState } from 'react';
-import { LETTER_RUSH_CATEGORIES, LETTER_RUSH_LETTERS } from './content';
-import { buzz, Card, PartyHeader, PlayersSetup, pick, PrimaryButton, SecondaryButton, TimerBadge, useCountdown } from './ui';
+import { Confetti } from '../Confetti';
+import { useParty } from './i18n';
+import { Avatar, buzz, Card, PartyHeader, PlayersSetup, pick, PrimaryButton, SecondaryButton, TimerBadge, useCountdown } from './ui';
 
 // Petit bac express : à tour de rôle, une lettre et une catégorie s'affichent ; le joueur a
 // quelques secondes pour donner un mot à voix haute. La table juge. Trois ratés et on est éliminé.
@@ -12,6 +12,7 @@ const LIVES = 3;
 type Turn = { player: number; letter: string; category: string };
 
 export function LetterRush({ firstName, onQuit }: { firstName: string; onQuit: () => void }) {
+  const { t, content } = useParty();
   const [players, setPlayers] = useState<string[] | null>(null);
   const [lives, setLives] = useState<number[]>([]);
   const [turn, setTurn] = useState<Turn | null>(null);
@@ -28,7 +29,7 @@ export function LetterRush({ firstName, onQuit }: { firstName: string; onQuit: (
   };
 
   const newTurn = (player: number) => {
-    setTurn({ player, letter: pick(LETTER_RUSH_LETTERS), category: pick(LETTER_RUSH_CATEGORIES) });
+    setTurn({ player, letter: pick(content.letters), category: pick(content.letterCategories) });
     reset();
     setRunning(false);
   };
@@ -56,23 +57,13 @@ export function LetterRush({ firstName, onQuit }: { firstName: string; onQuit: (
     newTurn(Math.floor(Math.random() * names.length));
   };
 
-  const header = <PartyHeader emoji="🔤" title="Petit bac express" onQuit={onQuit} />;
+  const header = <PartyHeader onQuit={onQuit} />;
 
   if (!players || !turn) {
     return (
       <div>
         {header}
-        <PlayersSetup
-          min={2}
-          max={10}
-          firstName={firstName}
-          onStart={start}
-          intro={
-            <>
-              Une lettre, une catégorie, <strong>{TURN_SECONDS} secondes</strong> pour répondre à voix haute. La table juge si c’est bon. 3 ratés et c’est fini !
-            </>
-          }
-        />
+        <PlayersSetup min={2} max={10} firstName={firstName} onStart={start} intro={t('letters.intro', { s: TURN_SECONDS })} />
       </div>
     );
   }
@@ -81,13 +72,13 @@ export function LetterRush({ firstName, onQuit }: { firstName: string; onQuit: (
     return (
       <div>
         {header}
+        <Confetti />
         <Card className="text-center">
-          <Confetti />
-          <p className="text-5xl">🏆</p>
-          <p className="mt-3 font-display text-2xl font-bold">{players[winner]} gagne !</p>
+          <p className="animate-pop text-6xl">🏆</p>
+          <p className="mt-3 font-display text-2xl font-bold">{t('wins', { name: players[winner] })}</p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <PrimaryButton onClick={() => start(players)}>Rejouer</PrimaryButton>
-            <SecondaryButton onClick={() => setPlayers(null)}>Changer les joueurs</SecondaryButton>
+            <PrimaryButton onClick={() => start(players)}>{t('replay')}</PrimaryButton>
+            <SecondaryButton onClick={() => setPlayers(null)}>{t('changePlayers')}</SecondaryButton>
           </div>
         </Card>
       </div>
@@ -101,34 +92,37 @@ export function LetterRush({ firstName, onQuit }: { firstName: string; onQuit: (
         {players.map((name, index) => (
           <span
             key={index}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+            className={`flex items-center gap-1.5 rounded-full py-1 pl-1 pr-3 text-xs font-semibold transition-colors ${
               lives[index] <= 0 ? 'bg-stone-100 text-stone-300 line-through' : index === turn.player ? 'bg-stone-900 text-white' : 'bg-white text-stone-600'
             }`}
           >
+            <Avatar index={index} name={name} size="sm" />
             {name} {lives[index] > 0 ? '❤️'.repeat(lives[index]) : ''}
           </span>
         ))}
       </div>
       <Card className="text-center">
-        <p className="text-sm font-semibold text-stone-500">À {players[turn.player]} !</p>
-        <p className="mt-3 font-display text-8xl font-black leading-none text-navy-700">{turn.letter}</p>
-        <p className="mt-3 font-display text-2xl font-bold">{turn.category}</p>
+        <p className="text-sm font-semibold text-stone-500">{t('letters.turn', { name: players[turn.player] })}</p>
+        <p key={`${turn.letter}-${turn.category}`} className="mx-auto mt-3 flex h-28 w-28 animate-pop items-center justify-center rounded-[2rem] bg-gradient-to-br from-orange-400 to-rose-500 font-display text-7xl font-black text-white shadow-card">
+          {turn.letter}
+        </p>
+        <p className="mt-4 font-display text-2xl font-bold">{turn.category}</p>
         <div className="mt-5">
           {running ? (
             <>
               <TimerBadge left={left} total={TURN_SECONDS} />
               <div className="mt-5 grid grid-cols-2 gap-2">
                 <button type="button" onClick={() => resolve(false)} className="rounded-full bg-red-100 py-3.5 text-sm font-bold text-red-700 active:scale-95">
-                  ✗ Raté
+                  {t('letters.fail')}
                 </button>
                 <button type="button" onClick={() => resolve(true)} className="rounded-full bg-emerald-500 py-3.5 text-sm font-bold text-white active:scale-95">
-                  ✓ Validé
+                  {t('letters.ok')}
                 </button>
               </div>
             </>
           ) : (
             <PrimaryButton onClick={() => setRunning(true)} className="w-full">
-              Lancer le chrono
+              {t('letters.start')}
             </PrimaryButton>
           )}
         </div>

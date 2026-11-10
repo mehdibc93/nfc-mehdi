@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
+import { useParty } from './i18n';
 import { buzz, PartyHeader } from './ui';
 
 // « Qui paie ? » : chacun pose un doigt sur l'écran ; après quelques secondes sans changement, le
@@ -8,15 +9,16 @@ import { buzz, PartyHeader } from './ui';
 type Finger = { id: number; x: number; y: number; color: string };
 const COLORS = ['#e5383b', '#1e6fd9', '#2a9d4b', '#f2b705', '#8b5cf6', '#f77f00', '#0fb5ae', '#e83e8c', '#6b7280', '#14b8a6'];
 const SETTLE_MS = 2500;
-const QUESTIONS = ['Qui paie l’addition ?', 'Qui choisit le dessert ?', 'Qui commande en premier ?', 'Qui raconte une anecdote ?', 'Qui lance le prochain jeu ?'];
 
 export function FingerRoulette({ onQuit }: { onQuit: () => void }) {
+  const { t, content } = useParty();
   const [fingers, setFingers] = useState<Finger[]>([]);
   const [winner, setWinner] = useState<number | null>(null);
-  const [question, setQuestion] = useState(QUESTIONS[0]);
+  const [questionIndex, setQuestionIndex] = useState(0);
   const [arming, setArming] = useState(false);
   const area = useRef<HTMLDivElement>(null);
   const colorIndex = useRef(0);
+  const question = content.roulette[questionIndex % content.roulette.length];
 
   // Dès que les doigts ne bougent plus (ni ajout ni retrait) pendant 2,5 s, on tire au sort.
   const fingerKey = fingers.map((finger) => finger.id).join(',');
@@ -63,19 +65,23 @@ export function FingerRoulette({ onQuit }: { onQuit: () => void }) {
   const restart = () => {
     setFingers([]);
     setWinner(null);
-    setQuestion(QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]);
   };
 
   return (
     <div>
-      <PartyHeader emoji="👆" title="Qui paie ?" onQuit={onQuit} />
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {QUESTIONS.map((item) => (
+      <PartyHeader onQuit={onQuit} />
+      <div className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 pb-1">
+        {content.roulette.map((item, index) => (
           <button
             key={item}
             type="button"
-            onClick={() => setQuestion(item)}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${question === item ? 'bg-stone-900 text-white' : 'bg-white text-stone-600'}`}
+            onClick={() => {
+              setQuestionIndex(index);
+              restart();
+            }}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+              questionIndex === index ? 'bg-stone-900 text-white' : 'border border-stone-200 bg-white text-stone-600'
+            }`}
           >
             {item}
           </button>
@@ -88,19 +94,19 @@ export function FingerRoulette({ onQuit }: { onQuit: () => void }) {
         onPointerUp={up}
         onPointerCancel={up}
         onContextMenu={(event) => event.preventDefault()}
-        className="relative h-[60vh] min-h-[340px] touch-none select-none overflow-hidden rounded-3xl bg-gradient-to-br from-stone-900 to-navy-800"
+        className="relative h-[60vh] min-h-[340px] touch-none select-none overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_50%_30%,#334155,#0f172a)]"
       >
         {fingers.length === 0 && (
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center text-white">
-            <p className="text-5xl">🖐️</p>
-            <p className="mt-3 font-display text-xl font-bold">{question}</p>
-            <p className="mt-2 text-sm text-white/60">Posez tous un doigt sur l’écran et ne bougez plus…</p>
+            <p className="animate-float text-6xl">🖐️</p>
+            <p className="mt-4 font-display text-2xl font-bold">{question}</p>
+            <p className="mt-2 text-sm text-white/60">{t('roulette.place')}</p>
           </div>
         )}
         {fingers.length === 1 && winner === null && (
-          <p className="pointer-events-none absolute inset-x-0 top-6 text-center text-sm font-semibold text-white/70">Il faut au moins 2 doigts</p>
+          <p className="pointer-events-none absolute inset-x-0 top-6 text-center text-sm font-semibold text-white/70">{t('roulette.min')}</p>
         )}
-        {arming && <p className="pointer-events-none absolute inset-x-0 top-6 animate-pulse text-center text-sm font-bold text-amber-300">Tirage au sort…</p>}
+        {arming && <p className="pointer-events-none absolute inset-x-0 top-6 animate-pulse text-center text-sm font-bold text-amber-300">{t('roulette.drawing')}</p>}
         {fingers.map((finger) => {
           const isWinner = winner === finger.id;
           const faded = winner !== null && !isWinner;
@@ -111,26 +117,27 @@ export function FingerRoulette({ onQuit }: { onQuit: () => void }) {
               style={{
                 left: finger.x,
                 top: finger.y,
-                width: isWinner ? 150 : 90,
-                height: isWinner ? 150 : 90,
+                width: isWinner ? 160 : 90,
+                height: isWinner ? 160 : 90,
                 transform: 'translate(-50%, -50%)',
                 background: finger.color,
                 opacity: faded ? 0.12 : 1,
-                boxShadow: `0 0 0 ${isWinner ? 14 : 6}px ${finger.color}55`,
+                boxShadow: `0 0 0 ${isWinner ? 16 : 6}px ${finger.color}55, 0 0 40px ${finger.color}`,
               }}
             />
           );
         })}
         {winner !== null && (
-          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-gradient-to-t from-black/70 to-transparent px-6 pb-6 pt-16 text-center text-white">
-            <p className="font-display text-2xl font-bold">C’est toi ! 🎉</p>
+          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 bg-gradient-to-t from-black/75 to-transparent px-6 pb-6 pt-16 text-center text-white">
+            <p className="animate-pop font-display text-3xl font-black">{t('roulette.you')}</p>
+            <p className="text-sm text-white/70">{question}</p>
             <button type="button" onClick={restart} className="rounded-full bg-amber-400 px-6 py-3 text-sm font-bold text-stone-900">
-              Rejouer
+              {t('replay')}
             </button>
           </div>
         )}
       </div>
-      <p className="mt-3 text-center text-xs text-stone-400">Le hasard est impartial… ou presque 😉</p>
+      <p className="mt-3 text-center text-xs text-stone-400">{t('roulette.footer')}</p>
     </div>
   );
 }

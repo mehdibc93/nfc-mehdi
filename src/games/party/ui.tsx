@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useParty } from './i18n';
 
 // Briques communes des jeux d'ambiance (un seul téléphone posé au milieu de la table).
 
@@ -17,10 +18,14 @@ export function pick<T>(items: readonly T[]): T {
 }
 
 /** Couleur et accroche du jeu en cours, fournies par la salle de jeux. */
-export const PartyTheme = createContext<{ tint: string; text?: string; players?: string }>({ tint: '#ece4d6' });
+export const PartyTheme = createContext<{ tint: string; emoji?: string; title?: string; text?: string; players?: string }>({ tint: '#ece4d6' });
 
-export function PartyHeader({ emoji, title, onQuit, quitLabel = 'Quitter' }: { emoji: string; title: string; onQuit: () => void; quitLabel?: string }) {
+export function PartyHeader(props: { emoji?: string; title?: string; onQuit: () => void; quitLabel?: string }) {
   const theme = useContext(PartyTheme);
+  const { onQuit, quitLabel } = props;
+  const emoji = props.emoji ?? theme.emoji ?? '🎮';
+  const title = props.title ?? theme.title ?? '';
+  const { t } = useParty();
   return (
     <div
       className="relative mb-4 flex items-center gap-4 overflow-hidden rounded-3xl p-4 shadow-soft"
@@ -38,7 +43,7 @@ export function PartyHeader({ emoji, title, onQuit, quitLabel = 'Quitter' }: { e
         onClick={onQuit}
         className="relative shrink-0 rounded-full bg-white/90 px-3.5 py-2 text-xs font-semibold text-stone-700 shadow-sm"
       >
-        {quitLabel}
+        {quitLabel ?? t('quit')}
       </button>
     </div>
   );
@@ -101,20 +106,22 @@ export function PlayersSetup({
   intro: ReactNode;
   onStart: (players: string[]) => void;
 }) {
+  const { t } = useParty();
   const [names, setNames] = useState<string[]>(() => [firstName, ...Array(Math.max(0, min - 1)).fill('')]);
-  const filled = names.map((name, index) => name.trim() || `Joueur ${index + 1}`);
+  const filled = names.map((name, index) => name.trim() || t('player', { n: index + 1 }));
   return (
     <Card>
       <div className="text-sm leading-6 text-stone-500">{intro}</div>
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Joueurs</p>
+      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{t('players')}</p>
       <div className="mt-2 space-y-2">
         {names.map((name, index) => (
-          <div key={index} className="flex gap-2">
+          <div key={index} className="flex items-center gap-2">
+            <Avatar index={index} name={filled[index]} />
             <input
               value={name}
               maxLength={14}
               onChange={(event) => setNames((list) => list.map((item, i) => (i === index ? event.target.value : item)))}
-              placeholder={`Joueur ${index + 1}`}
+              placeholder={t('player', { n: index + 1 })}
               className="min-w-0 flex-1 rounded-2xl border border-stone-200 px-4 py-2.5 text-base outline-none focus:border-navy-300"
             />
             {names.length > min && (
@@ -122,7 +129,7 @@ export function PlayersSetup({
                 type="button"
                 onClick={() => setNames((list) => list.filter((_, i) => i !== index))}
                 className="h-11 w-11 shrink-0 rounded-full bg-stone-100 text-stone-500"
-                aria-label="Retirer"
+                aria-label={t('remove')}
               >
                 ✕
               </button>
@@ -132,11 +139,11 @@ export function PlayersSetup({
       </div>
       {names.length < max && (
         <button type="button" onClick={() => setNames((list) => [...list, ''])} className="mt-3 text-sm font-bold text-navy-700">
-          + Ajouter un joueur
+          {t('addPlayer')}
         </button>
       )}
       <PrimaryButton onClick={() => onStart(filled)} className="mt-5 w-full">
-        C’est parti !
+        {t('go')}
       </PrimaryButton>
     </Card>
   );
@@ -192,4 +199,73 @@ export function buzz(pattern: number | number[] = 60) {
   } catch {
     // non pris en charge
   }
+}
+
+const AVATAR_COLORS = ['#1c2f47', '#b5179e', '#0f766e', '#c2410c', '#6d28d9', '#be123c', '#0369a1', '#4d7c0f', '#a16207', '#334155'];
+
+export function Avatar({ index, name, size = 'md' }: { index: number; name: string; size?: 'sm' | 'md' }) {
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-full font-display font-bold text-white ${size === 'sm' ? 'h-7 w-7 text-xs' : 'h-10 w-10 text-sm'}`}
+      style={{ background: AVATAR_COLORS[index % AVATAR_COLORS.length] }}
+    >
+      {name.slice(0, 1).toUpperCase()}
+    </span>
+  );
+}
+
+/** Progression dans une partie (question 3 sur 10…). */
+export function ProgressBar({ value, total, label }: { value: number; total: number; label: string }) {
+  return (
+    <div className="mb-3">
+      <div className="flex items-center justify-between text-xs font-semibold text-stone-400">
+        <span className="uppercase tracking-[0.18em]">{label}</span>
+      </div>
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-stone-200">
+        <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500" style={{ width: `${(value / total) * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/** Classement final, avec médailles. */
+export function Scoreboard({ players, scores }: { players: string[]; scores: number[] }) {
+  const { t } = useParty();
+  const ranking = players.map((name, index) => ({ name, index, score: scores[index] })).sort((a, b) => b.score - a.score);
+  const medals = ['🥇', '🥈', '🥉'];
+  return (
+    <ol className="mt-5 space-y-2 text-left">
+      {ranking.map((item, position) => (
+        <li
+          key={item.index}
+          className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 ${position === 0 ? 'bg-amber-50 ring-1 ring-amber-200' : 'bg-stone-50'}`}
+        >
+          <span className="w-7 text-center text-lg">{medals[position] ?? `${position + 1}.`}</span>
+          <Avatar index={item.index} name={item.name} size="sm" />
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-stone-800">{item.name}</span>
+          <span className="font-display text-sm font-bold tabular-nums">{t(item.score > 1 ? 'ptsMany' : 'pts', { n: item.score })}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Choix « qui a trouvé ? » : un bouton par joueur, avec avatar et score. */
+export function PlayerPicker({ players, scores, onPick }: { players: string[]; scores: number[]; onPick: (index: number) => void }) {
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-2">
+      {players.map((name, index) => (
+        <button
+          key={index}
+          type="button"
+          onClick={() => onPick(index)}
+          className="flex items-center gap-2 rounded-2xl bg-amber-400 px-3 py-2.5 text-left text-sm font-bold text-stone-900 transition-transform active:scale-95"
+        >
+          <Avatar index={index} name={name} size="sm" />
+          <span className="min-w-0 flex-1 truncate">{name}</span>
+          <span className="text-xs font-semibold text-stone-700">{scores[index]}</span>
+        </button>
+      ))}
+    </div>
+  );
 }

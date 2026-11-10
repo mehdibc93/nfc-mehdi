@@ -9,7 +9,10 @@ import type { BoardProps } from './boards/boardProps';
 import { BilliardsBoard } from './boards/BilliardsBoard';
 import { CardsBoard } from './boards/CardsBoard';
 import { Connect4Board, TicTacToeBoard } from './boards/GridBoards';
-import { PARTY_GAMES, type PartyDish } from './party';
+import { availablePartyGames, PARTY_GAMES, type PartyDish } from './party';
+import { PartyLang } from './party/i18n';
+import { toPartyLocale } from './catalog';
+import { logGameEvent } from '../lib/analytics';
 import { PartyHeader, PartyTheme } from './party/ui';
 import { botAction, cards, type CardsState } from './cards';
 import { Confetti } from './Confetti';
@@ -18,19 +21,6 @@ const CLASSIC_TINTS: Record<GameId, string> = { billiards: '#e5e7eb', cards: '#f
 
 type Filter = 'all' | 'fun' | 'brain' | 'classic';
 const FILTERS: Filter[] = ['all', 'fun', 'brain', 'classic'];
-const PARTY_KIND: Record<string, Filter> = {
-  rather: 'fun',
-  roulette: 'fun',
-  potato: 'fun',
-  undercover: 'fun',
-  forehead: 'fun',
-  whoofus: 'fun',
-  reflex: 'fun',
-  price: 'brain',
-  quiz: 'brain',
-  cursed: 'brain',
-  letters: 'brain',
-};
 const BOT_DELAY_MS = 1100;
 
 function GameIcon({ emoji, tint }: { emoji: string; tint: string }) {
@@ -94,6 +84,7 @@ export function GameLounge({
   table,
   tableCount,
   dishes,
+  hiddenGames = [],
   defaultName,
   locale,
   joinRoomId,
@@ -105,6 +96,8 @@ export function GameLounge({
   tableCount: number;
   /** Plats de la carte, pour « Devine le prix ». */
   dishes: PartyDish[];
+  /** Jeux masqués par le restaurateur (réglages du tableau de bord). */
+  hiddenGames?: string[];
   defaultName: string;
   locale: Locale;
   /** Défi accepté depuis l'écran de commande : partie à rejoindre dès la connexion. */
@@ -112,6 +105,7 @@ export function GameLounge({
   onClose: () => void;
 }) {
   const tx = useMemo(() => gameTx(locale), [locale]);
+  const lang = toPartyLocale(locale);
   const [name, setName] = useState(() => readStorage('local', NAME_KEY) ?? '');
   const [draftName, setDraftName] = useState(() => readStorage('local', NAME_KEY) ?? defaultName.trim().split(' ')[0] ?? '');
   // Chaque joueur indique sa table (déjà connue s'il a commandé) : c'est elle qui permet de
@@ -131,7 +125,15 @@ export function GameLounge({
   const me = useMemo<GamePlayer>(() => ({ id, name: name || '?', table: myTable }), [id, name, myTable]);
   const profileReady = Boolean(name && myTable) && !editingProfile;
   const lobby = useGameLobby(restaurantId, me, Boolean(name && myTable));
-  const partyGames = useMemo(() => PARTY_GAMES.filter((game) => !game.available || game.available(dishes)), [dishes]);
+  const partyGames = useMemo(() => availablePartyGames(lang, hiddenGames, dishes), [lang, hiddenGames, dishes]);
+  const classics = GAME_ORDER.filter((game) => !hiddenGames.includes(game));
+  const cardsOffered = classics.includes('cards');
+
+  // Mesure d'utilisation (sans donnée personnelle) : ouverture de la salle, puis chaque jeu lancé.
+  useEffect(() => {
+    logGameEvent(restaurantId, 'lounge', 'open');
+  }, [restaurantId]);
+  const track = (game: string) => logGameEvent(restaurantId, game, 'start');
   // Création en ligne : jeu choisi, puis table défiée (null : toutes les tables).
   const [creating, setCreating] = useState<GameId | null>(null);
   const [target, setTarget] = useState<string | null>(null);
@@ -174,6 +176,7 @@ export function GameLounge({
   };
 
   const startLocal = (game: GameId, humans: number, bots = 0) => {
+    track(bots > 0 ? 'cards-bots' : game);
     const players: GamePlayer[] = [
       ...Array.from({ length: humans }, (_, index) => ({
         id: `local-${index}`,
@@ -200,12 +203,14 @@ export function GameLounge({
   );
 
   const shell = (content: JSX.Element) => (
+    <PartyLang.Provider value={lang}>
     <div className="fixed inset-0 z-[70] overflow-y-auto overflow-x-hidden bg-[#f7f4ee] text-stone-900">
       <div className="mx-auto w-full max-w-lg px-4 pb-12">
         {header}
         {content}
       </div>
     </div>
+    </PartyLang.Provider>
   );
 
   // ---------- Prénom et table ----------
@@ -257,7 +262,9 @@ export function GameLounge({
   if (partyGame) {
     const Party = partyGame.Component;
     return shell(
-      <PartyTheme.Provider value={{ tint: partyGame.tint, text: partyGame.text, players: partyGame.players }}>
+      <PartyTheme.Provider
+        value={{ tint: partyGame.tint, emoji: partyGame.emoji, title: partyGame.title[lang], text: partyGame.text[lang], players: partyGame.players[lang] }}
+      >
         <Party firstName={name} dishes={dishes} onQuit={() => setParty(null)} />
       </PartyTheme.Provider>,
     );
@@ -403,6 +410,7 @@ export function GameLounge({
           <button
             type="button"
             onClick={() => {
+              track(creating);
               lobby.createRoom(creating, target);
               setCreating(null);
             }}
@@ -459,6 +467,7 @@ export function GameLounge({
       {tab === 'local' ? (
         <div className="mt-5 space-y-6">
           {/* Jeu de cartes vedette */}
+          {cardsOffered && (
           <section className="relative overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_20%_10%,#2563eb,#1c2f47_55%,#0a1220)] p-5 text-white shadow-card">
             <div className="pointer-events-none absolute -right-4 -top-2 flex rotate-12 gap-1 opacity-90">
               {['#e5383b', '#f2b705', '#2a9d4b'].map((color, index) => (
@@ -524,6 +533,7 @@ export function GameLounge({
               </div>
             )}
           </section>
+          )}
 
           {/* Filtres */}
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -546,19 +556,22 @@ export function GameLounge({
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('local.party')}</p>
               <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
                 {partyGames
-                  .filter((game) => filter === 'all' || PARTY_KIND[game.id] === filter)
+                  .filter((game) => filter === 'all' || game.kind === filter)
                   .map((game) => (
                     <button
                       key={game.id}
                       type="button"
-                      onClick={() => setParty(game.id)}
+                      onClick={() => {
+                        track(game.id);
+                        setParty(game.id);
+                      }}
                       className="flex items-center gap-4 rounded-3xl border border-stone-200/70 bg-white p-3.5 text-left shadow-soft transition-transform duration-200 active:scale-[0.98] sm:hover:-translate-y-0.5"
                     >
                       <GameIcon emoji={game.emoji} tint={game.tint} />
                       <span className="min-w-0 flex-1">
-                        <span className="block font-display font-bold leading-tight text-stone-900">{game.title}</span>
-                        <span className="mt-0.5 block text-sm leading-snug text-stone-600">{game.text}</span>
-                        <span className="mt-1 block text-xs text-stone-400">{game.players}</span>
+                        <span className="block font-display font-bold leading-tight text-stone-900">{game.title[lang]}</span>
+                        <span className="mt-0.5 block text-sm leading-snug text-stone-600">{game.text[lang]}</span>
+                        <span className="mt-1 block text-xs text-stone-400">{game.players[lang]}</span>
                       </span>
                       <span className="shrink-0 text-lg text-stone-300">›</span>
                     </button>
@@ -571,7 +584,7 @@ export function GameLounge({
             <section>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('local.classics')}</p>
               <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
-                {GAME_ORDER.filter((game) => game !== 'cards').map((game) => (
+                {classics.filter((game) => game !== 'cards').map((game) => (
                   <button
                     key={game}
                     type="button"
@@ -646,7 +659,10 @@ export function GameLounge({
                         </div>
                         <button
                           type="button"
-                          onClick={() => lobby.joinRoom(open.id)}
+                          onClick={() => {
+                            track(open.game);
+                            lobby.joinRoom(open.id);
+                          }}
                           disabled={lobby.joiningId !== null}
                           className="shrink-0 rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-stone-900 disabled:opacity-60"
                         >
@@ -660,7 +676,7 @@ export function GameLounge({
               <section>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('online.create')}</p>
                 <div className="mt-2 grid grid-cols-2 gap-3">
-                  {GAME_ORDER.map((game) => (
+                  {classics.map((game) => (
                     <button
                       key={game}
                       type="button"

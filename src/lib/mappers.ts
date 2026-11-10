@@ -92,6 +92,8 @@ export function toRestaurantRowPatch(patch: Partial<Restaurant>): Record<string,
   if (patch.deliveryFreeFrom !== undefined) out.delivery_free_from = patch.deliveryFreeFrom;
   if (patch.tipsEnabled !== undefined) out.tips_enabled = patch.tipsEnabled;
   if (patch.tipPercentages !== undefined) out.tip_percentages = patch.tipPercentages;
+  if (patch.gamesEnabled !== undefined) out.games_enabled = patch.gamesEnabled;
+  if (patch.gamesHidden !== undefined) out.games_hidden = patch.gamesHidden;
   return out;
 }
 
@@ -186,6 +188,9 @@ export function mapRestaurant(row: RestaurantRow): Restaurant {
     // Idem pour migration_028 (pourboires).
     tipsEnabled: row.tips_enabled ?? true,
     tipPercentages: row.tip_percentages?.length ? row.tip_percentages : DEFAULT_TIP_PERCENTAGES,
+    // Idem pour migration_030 (salle de jeux) : activée par défaut.
+    gamesEnabled: row.games_enabled ?? true,
+    gamesHidden: row.games_hidden ?? [],
   };
 }
 

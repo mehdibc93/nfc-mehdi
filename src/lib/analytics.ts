@@ -25,3 +25,16 @@ export function logDishEvent(
       () => {},
     );
 }
+
+export type GameEventType = 'open' | 'start';
+
+/** Utilisation de la salle de jeux (sans donnée personnelle). Fire-and-forget, comme logDishEvent. */
+export function logGameEvent(restaurantId: string, game: string, event: GameEventType) {
+  supabase
+    .from('game_events')
+    .insert({ restaurant_id: restaurantId, game, event })
+    .then(
+      () => {},
+      () => {},
+    );
+}

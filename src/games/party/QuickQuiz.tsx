@@ -1,16 +1,19 @@
-import { Confetti } from '../Confetti';
 import { useState } from 'react';
-import { QUIZ_QUESTIONS, type QuizQuestion } from './content';
-import { Card, PartyHeader, PlayersSetup, PrimaryButton, SecondaryButton, shuffled } from './ui';
+import { Confetti } from '../Confetti';
+import type { QuizQuestion } from './content';
+import { useParty } from './i18n';
+import { Card, PartyHeader, PlayerPicker, PlayersSetup, PrimaryButton, ProgressBar, Scoreboard, SecondaryButton, shuffled } from './ui';
 
 // Quiz éclair : la question s'affiche, le premier qui crie la bonne réponse marque le point.
 // On révèle la réponse, puis on touche le prénom de celui qui l'a trouvée en premier.
 
 const QUESTIONS_PER_GAME = 10;
+const OPTION_COLORS = ['#e5383b', '#1e6fd9', '#f2b705', '#2a9d4b'];
 
 type Asked = QuizQuestion & { order: number[] };
 
 export function QuickQuiz({ firstName, onQuit }: { firstName: string; onQuit: () => void }) {
+  const { t, content } = useParty();
   const [players, setPlayers] = useState<string[] | null>(null);
   const [scores, setScores] = useState<number[]>([]);
   const [questions, setQuestions] = useState<Asked[]>([]);
@@ -21,7 +24,7 @@ export function QuickQuiz({ firstName, onQuit }: { firstName: string; onQuit: ()
     setPlayers(names);
     setScores(names.map(() => 0));
     setQuestions(
-      shuffled(QUIZ_QUESTIONS)
+      shuffled(content.quiz)
         .slice(0, QUESTIONS_PER_GAME)
         .map((question) => ({ ...question, order: shuffled([0, 1, 2, 3]) })),
     );
@@ -35,52 +38,33 @@ export function QuickQuiz({ firstName, onQuit }: { firstName: string; onQuit: ()
     setIndex((value) => value + 1);
   };
 
-  const header = <PartyHeader emoji="⚡" title="Quiz éclair" onQuit={onQuit} />;
+  const header = <PartyHeader onQuit={onQuit} />;
 
   if (!players) {
     return (
       <div>
         {header}
-        <PlayersSetup
-          min={2}
-          max={10}
-          firstName={firstName}
-          onStart={start}
-          intro={
-            <>
-              {QUESTIONS_PER_GAME} questions de culture générale. <strong>Le premier qui crie la bonne réponse</strong> marque le point !
-            </>
-          }
-        />
+        <PlayersSetup min={2} max={10} firstName={firstName} onStart={start} intro={t('quiz.intro', { n: QUESTIONS_PER_GAME })} />
       </div>
     );
   }
 
   if (index >= questions.length) {
     const best = Math.max(...scores);
-    const ranking = players.map((name, i) => ({ name, score: scores[i] })).sort((a, b) => b.score - a.score);
+    const winners = players.filter((_, i) => scores[i] === best);
     return (
       <div>
         {header}
+        <Confetti />
         <Card className="text-center">
-          <Confetti />
-          <p className="text-5xl">🏆</p>
+          <p className="animate-pop text-6xl">🏆</p>
           <p className="mt-3 font-display text-2xl font-bold">
-            {ranking.filter((item) => item.score === best).map((item) => item.name).join(' et ')} {ranking.filter((item) => item.score === best).length > 1 ? 'gagnent' : 'gagne'} !
+            {winners.length > 1 ? t('winMany', { names: winners.join(t('and')) }) : t('wins', { name: winners[0] })}
           </p>
-          <ol className="mt-5 space-y-1.5 text-left">
-            {ranking.map((item, i) => (
-              <li key={i} className="flex justify-between rounded-2xl bg-stone-50 px-4 py-2 text-sm">
-                <span className="font-semibold">
-                  {i + 1}. {item.name}
-                </span>
-                <span className="font-bold tabular-nums">{item.score} pt{item.score > 1 ? 's' : ''}</span>
-              </li>
-            ))}
-          </ol>
+          <Scoreboard players={players} scores={scores} />
           <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <PrimaryButton onClick={() => start(players)}>Rejouer</PrimaryButton>
-            <SecondaryButton onClick={() => setPlayers(null)}>Changer les joueurs</SecondaryButton>
+            <PrimaryButton onClick={() => start(players)}>{t('replay')}</PrimaryButton>
+            <SecondaryButton onClick={() => setPlayers(null)}>{t('changePlayers')}</SecondaryButton>
           </div>
         </Card>
       </div>
@@ -91,44 +75,44 @@ export function QuickQuiz({ firstName, onQuit }: { firstName: string; onQuit: ()
   return (
     <div>
       {header}
-      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
-        Question {index + 1} / {questions.length}
-      </p>
+      <ProgressBar value={index + 1} total={questions.length} label={t('quiz.question', { n: index + 1, total: questions.length })} />
       <Card>
-        <p className="font-display text-xl font-bold leading-snug">{question.q}</p>
+        <p key={index} className="animate-fadeIn font-display text-xl font-bold leading-snug">
+          {question.q}
+        </p>
         <div className="mt-5 grid gap-2">
           {question.order.map((option, position) => {
             const correct = option === question.answer;
             return (
               <div
                 key={option}
-                className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition-colors duration-300 ${
-                  revealed ? (correct ? 'border-emerald-400 bg-emerald-50 text-emerald-800' : 'border-stone-100 text-stone-300') : 'border-stone-200 text-stone-800'
+                className={`flex items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-sm font-semibold transition-all duration-300 ${
+                  revealed ? (correct ? 'scale-[1.02] border-emerald-400 bg-emerald-50 text-emerald-800' : 'border-stone-100 text-stone-300') : 'border-stone-200 text-stone-800'
                 }`}
               >
-                <span className="mr-2 text-stone-400">{'ABCD'[position]}.</span>
-                {question.options[option]} {revealed && correct ? '✓' : ''}
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl font-display text-sm font-black text-white transition-opacity"
+                  style={{ background: OPTION_COLORS[position], opacity: revealed && !correct ? 0.3 : 1 }}
+                >
+                  {'ABCD'[position]}
+                </span>
+                <span className="min-w-0 flex-1">{question.options[option]}</span>
+                {revealed && correct && <span className="animate-pop text-lg">✓</span>}
               </div>
             );
           })}
         </div>
         {!revealed ? (
           <PrimaryButton onClick={() => setRevealed(true)} className="mt-5 w-full">
-            Voir la réponse
+            {t('quiz.reveal')}
           </PrimaryButton>
         ) : (
           <>
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Qui a trouvé en premier ?</p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {players.map((name, i) => (
-                <button key={i} type="button" onClick={() => award(i)} className="rounded-2xl bg-amber-400 px-3 py-3 text-sm font-bold text-stone-900 active:scale-95">
-                  {name} <span className="text-xs font-semibold text-stone-700">({scores[i]})</span>
-                </button>
-              ))}
-              <button type="button" onClick={() => award(null)} className="col-span-2 rounded-2xl border border-stone-200 py-3 text-sm font-semibold text-stone-500">
-                Personne
-              </button>
-            </div>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{t('quiz.who')}</p>
+            <PlayerPicker players={players} scores={scores} onPick={award} />
+            <button type="button" onClick={() => award(null)} className="mt-2 w-full rounded-2xl border border-stone-200 py-3 text-sm font-semibold text-stone-500">
+              {t('nobody')}
+            </button>
           </>
         )}
       </Card>

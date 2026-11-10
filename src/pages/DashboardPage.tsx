@@ -19,6 +19,7 @@ import { HERO_PRESETS } from '../lib/heroPresets';
 import { PinSectionGate } from '../components/PinSectionGate';
 import { TakeawayDeliverySettings } from '../components/TakeawayDeliverySettings';
 import { TipsSettings } from '../components/TipsSettings';
+import { GamesSettings } from '../components/GamesSettings';
 import logoHorizontal from '../assets/logo-horizontal.png';
 import type { DayKey, DayHours } from '../lib/types';
 import {
@@ -1920,6 +1921,7 @@ export function DashboardPage() {
             </div>
             <TakeawayDeliverySettings restaurant={restaurant} updateRestaurantField={updateRestaurantField} />
             <TipsSettings restaurant={restaurant} updateRestaurantField={updateRestaurantField} />
+            <GamesSettings restaurant={restaurant} updateRestaurantField={updateRestaurantField} />
             <div className="sm:col-span-2">
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">
                 {dt('Couleur des boutons (page client)', 'Button color (customer page)')}

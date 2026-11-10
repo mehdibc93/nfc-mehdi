@@ -1,30 +1,19 @@
 import { useState } from 'react';
-import { buzz, Card, PartyHeader, PlayersSetup, PrimaryButton, SecondaryButton } from './ui';
+import { useParty } from './i18n';
+import { Avatar, buzz, Card, PartyHeader, pick, PlayersSetup, PrimaryButton, SecondaryButton } from './ui';
 
 // Le nombre maudit : un nombre secret entre 1 et 100. Chacun à son tour propose un nombre ;
 // l'intervalle se resserre… et celui qui tombe sur le nombre maudit a perdu (et reçoit un gage).
 
-const DARES = [
-  'Imite un serveur qui présente le plat du jour.',
-  'Raconte ton pire rendez-vous.',
-  'Fais un compliment sincère à chaque personne de la table.',
-  'Parle avec un accent pendant le prochain tour.',
-  'Chante le refrain d’une chanson choisie par la table.',
-  'Dis ce que tu commanderais si tout était gratuit.',
-  'Raconte ton souvenir d’enfance le plus gênant.',
-  'Fais deviner un film en mime, sans parler.',
-  'Choisis qui commande le dessert pour toute la table.',
-  'Raconte une anecdote que personne à la table ne connaît.',
-];
-
 export function CursedNumber({ firstName, onQuit }: { firstName: string; onQuit: () => void }) {
+  const { t, content } = useParty();
   const [players, setPlayers] = useState<string[] | null>(null);
   const [secret, setSecret] = useState(0);
   const [low, setLow] = useState(1);
   const [high, setHigh] = useState(100);
   const [turn, setTurn] = useState(0);
   const [guess, setGuess] = useState('');
-  const [hint, setHint] = useState<string | null>(null);
+  const [hint, setHint] = useState<{ text: string; up: boolean } | null>(null);
   const [loser, setLoser] = useState<number | null>(null);
   const [dare, setDare] = useState('');
 
@@ -39,23 +28,13 @@ export function CursedNumber({ firstName, onQuit }: { firstName: string; onQuit:
     setLoser(null);
   };
 
-  const header = <PartyHeader emoji="🔮" title="Le nombre maudit" onQuit={onQuit} />;
+  const header = <PartyHeader onQuit={onQuit} />;
 
   if (!players) {
     return (
       <div>
         {header}
-        <PlayersSetup
-          min={2}
-          max={10}
-          firstName={firstName}
-          onStart={start}
-          intro={
-            <>
-              Un nombre maudit se cache entre 1 et 100. Chacun propose un nombre à son tour, l’intervalle se resserre… <strong>Celui qui tombe dessus a perdu</strong> et reçoit un gage !
-            </>
-          }
-        />
+        <PlayersSetup min={2} max={10} firstName={firstName} onStart={start} intro={t('cursed.intro')} />
       </div>
     );
   }
@@ -65,15 +44,15 @@ export function CursedNumber({ firstName, onQuit }: { firstName: string; onQuit:
       <div>
         {header}
         <Card className="text-center">
-          <p className="animate-pop text-6xl">😱</p>
-          <p className="mt-3 font-display text-2xl font-bold">{players[loser]} est tombé sur le {secret} !</p>
-          <div className="mt-5 rounded-2xl bg-amber-50 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">Ton gage</p>
-            <p className="mt-1 font-semibold text-stone-900">{dare}</p>
+          <p className="animate-pop text-7xl">😱</p>
+          <p className="mt-3 font-display text-2xl font-bold">{t('cursed.fell', { name: players[loser], n: secret })}</p>
+          <div className="mt-5 rounded-3xl bg-gradient-to-br from-violet-600 to-fuchsia-600 px-5 py-5 text-white shadow-card">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">{t('cursed.dare')}</p>
+            <p className="mt-2 font-display text-lg font-bold">{dare}</p>
           </div>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <PrimaryButton onClick={() => start(players)}>Rejouer</PrimaryButton>
-            <SecondaryButton onClick={() => setPlayers(null)}>Changer les joueurs</SecondaryButton>
+            <PrimaryButton onClick={() => start(players)}>{t('replay')}</PrimaryButton>
+            <SecondaryButton onClick={() => setPlayers(null)}>{t('changePlayers')}</SecondaryButton>
           </div>
         </Card>
       </div>
@@ -82,22 +61,24 @@ export function CursedNumber({ firstName, onQuit }: { firstName: string; onQuit:
 
   const value = Number(guess);
   const valid = Number.isInteger(value) && value >= low && value <= high && guess !== '';
+  // Part de l'intervalle restant, pour la jauge de tension.
+  const danger = 1 - (high - low) / 99;
 
   const submit = () => {
     if (!valid) return;
     if (value === secret) {
       buzz([200, 80, 200]);
-      setDare(DARES[Math.floor(Math.random() * DARES.length)]);
+      setDare(pick(content.dares));
       setLoser(turn);
       return;
     }
     buzz(30);
     if (value < secret) {
       setLow(value + 1);
-      setHint(`${value}, c’est trop petit !`);
+      setHint({ text: t('cursed.small', { n: value }), up: true });
     } else {
       setHigh(value - 1);
-      setHint(`${value}, c’est trop grand !`);
+      setHint({ text: t('cursed.big', { n: value }), up: false });
     }
     setGuess('');
     setTurn((turn + 1) % players.length);
@@ -107,12 +88,22 @@ export function CursedNumber({ firstName, onQuit }: { firstName: string; onQuit:
     <div>
       {header}
       <Card className="text-center">
-        <p className="text-sm font-semibold text-stone-500">À {players[turn]} de choisir</p>
-        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Le nombre maudit est entre</p>
+        <div className="flex items-center justify-center gap-2">
+          <Avatar index={turn} name={players[turn]} size="sm" />
+          <p className="text-sm font-semibold text-stone-600">{t('cursed.turn', { name: players[turn] })}</p>
+        </div>
+        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{t('cursed.between')}</p>
         <p className="mt-1 font-display text-5xl font-black tabular-nums">
-          {low} <span className="text-stone-300">et</span> {high}
+          {low} <span className="text-2xl text-stone-300">{t('cursed.and')}</span> {high}
         </p>
-        {hint && <p className="mt-3 text-sm font-semibold text-amber-700">{hint}</p>}
+        <div className="mx-auto mt-3 h-2 max-w-xs overflow-hidden rounded-full bg-stone-100">
+          <div className="h-full rounded-full bg-gradient-to-r from-violet-400 to-red-500 transition-all duration-500" style={{ width: `${Math.max(4, danger * 100)}%` }} />
+        </div>
+        {hint && (
+          <p key={hint.text} className="mt-3 animate-pop text-sm font-bold text-violet-700">
+            {hint.up ? '⬆️' : '⬇️'} {hint.text}
+          </p>
+        )}
         <input
           type="number"
           inputMode="numeric"
@@ -120,10 +111,10 @@ export function CursedNumber({ firstName, onQuit }: { firstName: string; onQuit:
           onChange={(event) => setGuess(event.target.value)}
           onKeyDown={(event) => event.key === 'Enter' && submit()}
           placeholder={`${low} – ${high}`}
-          className="mt-5 w-full rounded-2xl border border-stone-200 px-4 py-4 text-center font-display text-3xl font-bold outline-none focus:border-navy-300"
+          className="mt-5 w-full rounded-2xl border-2 border-stone-200 px-4 py-4 text-center font-display text-3xl font-bold outline-none focus:border-violet-400"
         />
         <PrimaryButton onClick={submit} disabled={!valid} className="mt-3 w-full">
-          Je tente ma chance
+          {t('cursed.try')}
         </PrimaryButton>
       </Card>
     </div>

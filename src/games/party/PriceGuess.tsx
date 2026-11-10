@@ -1,8 +1,9 @@
-import { Confetti } from '../Confetti';
 import { useState } from 'react';
 import { money } from '../../lib/format';
+import { Confetti } from '../Confetti';
+import { useParty } from './i18n';
 import type { PartyDish } from './types';
-import { Card, PartyHeader, PlayersSetup, PrimaryButton, SecondaryButton, shuffled } from './ui';
+import { Card, PartyHeader, PlayerPicker, PlayersSetup, PrimaryButton, ProgressBar, Scoreboard, SecondaryButton, shuffled } from './ui';
 
 // Devine le prix : un plat de la carte du restaurant s'affiche, chacun annonce son prix à voix
 // haute, puis on révèle le vrai. Le plus proche marque le point. Fait découvrir la carte !
@@ -10,6 +11,7 @@ import { Card, PartyHeader, PlayersSetup, PrimaryButton, SecondaryButton, shuffl
 const ROUNDS = 8;
 
 export function PriceGuess({ firstName, dishes, onQuit }: { firstName: string; dishes: PartyDish[]; onQuit: () => void }) {
+  const { t } = useParty();
   const [players, setPlayers] = useState<string[] | null>(null);
   const [scores, setScores] = useState<number[]>([]);
   const [rounds, setRounds] = useState<PartyDish[]>([]);
@@ -24,29 +26,19 @@ export function PriceGuess({ firstName, dishes, onQuit }: { firstName: string; d
     setRevealed(false);
   };
 
-  const award = (player: number | null) => {
-    if (player !== null) setScores((list) => list.map((value, i) => (i === player ? value + 1 : value)));
+  const award = (player: number) => {
+    setScores((list) => list.map((value, i) => (i === player ? value + 1 : value)));
     setRevealed(false);
     setIndex((value) => value + 1);
   };
 
-  const header = <PartyHeader emoji="🏷️" title="Devine le prix" onQuit={onQuit} />;
+  const header = <PartyHeader onQuit={onQuit} />;
 
   if (!players) {
     return (
       <div>
         {header}
-        <PlayersSetup
-          min={2}
-          max={10}
-          firstName={firstName}
-          onStart={start}
-          intro={
-            <>
-              Un plat de la carte s’affiche : chacun annonce son prix à voix haute. <strong>Le plus proche du vrai prix</strong> marque le point !
-            </>
-          }
-        />
+        <PlayersSetup min={2} max={10} firstName={firstName} onStart={start} intro={t('price.intro')} />
       </div>
     );
   }
@@ -57,16 +49,17 @@ export function PriceGuess({ firstName, dishes, onQuit }: { firstName: string; d
     return (
       <div>
         {header}
+        <Confetti />
         <Card className="text-center">
-          <Confetti />
-          <p className="text-5xl">🏆</p>
+          <p className="animate-pop text-6xl">🏆</p>
           <p className="mt-3 font-display text-2xl font-bold">
-            {winners.join(' et ')} {winners.length > 1 ? 'gagnent' : 'gagne'} !
+            {winners.length > 1 ? t('winMany', { names: winners.join(t('and')) }) : t('wins', { name: winners[0] })}
           </p>
-          <p className="mt-2 text-sm text-stone-500">Un vrai pro de la carte 😄</p>
+          <p className="mt-1 text-sm text-stone-500">{t('price.pro')}</p>
+          <Scoreboard players={players} scores={scores} />
           <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <PrimaryButton onClick={() => start(players)}>Rejouer</PrimaryButton>
-            <SecondaryButton onClick={() => setPlayers(null)}>Changer les joueurs</SecondaryButton>
+            <PrimaryButton onClick={() => start(players)}>{t('replay')}</PrimaryButton>
+            <SecondaryButton onClick={() => setPlayers(null)}>{t('changePlayers')}</SecondaryButton>
           </div>
         </Card>
       </div>
@@ -77,15 +70,17 @@ export function PriceGuess({ firstName, dishes, onQuit }: { firstName: string; d
   return (
     <div>
       {header}
-      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
-        Plat {index + 1} / {rounds.length}
-      </p>
+      <ProgressBar value={index + 1} total={rounds.length} label={t('price.dish', { n: index + 1, total: rounds.length })} />
       <Card className="overflow-hidden p-0 text-center">
-        {dish.image && <img src={dish.image} alt="" className="h-48 w-full object-cover" />}
+        {dish.image ? (
+          <img key={dish.name} src={dish.image} alt="" className="h-52 w-full animate-fadeIn object-cover" />
+        ) : (
+          <div className="flex h-32 items-center justify-center bg-gradient-to-br from-emerald-50 to-emerald-100 text-6xl">🍽️</div>
+        )}
         <div className="p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{dish.category}</p>
           <p className="mt-1 font-display text-2xl font-bold">{dish.name}</p>
-          <div className="mt-5 h-16">
+          <div className="mx-auto mt-5 flex h-20 max-w-[14rem] items-center justify-center rounded-3xl border-2 border-dashed border-stone-200">
             {revealed ? (
               <p className="animate-pop font-display text-5xl font-black text-emerald-600">{money(dish.price)}</p>
             ) : (
@@ -93,19 +88,13 @@ export function PriceGuess({ firstName, dishes, onQuit }: { firstName: string; d
             )}
           </div>
           {!revealed ? (
-            <PrimaryButton onClick={() => setRevealed(true)} className="mt-4 w-full">
-              Tout le monde a parlé ? Révéler
+            <PrimaryButton onClick={() => setRevealed(true)} className="mt-5 w-full">
+              {t('price.reveal')}
             </PrimaryButton>
           ) : (
             <>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Qui était le plus proche ?</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {players.map((name, i) => (
-                  <button key={i} type="button" onClick={() => award(i)} className="rounded-2xl bg-amber-400 px-3 py-3 text-sm font-bold text-stone-900 active:scale-95">
-                    {name} <span className="text-xs font-semibold text-stone-700">({scores[i]})</span>
-                  </button>
-                ))}
-              </div>
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{t('price.who')}</p>
+              <PlayerPicker players={players} scores={scores} onPick={award} />
             </>
           )}
         </div>

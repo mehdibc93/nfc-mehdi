@@ -104,6 +104,8 @@ export type RestaurantRow = {
   delivery_free_from: number | null;
   tips_enabled: boolean;
   tip_percentages: number[] | null;
+  games_enabled?: boolean | null;
+  games_hidden?: string[] | null;
   categories?: CategoryRow[];
 };
 
@@ -203,6 +205,8 @@ export type Restaurant = {
   deliveryFreeFrom: number | null;
   tipsEnabled: boolean;
   tipPercentages: number[];
+  gamesEnabled: boolean;
+  gamesHidden: string[];
 };
 
 export type RestaurantWithMenu = Restaurant & { categories: Category[] };
