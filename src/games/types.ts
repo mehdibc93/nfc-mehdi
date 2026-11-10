@@ -17,4 +17,4 @@ export interface GameLogic<S, A> {
   resultOf: (state: S) => GameResult;
 }
 
-export type GamePlayer = { id: string; name: string; table: string };
+export type GamePlayer = { id: string; name: string; table: string; bot?: boolean };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { connect4, ticTacToe } from './gridGames';
-import { buildDeck, canPlay, cards, type CardsState } from './cards';
+import { botAction, buildDeck, canPlay, cards, type CardsState } from './cards';
 import { billiards, rack, runShot, HEAD_SPOT, BALL_R, TABLE_H } from './billiards';
 
 describe('morpion', () => {
@@ -143,12 +143,57 @@ describe('parties complètes jouées au hasard', () => {
         const hand = state.hands[state.turn];
         const card = hand.find((item) => canPlay(state, item));
         const next = card
-          ? cards.apply(state, state.turn, { type: 'play', cardId: card.id, color: 'r' })
+          ? cards.apply(state, state.turn, { type: 'play', cardId: card.id, color: 'r', shout: hand.length === 2 })
           : cards.apply(state, state.turn, { type: state.drew ? 'pass' : 'draw' });
         expect(next).not.toBeNull();
         state = next!;
         const total = state.hands.flat().length + state.pile.length + state.discard.length;
         expect(total).toBe(108);
+      }
+      expect(state.result).not.toBeNull();
+    }
+  });
+});
+
+describe('cartes : cri « Couleurs ! » et robot', () => {
+  const twoCards = (): CardsState => ({
+    hands: [
+      [{ id: 1, color: 'r', value: '5' }, { id: 2, color: 'b', value: '9' }],
+      [{ id: 3, color: 'g', value: '5' }],
+    ],
+    pile: buildDeck().slice(20, 40),
+    discard: [{ id: 99, color: 'r', value: '7' }],
+    color: 'r',
+    turn: 0,
+    dir: 1,
+    drew: false,
+    result: null,
+    event: null,
+  });
+
+  it('oublier de crier fait piocher 2 cartes', () => {
+    const next = cards.apply(twoCards(), 0, { type: 'play', cardId: 1 })!;
+    expect(next.hands[0]).toHaveLength(3);
+    expect(next.forgot).toBe(0);
+  });
+
+  it('crier à temps évite la pénalité', () => {
+    const next = cards.apply(twoCards(), 0, { type: 'play', cardId: 1, shout: true })!;
+    expect(next.hands[0]).toHaveLength(1);
+    expect(next.forgot).toBeNull();
+  });
+
+  it('le robot joue une carte valide et crie au bon moment', () => {
+    const action = botAction(twoCards(), 0);
+    expect(action).toEqual({ type: 'play', cardId: 1, color: undefined, shout: true });
+  });
+
+  it('des robots finissent toujours une partie', () => {
+    for (let game = 0; game < 20; game += 1) {
+      let state = cards.init(4);
+      for (let move = 0; move < 3000 && !state.result; move += 1) {
+        state = cards.apply(state, state.turn, botAction(state, state.turn))!;
+        expect(state).not.toBeNull();
       }
       expect(state.result).not.toBeNull();
     }

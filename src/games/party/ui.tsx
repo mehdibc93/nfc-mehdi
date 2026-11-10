@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 // Briques communes des jeux d'ambiance (un seul téléphone posé au milieu de la table).
@@ -16,14 +16,29 @@ export function pick<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-export function PartyHeader({ emoji, title, onQuit }: { emoji: string; title: string; onQuit: () => void }) {
+/** Couleur et accroche du jeu en cours, fournies par la salle de jeux. */
+export const PartyTheme = createContext<{ tint: string; text?: string; players?: string }>({ tint: '#ece4d6' });
+
+export function PartyHeader({ emoji, title, onQuit, quitLabel = 'Quitter' }: { emoji: string; title: string; onQuit: () => void; quitLabel?: string }) {
+  const theme = useContext(PartyTheme);
   return (
-    <div className="mb-4 flex items-center justify-between gap-3">
-      <p className="min-w-0 font-display text-lg font-bold">
-        {emoji} {title}
-      </p>
-      <button type="button" onClick={onQuit} className="shrink-0 rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600">
-        Quitter
+    <div
+      className="relative mb-4 flex items-center gap-4 overflow-hidden rounded-3xl p-4 shadow-soft"
+      style={{ background: `radial-gradient(circle at 15% 20%, #ffffff 0%, ${theme.tint} 75%)` }}
+    >
+      <span className="pointer-events-none absolute -bottom-6 -right-3 rotate-12 text-[92px] leading-none opacity-15">{emoji}</span>
+      <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/80 text-3xl shadow-soft">{emoji}</span>
+      <div className="relative min-w-0 flex-1">
+        <p className="truncate font-display text-lg font-bold leading-tight text-stone-900">{title}</p>
+        {theme.text && <p className="mt-0.5 truncate text-xs text-stone-600">{theme.text}</p>}
+        {theme.players && <p className="mt-0.5 text-[11px] font-semibold text-stone-500">{theme.players}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={onQuit}
+        className="relative shrink-0 rounded-full bg-white/90 px-3.5 py-2 text-xs font-semibold text-stone-700 shadow-sm"
+      >
+        {quitLabel}
       </button>
     </div>
   );

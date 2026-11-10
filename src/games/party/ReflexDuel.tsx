@@ -1,3 +1,4 @@
+import { Confetti } from '../Confetti';
 import { useEffect, useRef, useState } from 'react';
 import { buzz, PartyHeader, PrimaryButton } from './ui';
 
@@ -97,6 +98,7 @@ export function ReflexDuel({ onQuit }: { onQuit: () => void }) {
 
   return (
     <div className={`fixed inset-0 z-[90] flex touch-none select-none flex-col transition-colors duration-150 ${background}`}>
+      {champion !== null && <Confetti />}
       {half(0)}
       <div className="flex items-center justify-center gap-2 border-y border-white/20 bg-black/20 py-2">
         {phase === 'result' && (

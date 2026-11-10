@@ -1,3 +1,4 @@
+import { Confetti } from '../Confetti';
 import { useState } from 'react';
 import { LETTER_RUSH_CATEGORIES, LETTER_RUSH_LETTERS } from './content';
 import { buzz, Card, PartyHeader, PlayersSetup, pick, PrimaryButton, SecondaryButton, TimerBadge, useCountdown } from './ui';
@@ -81,6 +82,7 @@ export function LetterRush({ firstName, onQuit }: { firstName: string; onQuit: (
       <div>
         {header}
         <Card className="text-center">
+          <Confetti />
           <p className="text-5xl">🏆</p>
           <p className="mt-3 font-display text-2xl font-bold">{players[winner]} gagne !</p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">

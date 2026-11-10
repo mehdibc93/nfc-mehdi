@@ -57,6 +57,14 @@ module.exports = {
           '70%': { transform: 'translateY(6%)', opacity: '1' },
           '100%': { transform: 'translateY(0)' },
         },
+        confetti: {
+          '0%': { transform: 'translate3d(0, -10vh, 0) rotate(0deg)', opacity: '1' },
+          '100%': { transform: 'translate3d(var(--drift, 0px), 110vh, 0) rotate(720deg)', opacity: '0.9' },
+        },
+        dealIn: {
+          '0%': { transform: 'translateY(40px) scale(0.85)', opacity: '0' },
+          '100%': { transform: 'translateY(0) scale(1)', opacity: '1' },
+        },
         floatUp: {
           '0%': { transform: 'translateY(0) scale(0.6)', opacity: '0' },
           '15%': { transform: 'translateY(-10px) scale(1.15)', opacity: '1' },
@@ -95,6 +103,8 @@ module.exports = {
         pop: 'pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
         dropIn: 'dropIn 380ms cubic-bezier(0.33, 0, 0.67, 1) both',
         floatUp: 'floatUp 2.4s ease-out forwards',
+        confetti: 'confetti 2.8s cubic-bezier(0.25, 0.6, 0.4, 1) forwards',
+        dealIn: 'dealIn 320ms cubic-bezier(0.16, 1, 0.3, 1) both',
         floatTilt3D: 'floatTilt3D 9s ease-in-out infinite',
         arGlowPulse: 'arGlowPulse 2.2s ease-in-out infinite',
       },

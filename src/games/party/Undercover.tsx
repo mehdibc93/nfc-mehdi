@@ -1,3 +1,4 @@
+import { Confetti } from '../Confetti';
 import { useState } from 'react';
 import { UNDERCOVER_PAIRS } from './content';
 import { Card, PartyHeader, PlayersSetup, pick, PrimaryButton, SecondaryButton } from './ui';
@@ -161,6 +162,7 @@ export function Undercover({ firstName, onQuit }: { firstName: string; onQuit: (
     <div>
       {header}
       <Card className="text-center">
+        <Confetti />
         <p className="text-5xl">{phase.undercoverWins ? '🕵️' : '🎉'}</p>
         <p className="mt-3 font-display text-2xl font-bold">
           {phase.undercoverWins ? `${game.players[game.undercover]}, l’undercover, a gagné !` : 'La table a démasqué l’intrus !'}

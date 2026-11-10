@@ -1,3 +1,4 @@
+import { Confetti } from '../Confetti';
 import { useState } from 'react';
 import { money } from '../../lib/format';
 import type { PartyDish } from './types';
@@ -57,6 +58,7 @@ export function PriceGuess({ firstName, dishes, onQuit }: { firstName: string; d
       <div>
         {header}
         <Card className="text-center">
+          <Confetti />
           <p className="text-5xl">🏆</p>
           <p className="mt-3 font-display text-2xl font-bold">
             {winners.join(' et ')} {winners.length > 1 ? 'gagnent' : 'gagne'} !

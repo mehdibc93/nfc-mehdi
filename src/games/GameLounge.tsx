@@ -10,8 +10,28 @@ import { BilliardsBoard } from './boards/BilliardsBoard';
 import { CardsBoard } from './boards/CardsBoard';
 import { Connect4Board, TicTacToeBoard } from './boards/GridBoards';
 import { PARTY_GAMES, type PartyDish } from './party';
+import { PartyHeader, PartyTheme } from './party/ui';
+import { botAction, cards, type CardsState } from './cards';
+import { Confetti } from './Confetti';
 
 const CLASSIC_TINTS: Record<GameId, string> = { billiards: '#e5e7eb', cards: '#fde2e4', connect4: '#e0ecff', tictactoe: '#fff4cc' };
+
+type Filter = 'all' | 'fun' | 'brain' | 'classic';
+const FILTERS: Filter[] = ['all', 'fun', 'brain', 'classic'];
+const PARTY_KIND: Record<string, Filter> = {
+  rather: 'fun',
+  roulette: 'fun',
+  potato: 'fun',
+  undercover: 'fun',
+  forehead: 'fun',
+  whoofus: 'fun',
+  reflex: 'fun',
+  price: 'brain',
+  quiz: 'brain',
+  cursed: 'brain',
+  letters: 'brain',
+};
+const BOT_DELAY_MS = 1100;
 
 function GameIcon({ emoji, tint }: { emoji: string; tint: string }) {
   return (
@@ -101,8 +121,9 @@ export function GameLounge({
   const [editingProfile, setEditingProfile] = useState(false);
   const [tab, setTab] = useState<'online' | 'local'>(joinRoomId ? 'online' : 'local');
   const [party, setParty] = useState<string | null>(null);
-  const [localSetup, setLocalSetup] = useState<GameId | null>(null);
+  const [cardsMode, setCardsMode] = useState<'bots' | 'friends' | null>(null);
   const [localCount, setLocalCount] = useState(2);
+  const [filter, setFilter] = useState<Filter>('all');
   const [local, setLocal] = useState<LocalGame | null>(null);
   // Revanche demandée par un invité : mémorisée pour la version de partie en cours seulement.
   const [rematchAsked, setRematchAsked] = useState<string | null>(null);
@@ -124,6 +145,23 @@ export function GameLounge({
     joinRoom(joinRoomId);
   }, [joinRoomId, lobbyStatus, lobbyRoom, joinRoom]);
 
+  // Adversaires robots (jeu de cartes) : ils jouent seuls, après une courte pause.
+  useEffect(() => {
+    if (!local || local.game !== 'cards') return undefined;
+    const state = local.state as CardsState;
+    if (state.result || !local.players[state.turn]?.bot) return undefined;
+    const timer = window.setTimeout(() => {
+      setLocal((current) => {
+        if (!current) return current;
+        const now = current.state as CardsState;
+        if (now.result || !current.players[now.turn]?.bot) return current;
+        const next = cards.apply(now, now.turn, botAction(now, now.turn));
+        return next ? { ...current, state: next } : current;
+      });
+    }, BOT_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [local]);
+
   const submitName = (event: FormEvent) => {
     event.preventDefault();
     const value = draftName.trim().slice(0, 16);
@@ -135,14 +173,17 @@ export function GameLounge({
     setEditingProfile(false);
   };
 
-  const startLocal = (game: GameId, count: number) => {
-    const players: GamePlayer[] = Array.from({ length: count }, (_, index) => ({
-      id: `local-${index}`,
-      name: index === 0 ? name : tx('local.player', { n: index + 1 }),
-      table: myTable,
-    }));
-    setLocalSetup(null);
-    setLocal({ game, players, state: GAME_LOGIC[game].init(count) });
+  const startLocal = (game: GameId, humans: number, bots = 0) => {
+    const players: GamePlayer[] = [
+      ...Array.from({ length: humans }, (_, index) => ({
+        id: `local-${index}`,
+        name: index === 0 ? name : tx('local.player', { n: index + 1 }),
+        table: myTable,
+      })),
+      ...Array.from({ length: bots }, (_, index) => ({ id: `bot-${index}`, name: tx('local.bot', { n: index + 1 }), table: myTable, bot: true })),
+    ];
+    setCardsMode(null);
+    setLocal({ game, players, state: GAME_LOGIC[game].init(players.length) });
   };
 
   const header = (
@@ -215,21 +256,30 @@ export function GameLounge({
   const partyGame = PARTY_GAMES.find((game) => game.id === party);
   if (partyGame) {
     const Party = partyGame.Component;
-    return shell(<Party firstName={name} dishes={dishes} onQuit={() => setParty(null)} />);
+    return shell(
+      <PartyTheme.Provider value={{ tint: partyGame.tint, text: partyGame.text, players: partyGame.players }}>
+        <Party firstName={name} dishes={dishes} onQuit={() => setParty(null)} />
+      </PartyTheme.Provider>,
+    );
   }
 
   // ---------- Partie locale ----------
   if (local) {
     const logic = GAME_LOGIC[local.game];
+    // Contre des robots, ce téléphone est celui du seul joueur humain ; sinon il passe de main en main.
+    const vsBots = local.players.some((player) => player.bot);
+    const humanIndex = local.players.findIndex((player) => !player.bot);
     return shell(
       <GameView
         tx={tx}
         game={local.game}
         state={local.state}
         players={local.players}
-        me={null}
+        me={vsBots ? humanIndex : null}
         onAction={(action) => {
-          const next = logic.apply(local.state, logic.turnOf(local.state), action);
+          const turn = logic.turnOf(local.state);
+          if (local.players[turn]?.bot) return;
+          const next = logic.apply(local.state, turn, action);
           if (next) setLocal({ ...local, state: next });
         }}
         onRematch={() => {
@@ -408,70 +458,137 @@ export function GameLounge({
 
       {tab === 'local' ? (
         <div className="mt-5 space-y-6">
-          <section>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('local.party')}</p>
-            <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
-              {partyGames.map((game) => (
-                <button
-                  key={game.id}
-                  type="button"
-                  onClick={() => setParty(game.id)}
-                  className="flex items-center gap-4 rounded-3xl border border-stone-200/70 bg-white p-3.5 text-left shadow-soft transition-transform duration-200 active:scale-[0.98] sm:hover:-translate-y-0.5"
-                >
-                  <GameIcon emoji={game.emoji} tint={game.tint} />
-                  <span className="min-w-0">
-                    <span className="block font-display font-bold leading-tight text-stone-900">{game.title}</span>
-                    <span className="mt-0.5 block text-sm leading-snug text-stone-600">{game.text}</span>
-                    <span className="mt-1 block text-xs text-stone-400">{game.players}</span>
-                  </span>
-                </button>
+          {/* Jeu de cartes vedette */}
+          <section className="relative overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_20%_10%,#2563eb,#1c2f47_55%,#0a1220)] p-5 text-white shadow-card">
+            <div className="pointer-events-none absolute -right-4 -top-2 flex rotate-12 gap-1 opacity-90">
+              {['#e5383b', '#f2b705', '#2a9d4b'].map((color, index) => (
+                <span
+                  key={color}
+                  className="h-20 w-14 rounded-xl border-[3px] border-white shadow-card"
+                  style={{ background: color, transform: `rotate(${(index - 1) * 12}deg) translateY(${Math.abs(index - 1) * 8}px)` }}
+                />
               ))}
             </div>
-          </section>
-          <section>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('local.classics')}</p>
-            <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
-          {GAME_ORDER.map((game) => (
-            <div key={game} className="rounded-3xl border border-stone-200/70 bg-white p-3.5 shadow-soft">
+            <span className="relative inline-flex rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-stone-900">
+              {tx('feature.badge')}
+            </span>
+            <p className="relative mt-3 font-display text-3xl font-black">🃏 {gameName(tx, 'cards')}</p>
+            <p className="relative mt-1 max-w-[16rem] text-sm leading-5 text-white/75">{tx('feature.text')}</p>
+            <div className="relative mt-4 grid grid-cols-3 gap-2">
+              {(['bots', 'friends'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setCardsMode(cardsMode === mode ? null : mode)}
+                  className={`rounded-2xl px-2 py-2.5 text-xs font-bold transition-colors ${cardsMode === mode ? 'bg-white text-stone-900' : 'bg-white/15 text-white'}`}
+                >
+                  {tx(mode === 'bots' ? 'feature.bots' : 'feature.friends')}
+                </button>
+              ))}
               <button
                 type="button"
-                onClick={() => (GAME_LOGIC[game].maxPlayers > 2 ? setLocalSetup(localSetup === game ? null : game) : startLocal(game, 2))}
-                className="flex w-full items-center gap-4 text-left"
+                onClick={() => {
+                  setTab('online');
+                  setCreating('cards');
+                  setTarget(null);
+                }}
+                className="rounded-2xl bg-white/15 px-2 py-2.5 text-xs font-bold text-white"
               >
-                <GameIcon emoji={GAME_EMOJI[game]} tint={CLASSIC_TINTS[game]} />
-                <span className="min-w-0">
-                  <span className="block font-display font-bold leading-tight text-stone-900">{gameName(tx, game)}</span>
-                  <span className="mt-0.5 block text-sm leading-snug text-stone-600">{gameText(tx, game)}</span>
-                </span>
+                {tx('feature.online')}
               </button>
-              {localSetup === game && (
-                <div className="mt-3 border-t border-stone-100 pt-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-stone-400">{tx('local.players')}</p>
-                  <div className="mt-2 flex gap-1.5">
-                    {[2, 3, 4].map((count) => (
-                      <button
-                        key={count}
-                        type="button"
-                        onClick={() => setLocalCount(count)}
-                        className={`h-9 flex-1 rounded-full text-sm font-bold ${localCount === count ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600'}`}
-                      >
-                        {count}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => startLocal(game, localCount)}
-                    className="mt-2 w-full rounded-full bg-amber-400 py-2 text-sm font-bold text-stone-900"
-                  >
-                    {tx('local.start')}
-                  </button>
+            </div>
+            {cardsMode && (
+              <div className="relative mt-3 animate-fadeIn rounded-2xl bg-white/10 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/70">
+                  {tx(cardsMode === 'bots' ? 'local.bots' : 'local.players')}
+                </p>
+                <div className="mt-2 flex gap-1.5">
+                  {(cardsMode === 'bots' ? [1, 2, 3] : [2, 3, 4]).map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => setLocalCount(count)}
+                      className={`h-9 flex-1 rounded-full text-sm font-bold ${localCount === count ? 'bg-amber-400 text-stone-900' : 'bg-white/15 text-white'}`}
+                    >
+                      {count}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-          ))}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => (cardsMode === 'bots' ? startLocal('cards', 1, Math.min(3, localCount)) : startLocal('cards', Math.max(2, localCount)))}
+                  className="mt-2 w-full rounded-full bg-amber-400 py-2.5 text-sm font-black text-stone-900"
+                >
+                  {tx('local.start')} →
+                </button>
+              </div>
+            )}
           </section>
+
+          {/* Filtres */}
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+            {FILTERS.map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFilter(value)}
+                className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-colors ${
+                  filter === value ? 'bg-stone-900 text-white' : 'border border-stone-200 bg-white text-stone-600'
+                }`}
+              >
+                {tx(`filter.${value}`)}
+              </button>
+            ))}
+          </div>
+
+          {filter !== 'classic' && (
+            <section>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('local.party')}</p>
+              <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
+                {partyGames
+                  .filter((game) => filter === 'all' || PARTY_KIND[game.id] === filter)
+                  .map((game) => (
+                    <button
+                      key={game.id}
+                      type="button"
+                      onClick={() => setParty(game.id)}
+                      className="flex items-center gap-4 rounded-3xl border border-stone-200/70 bg-white p-3.5 text-left shadow-soft transition-transform duration-200 active:scale-[0.98] sm:hover:-translate-y-0.5"
+                    >
+                      <GameIcon emoji={game.emoji} tint={game.tint} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-display font-bold leading-tight text-stone-900">{game.title}</span>
+                        <span className="mt-0.5 block text-sm leading-snug text-stone-600">{game.text}</span>
+                        <span className="mt-1 block text-xs text-stone-400">{game.players}</span>
+                      </span>
+                      <span className="shrink-0 text-lg text-stone-300">›</span>
+                    </button>
+                  ))}
+              </div>
+            </section>
+          )}
+
+          {(filter === 'all' || filter === 'classic') && (
+            <section>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('local.classics')}</p>
+              <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
+                {GAME_ORDER.filter((game) => game !== 'cards').map((game) => (
+                  <button
+                    key={game}
+                    type="button"
+                    onClick={() => startLocal(game, 2)}
+                    className="flex items-center gap-4 rounded-3xl border border-stone-200/70 bg-white p-3.5 text-left shadow-soft transition-transform duration-200 active:scale-[0.98] sm:hover:-translate-y-0.5"
+                  >
+                    <GameIcon emoji={GAME_EMOJI[game]} tint={CLASSIC_TINTS[game]} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-display font-bold leading-tight text-stone-900">{gameName(tx, game)}</span>
+                      <span className="mt-0.5 block text-sm leading-snug text-stone-600">{gameText(tx, game)}</span>
+                    </span>
+                    <span className="shrink-0 text-lg text-stone-300">›</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       ) : (
         <div className="mt-5 space-y-5">
@@ -613,18 +730,14 @@ function GameView({
 
   return (
     <div className="relative">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="min-w-0 font-display text-lg font-bold">
-          {GAME_EMOJI[game]} {tx(`game.${game}`)}
-        </p>
-        <button type="button" onClick={onQuit} className="shrink-0 rounded-full border border-stone-200 bg-white px-4 py-2 text-xs font-semibold text-stone-600">
-          {tx('play.quit')}
-        </button>
-      </div>
+      <PartyTheme.Provider value={{ tint: CLASSIC_TINTS[game], text: tx(`game.${game}Text`) }}>
+        <PartyHeader emoji={GAME_EMOJI[game]} title={tx(`game.${game}`)} onQuit={onQuit} quitLabel={tx('play.quit')} />
+      </PartyTheme.Provider>
+      {result && result.winner !== null && (me === null || result.winner === me) && <Confetti />}
 
       <p
-        className={`mb-4 rounded-2xl px-4 py-3 text-center text-sm font-bold ${
-          result ? 'bg-emerald-50 text-emerald-700' : canAct ? 'bg-amber-100 text-amber-900' : 'bg-white text-stone-600'
+        className={`mb-4 rounded-2xl px-4 py-3 text-center text-sm font-bold transition-colors ${
+          result ? 'bg-emerald-50 text-emerald-700' : canAct ? 'bg-amber-100 text-amber-900 ring-2 ring-amber-300' : 'bg-white text-stone-600'
         }`}
       >
         {status}
