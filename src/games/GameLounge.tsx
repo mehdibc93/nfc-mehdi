@@ -9,7 +9,7 @@ import type { BoardProps } from './boards/boardProps';
 import { BilliardsBoard } from './boards/BilliardsBoard';
 import { CardsBoard } from './boards/CardsBoard';
 import { Connect4Board, TicTacToeBoard } from './boards/GridBoards';
-import { PARTY_GAMES } from './party';
+import { PARTY_GAMES, type PartyDish } from './party';
 
 const CLASSIC_TINTS: Record<GameId, string> = { billiards: '#e5e7eb', cards: '#fde2e4', connect4: '#e0ecff', tictactoe: '#fff4cc' };
 
@@ -29,6 +29,7 @@ function GameIcon({ emoji, tint }: { emoji: string; tint: string }) {
 
 const NAME_KEY = 'nourevo-player-name';
 const ID_KEY = 'nourevo-player-id';
+const TABLE_KEY = 'nourevo-player-table';
 const REACTIONS = ['👏', '😂', '😱', '🔥', '😎'];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,14 +73,18 @@ export function GameLounge({
   restaurantId,
   table,
   tableCount,
+  dishes,
   defaultName,
   locale,
   joinRoomId,
   onClose,
 }: {
   restaurantId: string;
-  table: string;
+  /** Table de la commande, si le client a déjà commandé ; sinon il la choisit en entrant. */
+  table: string | null;
   tableCount: number;
+  /** Plats de la carte, pour « Devine le prix ». */
+  dishes: PartyDish[];
   defaultName: string;
   locale: Locale;
   /** Défi accepté depuis l'écran de commande : partie à rejoindre dès la connexion. */
@@ -89,6 +94,11 @@ export function GameLounge({
   const tx = useMemo(() => gameTx(locale), [locale]);
   const [name, setName] = useState(() => readStorage('local', NAME_KEY) ?? '');
   const [draftName, setDraftName] = useState(() => readStorage('local', NAME_KEY) ?? defaultName.trim().split(' ')[0] ?? '');
+  // Chaque joueur indique sa table (déjà connue s'il a commandé) : c'est elle qui permet de
+  // défier une table précise ou d'être défié.
+  const [myTable, setMyTable] = useState(() => table ?? readStorage('session', TABLE_KEY) ?? '');
+  const [draftTable, setDraftTable] = useState(myTable);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [tab, setTab] = useState<'online' | 'local'>(joinRoomId ? 'online' : 'local');
   const [party, setParty] = useState<string | null>(null);
   const [localSetup, setLocalSetup] = useState<GameId | null>(null);
@@ -97,8 +107,10 @@ export function GameLounge({
   // Revanche demandée par un invité : mémorisée pour la version de partie en cours seulement.
   const [rematchAsked, setRematchAsked] = useState<string | null>(null);
   const [id] = useState(playerId);
-  const me = useMemo<GamePlayer>(() => ({ id, name: name || '?', table }), [id, name, table]);
-  const lobby = useGameLobby(restaurantId, me, Boolean(name));
+  const me = useMemo<GamePlayer>(() => ({ id, name: name || '?', table: myTable }), [id, name, myTable]);
+  const profileReady = Boolean(name && myTable) && !editingProfile;
+  const lobby = useGameLobby(restaurantId, me, Boolean(name && myTable));
+  const partyGames = useMemo(() => PARTY_GAMES.filter((game) => !game.available || game.available(dishes)), [dishes]);
   // Création en ligne : jeu choisi, puis table défiée (null : toutes les tables).
   const [creating, setCreating] = useState<GameId | null>(null);
   const [target, setTarget] = useState<string | null>(null);
@@ -115,16 +127,19 @@ export function GameLounge({
   const submitName = (event: FormEvent) => {
     event.preventDefault();
     const value = draftName.trim().slice(0, 16);
-    if (!value) return;
+    if (!value || !draftTable) return;
     writeStorage('local', NAME_KEY, value);
+    writeStorage('session', TABLE_KEY, draftTable);
     setName(value);
+    setMyTable(draftTable);
+    setEditingProfile(false);
   };
 
   const startLocal = (game: GameId, count: number) => {
     const players: GamePlayer[] = Array.from({ length: count }, (_, index) => ({
       id: `local-${index}`,
       name: index === 0 ? name : tx('local.player', { n: index + 1 }),
-      table,
+      table: myTable,
     }));
     setLocalSetup(null);
     setLocal({ game, players, state: GAME_LOGIC[game].init(count) });
@@ -152,11 +167,27 @@ export function GameLounge({
     </div>
   );
 
-  // ---------- Prénom ----------
-  if (!name) {
+  // ---------- Prénom et table ----------
+  if (!profileReady) {
     return shell(
       <form onSubmit={submitName} className="rounded-3xl border border-stone-200/70 bg-white p-6 shadow-soft">
         <p className="text-sm leading-6 text-stone-500">{tx('lounge.subtitle')}</p>
+        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('name.table')}</p>
+        <div className="mt-2 grid max-h-52 grid-cols-5 gap-2 overflow-y-auto">
+          {tables.map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setDraftTable(value)}
+              className={`rounded-2xl py-2.5 text-sm font-bold transition-colors ${
+                draftTable === value ? 'bg-stone-900 text-white' : 'border border-stone-200 bg-white text-stone-700'
+              }`}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-stone-400">{tx('name.tableHint')}</p>
         <label className="mt-5 block text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">
           {tx('name.label')}
           <input
@@ -171,7 +202,7 @@ export function GameLounge({
         <p className="mt-2 text-xs text-stone-400">{tx('name.hint')}</p>
         <button
           type="submit"
-          disabled={!draftName.trim()}
+          disabled={!draftName.trim() || !draftTable}
           className="mt-5 w-full rounded-full bg-stone-900 px-5 py-3.5 text-sm font-bold text-white disabled:opacity-50"
         >
           {tx('name.continue')}
@@ -184,7 +215,7 @@ export function GameLounge({
   const partyGame = PARTY_GAMES.find((game) => game.id === party);
   if (partyGame) {
     const Party = partyGame.Component;
-    return shell(<Party firstName={name} onQuit={() => setParty(null)} />);
+    return shell(<Party firstName={name} dishes={dishes} onQuit={() => setParty(null)} />);
   }
 
   // ---------- Partie locale ----------
@@ -316,7 +347,7 @@ export function GameLounge({
         <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('create.title')}</p>
         <div className="mt-2">{chip(null, tx('create.anyTable'))}</div>
         <div className="mt-2 grid max-h-64 grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-5">
-          {tables.map((value) => (value === table ? chip(value, tx('create.myTable', { table: value }), true) : chip(value, value)))}
+          {tables.map((value) => (value === myTable ? chip(value, tx('create.myTable', { table: value }), true) : chip(value, value)))}
         </div>
         <div className="mt-5 flex gap-2">
           <button
@@ -345,7 +376,22 @@ export function GameLounge({
   // ---------- Accueil ----------
   return shell(
     <>
-      <p className="text-sm leading-6 text-stone-500">{tx('lounge.subtitle')}</p>
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-soft">
+        <p className="min-w-0 truncate text-sm font-semibold text-stone-700">
+          👋 {name} · {tx('online.table', { table: myTable })}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setDraftName(name);
+            setDraftTable(myTable);
+            setEditingProfile(true);
+          }}
+          className="shrink-0 text-xs font-bold text-navy-700"
+        >
+          {tx('name.edit')}
+        </button>
+      </div>
       <div className="mt-5 grid grid-cols-2 gap-2 rounded-full bg-stone-200/60 p-1">
         {(['local', 'online'] as const).map((value) => (
           <button
@@ -365,7 +411,7 @@ export function GameLounge({
           <section>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('local.party')}</p>
             <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
-              {PARTY_GAMES.map((game) => (
+              {partyGames.map((game) => (
                 <button
                   key={game.id}
                   type="button"
@@ -466,12 +512,12 @@ export function GameLounge({
                       <li
                         key={open.id}
                         className={`flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-soft ${
-                          open.target === table ? 'border-amber-300 bg-amber-50' : 'border-stone-200/70 bg-white'
+                          open.target === myTable ? 'border-amber-300 bg-amber-50' : 'border-stone-200/70 bg-white'
                         }`}
                       >
                         <span className="text-2xl">{GAME_EMOJI[open.game]}</span>
                         <div className="min-w-0 flex-1">
-                          {open.target === table && (
+                          {open.target === myTable && (
                             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-700">{tx('online.challengeForYou')}</p>
                           )}
                           <p className="truncate text-sm font-bold">

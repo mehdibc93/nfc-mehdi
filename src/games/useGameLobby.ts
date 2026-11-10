@@ -264,7 +264,7 @@ export function useGameLobby(restaurantId: string, me: GamePlayer, enabled: bool
   // Le prénom peut changer pendant que l'on est connecté.
   useEffect(() => {
     if (status === 'online') track();
-  }, [me.name, status, track]);
+  }, [me.name, me.table, status, track]);
 
   const createRoom = useCallback(
     (game: GameId, target: string | null) => {

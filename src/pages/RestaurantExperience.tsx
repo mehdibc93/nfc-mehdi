@@ -352,6 +352,10 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [gamesOpen, setGamesOpen] = useState(false);
   const [challengeToJoin, setChallengeToJoin] = useState<string | null>(null);
+  const gameDishes = useMemo(
+    () => menuDishes.map((dish) => ({ name: dish.name, price: dish.price, image: dish.image, category: dish.category })),
+    [menuDishes],
+  );
   const [videoReady, setVideoReady] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [enteringRestaurant, setEnteringRestaurant] = useState(false);
@@ -2361,6 +2365,17 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
 
       {showFloatingControls && isDineIn && (phase === 'menu' || phase === 'checkout') && (
         <div className="fixed bottom-4 right-4 z-[55] flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
+          {/* Pour ceux qui attendent leurs amis avant de commander. */}
+          <button
+            type="button"
+            onClick={() => {
+              setChallengeToJoin(null);
+              setGamesOpen(true);
+            }}
+            className="rounded-full bg-amber-400 px-4 py-2.5 text-xs font-bold text-stone-900 shadow-card transition-all duration-300 hover:-translate-y-0.5"
+          >
+            🎮 {gameTx(language)('menu.play')}
+          </button>
           <button
             type="button"
             onClick={() => requestTableService('waiter')}
@@ -2388,12 +2403,13 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         {phase === 'success' && renderSuccess()}
       </main>
 
-      {phase === 'success' && gamesOpen && (
+      {gamesOpen && (
         <Suspense fallback={<div className="fixed inset-0 z-[70] bg-[#f7f4ee]" />}>
           <GameLounge
             restaurantId={restaurant.id}
-            table={selectedTable}
+            table={phase === 'success' && isDineIn ? selectedTable : null}
             tableCount={restaurant.tableCount}
+            dishes={gameDishes}
             defaultName={customerName}
             locale={language}
             joinRoomId={challengeToJoin}
