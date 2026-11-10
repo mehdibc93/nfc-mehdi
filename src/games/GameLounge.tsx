@@ -9,6 +9,20 @@ import type { BoardProps } from './boards/boardProps';
 import { BilliardsBoard } from './boards/BilliardsBoard';
 import { CardsBoard } from './boards/CardsBoard';
 import { Connect4Board, TicTacToeBoard } from './boards/GridBoards';
+import { PARTY_GAMES } from './party';
+
+const CLASSIC_TINTS: Record<GameId, string> = { billiards: '#e5e7eb', cards: '#fde2e4', connect4: '#e0ecff', tictactoe: '#fff4cc' };
+
+function GameIcon({ emoji, tint }: { emoji: string; tint: string }) {
+  return (
+    <span
+      className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-4xl shadow-inner"
+      style={{ background: `radial-gradient(circle at 30% 25%, #ffffff 0%, ${tint} 70%)` }}
+    >
+      <span className="drop-shadow-[0_4px_4px_rgba(0,0,0,0.18)]">{emoji}</span>
+    </span>
+  );
+}
 
 // Salle de jeux proposée au client après sa commande sur place : mini-jeux à plusieurs sur le
 // même téléphone, ou en ligne avec les autres tables du restaurant (voir useGameLobby).
@@ -75,7 +89,8 @@ export function GameLounge({
   const tx = useMemo(() => gameTx(locale), [locale]);
   const [name, setName] = useState(() => readStorage('local', NAME_KEY) ?? '');
   const [draftName, setDraftName] = useState(() => readStorage('local', NAME_KEY) ?? defaultName.trim().split(' ')[0] ?? '');
-  const [tab, setTab] = useState<'online' | 'local'>('online');
+  const [tab, setTab] = useState<'online' | 'local'>(joinRoomId ? 'online' : 'local');
+  const [party, setParty] = useState<string | null>(null);
   const [localSetup, setLocalSetup] = useState<GameId | null>(null);
   const [localCount, setLocalCount] = useState(2);
   const [local, setLocal] = useState<LocalGame | null>(null);
@@ -163,6 +178,13 @@ export function GameLounge({
         </button>
       </form>,
     );
+  }
+
+  // ---------- Jeu d'ambiance ----------
+  const partyGame = PARTY_GAMES.find((game) => game.id === party);
+  if (partyGame) {
+    const Party = partyGame.Component;
+    return shell(<Party firstName={name} onQuit={() => setParty(null)} />);
   }
 
   // ---------- Partie locale ----------
@@ -325,7 +347,7 @@ export function GameLounge({
     <>
       <p className="text-sm leading-6 text-stone-500">{tx('lounge.subtitle')}</p>
       <div className="mt-5 grid grid-cols-2 gap-2 rounded-full bg-stone-200/60 p-1">
-        {(['online', 'local'] as const).map((value) => (
+        {(['local', 'online'] as const).map((value) => (
           <button
             key={value}
             type="button"
@@ -339,17 +361,42 @@ export function GameLounge({
       <p className="mt-2 text-center text-xs text-stone-400">{tx(tab === 'online' ? 'mode.onlineText' : 'mode.localText')}</p>
 
       {tab === 'local' ? (
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 space-y-6">
+          <section>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('local.party')}</p>
+            <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
+              {PARTY_GAMES.map((game) => (
+                <button
+                  key={game.id}
+                  type="button"
+                  onClick={() => setParty(game.id)}
+                  className="flex items-center gap-4 rounded-3xl border border-stone-200/70 bg-white p-3.5 text-left shadow-soft transition-transform duration-200 active:scale-[0.98] sm:hover:-translate-y-0.5"
+                >
+                  <GameIcon emoji={game.emoji} tint={game.tint} />
+                  <span className="min-w-0">
+                    <span className="block font-display font-bold leading-tight text-stone-900">{game.title}</span>
+                    <span className="mt-0.5 block text-sm leading-snug text-stone-600">{game.text}</span>
+                    <span className="mt-1 block text-xs text-stone-400">{game.players}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+          <section>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('local.classics')}</p>
+            <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
           {GAME_ORDER.map((game) => (
-            <div key={game} className="rounded-3xl border border-stone-200/70 bg-white p-4 shadow-soft">
+            <div key={game} className="rounded-3xl border border-stone-200/70 bg-white p-3.5 shadow-soft">
               <button
                 type="button"
                 onClick={() => (GAME_LOGIC[game].maxPlayers > 2 ? setLocalSetup(localSetup === game ? null : game) : startLocal(game, 2))}
-                className="w-full text-left"
+                className="flex w-full items-center gap-4 text-left"
               >
-                <p className="text-3xl">{GAME_EMOJI[game]}</p>
-                <p className="mt-2 font-display font-bold">{gameName(tx, game)}</p>
-                <p className="mt-0.5 text-xs text-stone-500">{gameText(tx, game)}</p>
+                <GameIcon emoji={GAME_EMOJI[game]} tint={CLASSIC_TINTS[game]} />
+                <span className="min-w-0">
+                  <span className="block font-display font-bold leading-tight text-stone-900">{gameName(tx, game)}</span>
+                  <span className="mt-0.5 block text-sm leading-snug text-stone-600">{gameText(tx, game)}</span>
+                </span>
               </button>
               {localSetup === game && (
                 <div className="mt-3 border-t border-stone-100 pt-3">
@@ -377,6 +424,8 @@ export function GameLounge({
               )}
             </div>
           ))}
+            </div>
+          </section>
         </div>
       ) : (
         <div className="mt-5 space-y-5">
