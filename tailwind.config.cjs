@@ -51,6 +51,17 @@ module.exports = {
           '45%': { transform: 'scale(1.08)' },
           '100%': { transform: 'scale(1)' },
         },
+        // Salle de jeux : jeton de Puissance 4 qui tombe, réaction emoji qui s'envole.
+        dropIn: {
+          '0%': { transform: 'translateY(-420%)', opacity: '0.6' },
+          '70%': { transform: 'translateY(6%)', opacity: '1' },
+          '100%': { transform: 'translateY(0)' },
+        },
+        floatUp: {
+          '0%': { transform: 'translateY(0) scale(0.6)', opacity: '0' },
+          '15%': { transform: 'translateY(-10px) scale(1.15)', opacity: '1' },
+          '100%': { transform: 'translateY(-120px) scale(1)', opacity: '0' },
+        },
         // Photo du plat qui "flotte" et pivote légèrement en 3D, façon présentoir — scale(1.05)
         // laisse une marge pour que la rotation ne découvre jamais le fond derrière l'image
         // (object-cover recouvre le conteneur, mais un rectangle qui pivote en 3D peut sinon
@@ -82,6 +93,8 @@ module.exports = {
         drawCheckMark: 'drawCheck 350ms 500ms ease-out forwards',
         drawCheckSolo: 'drawCheck 320ms ease-out forwards',
         pop: 'pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        dropIn: 'dropIn 380ms cubic-bezier(0.33, 0, 0.67, 1) both',
+        floatUp: 'floatUp 2.4s ease-out forwards',
         floatTilt3D: 'floatTilt3D 9s ease-in-out infinite',
         arGlowPulse: 'arGlowPulse 2.2s ease-in-out infinite',
       },

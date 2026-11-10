@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { mapRestaurantWithMenu, mapDiscountRule } from '../lib/mappers';
@@ -26,6 +26,10 @@ import { StripeCheckoutForm } from '../components/StripeCheckoutForm';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { setPageMeta } from '../lib/seo';
 import { SITE_URL } from '../lib/site';
+import { gameTx } from '../games/gameText';
+
+// Salle de jeux (billard, cartes…) chargée seulement quand le client l'ouvre.
+const GameLounge = lazy(() => import('../games/GameLounge').then((module) => ({ default: module.GameLounge })));
 
 type Phase = 'scan' | 'cinematic' | 'menu' | 'checkout' | 'success';
 type ModalStep = 'dish' | 'added' | 'drink' | 'drink-added' | 'dessert' | 'dessert-added' | null;
@@ -345,6 +349,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const [afterTipError, setAfterTipError] = useState<string | null>(null);
   const [afterTipThanks, setAfterTipThanks] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [gamesOpen, setGamesOpen] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [enteringRestaurant, setEnteringRestaurant] = useState(false);
@@ -2037,6 +2042,24 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               </div>
             </div>
 
+            {isDineIn && liveOrderStatus !== 'refused' && (
+              <button
+                type="button"
+                onClick={() => setGamesOpen(true)}
+                className="group relative flex w-full items-center gap-4 overflow-hidden rounded-3xl bg-gradient-to-br from-stone-900 via-navy-800 to-navy-700 p-5 text-left text-white shadow-card transition-transform duration-300 hover:-translate-y-0.5 sm:p-6"
+              >
+                <span className="absolute -right-6 -top-8 text-[110px] leading-none opacity-15 transition-transform duration-500 group-hover:rotate-12">🎱</span>
+                <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-3xl">🎮</span>
+                <span className="relative min-w-0 flex-1">
+                  <span className="block font-display text-lg font-bold">{gameTx(language)('promo.title')}</span>
+                  <span className="mt-1 block text-sm leading-5 text-white/70">{gameTx(language)('promo.text')}</span>
+                  <span className="mt-3 inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold text-stone-900">
+                    {gameTx(language)('promo.button')} →
+                  </span>
+                </span>
+              </button>
+            )}
+
             {specialInstructions.trim() && (
               <div className="rounded-3xl border border-navy-300/25 bg-navy-300/8 p-6">
                 <p className="text-xs uppercase tracking-[0.28em] text-navy-700">{tr('success.kitchenInstructionsSent')}</p>
@@ -2327,6 +2350,18 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
         {phase === 'checkout' && renderCheckout()}
         {phase === 'success' && renderSuccess()}
       </main>
+
+      {phase === 'success' && gamesOpen && (
+        <Suspense fallback={<div className="fixed inset-0 z-[70] bg-[#f7f4ee]" />}>
+          <GameLounge
+            restaurantId={restaurant.id}
+            table={selectedTable}
+            defaultName={customerName}
+            locale={language}
+            onClose={() => setGamesOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {confirmation && (
         <div
