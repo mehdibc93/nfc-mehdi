@@ -3,6 +3,9 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 import { GAME_LOGIC } from './registry';
 import type { GameId, GamePlayer } from './types';
+import { gamesChannelName, openRoomsFor, type OpenRoom, type PresenceMeta } from './lobbyShared';
+
+export type { OpenRoom };
 
 // Salle de jeux en ligne d'un restaurant, sur un canal Supabase Realtime (Presence + Broadcast) :
 // aucune table en base, rien n'est conservé. Chaque client annonce sa présence (prénom, table,
@@ -17,17 +20,17 @@ export type RoomSnapshot = {
   players: GamePlayer[];
   state: unknown | null;
   version: number;
+  /** Table défiée (null : ouverte à toutes les tables). */
+  target: string | null;
   closed?: 'host-left' | 'player-left';
 };
 
-type PresenceRoom = { id: string; game: GameId; host: boolean; open: boolean; count: number; max: number };
-type PresenceMeta = GamePlayer & { room: PresenceRoom | null };
-
-export type OpenRoom = { id: string; game: GameId; host: GamePlayer; count: number; max: number };
 export type Reaction = { key: number; playerId: string; emoji: string };
 export type LobbyStatus = 'connecting' | 'online' | 'offline';
 
 const JOIN_TIMEOUT_MS = 6000;
+// Délai avant d'afficher « connexion impossible » : la reconnexion automatique a le temps d'agir.
+const OFFLINE_AFTER_MS = 12000;
 
 function randomId(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -40,6 +43,8 @@ export function useGameLobby(restaurantId: string, me: GamePlayer, enabled: bool
   const [joinError, setJoinError] = useState<'full' | 'timeout' | null>(null);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const roomRef = useRef<RoomSnapshot | null>(null);
@@ -68,6 +73,7 @@ export function useGameLobby(restaurantId: string, me: GamePlayer, enabled: bool
               open: current.state === null && current.players.length < max,
               count: current.players.length,
               max,
+              target: current.target,
             }
           : null,
     };
@@ -111,7 +117,8 @@ export function useGameLobby(restaurantId: string, me: GamePlayer, enabled: bool
 
   useEffect(() => {
     if (!enabled) return undefined;
-    const channel = supabase.channel(`games-${restaurantId}`, {
+    setStatus('connecting');
+    const channel = supabase.channel(gamesChannelName(restaurantId), {
       config: { presence: { key: meRef.current.id }, broadcast: { self: false } },
     });
     channelRef.current = channel;
@@ -149,7 +156,8 @@ export function useGameLobby(restaurantId: string, me: GamePlayer, enabled: bool
           send('room', current);
           return;
         }
-        if (current.state !== null || current.closed || current.players.length >= logic.maxPlayers) {
+        const wrongTable = current.target !== null && player.table !== current.target;
+        if (wrongTable || current.state !== null || current.closed || current.players.length >= logic.maxPlayers) {
           send('full', { roomId, playerId: player.id });
           return;
         }
@@ -219,16 +227,26 @@ export function useGameLobby(restaurantId: string, me: GamePlayer, enabled: bool
         setReactions((list) => [...list, { key, playerId, emoji }]);
         window.setTimeout(() => setReactions((list) => list.filter((item) => item.key !== key)), 2600);
       })
-      .subscribe((state) => {
+      .subscribe((state, err) => {
+        // Rappel tardif d'un ancien canal (après un « Réessayer » par exemple) : ignoré.
+        if (channelRef.current !== channel) return;
         if (state === 'SUBSCRIBED') {
+          window.clearTimeout(offlineTimer);
+          setLastError(null);
           setStatus('online');
           track();
         } else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT' || state === 'CLOSED') {
-          setStatus('offline');
+          // Supabase retente tout seul : on ne déclare la salle injoignable qu'après un délai.
+          setLastError(`${state}${err?.message ? ` : ${err.message}` : ''}`);
+          setStatus((current) => (current === 'online' ? 'connecting' : current));
         }
       });
+    const offlineTimer = window.setTimeout(() => {
+      if (channelRef.current === channel) setStatus((current) => (current === 'online' ? current : 'offline'));
+    }, OFFLINE_AFTER_MS);
 
     return () => {
+      window.clearTimeout(offlineTimer);
       window.clearTimeout(joinTimer.current);
       const current = roomRef.current;
       if (current && !current.closed) {
@@ -239,7 +257,9 @@ export function useGameLobby(restaurantId: string, me: GamePlayer, enabled: bool
       channelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [enabled, restaurantId, applyAction, commitRoom, send, startGame, track]);
+  }, [enabled, restaurantId, attempt, applyAction, commitRoom, send, startGame, track]);
+
+  const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
   // Le prénom peut changer pendant que l'on est connecté.
   useEffect(() => {
@@ -247,9 +267,9 @@ export function useGameLobby(restaurantId: string, me: GamePlayer, enabled: bool
   }, [me.name, status, track]);
 
   const createRoom = useCallback(
-    (game: GameId) => {
+    (game: GameId, target: string | null) => {
       setJoinError(null);
-      commitRoom({ id: randomId(), game, hostId: meRef.current.id, players: [meRef.current], state: null, version: 0 }, false);
+      commitRoom({ id: randomId(), game, hostId: meRef.current.id, players: [meRef.current], state: null, version: 0, target }, false);
     },
     [commitRoom],
   );
@@ -316,12 +336,12 @@ export function useGameLobby(restaurantId: string, me: GamePlayer, enabled: bool
     [send],
   );
 
-  const openRooms: OpenRoom[] = people
-    .filter((meta) => meta.room?.host && meta.room.open)
-    .map((meta) => ({ id: meta.room!.id, game: meta.room!.game, host: { id: meta.id, name: meta.name, table: meta.table }, count: meta.room!.count, max: meta.room!.max }));
+  const openRooms = openRoomsFor(people, me.table);
 
   return {
     status,
+    lastError,
+    retry,
     peopleCount: people.length,
     openRooms,
     room,

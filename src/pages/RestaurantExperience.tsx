@@ -27,6 +27,7 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { setPageMeta } from '../lib/seo';
 import { SITE_URL } from '../lib/site';
 import { gameTx } from '../games/gameText';
+import { useTableChallenges } from '../games/lobbyShared';
 
 // Salle de jeux (billard, cartes…) chargée seulement quand le client l'ouvre.
 const GameLounge = lazy(() => import('../games/GameLounge').then((module) => ({ default: module.GameLounge })));
@@ -350,6 +351,7 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const [afterTipThanks, setAfterTipThanks] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [gamesOpen, setGamesOpen] = useState(false);
+  const [challengeToJoin, setChallengeToJoin] = useState<string | null>(null);
   const [videoReady, setVideoReady] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [enteringRestaurant, setEnteringRestaurant] = useState(false);
@@ -368,6 +370,12 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
   const [sendingRequestType, setSendingRequestType] = useState<'bill' | 'waiter' | null>(null);
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [liveOrderStatus, setLiveOrderStatus] = useState<OrderStatus | null>(null);
+  // Défis lancés à cette table depuis la salle de jeux (affichés sur l’écran de confirmation).
+  const tableChallenges = useTableChallenges(
+    restaurant.id,
+    selectedTable,
+    phase === 'success' && isDineIn && !gamesOpen && liveOrderStatus !== 'refused',
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -2042,10 +2050,39 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
               </div>
             </div>
 
+            {isDineIn && liveOrderStatus !== 'refused' && tableChallenges.length > 0 && (
+              <div className="animate-pop rounded-3xl border-2 border-amber-300 bg-amber-50 p-5">
+                {tableChallenges.slice(0, 2).map((challenge) => (
+                  <div key={challenge.id} className="flex flex-wrap items-center justify-between gap-3 [&+&]:mt-3">
+                    <p className="min-w-0 flex-1 font-semibold text-stone-900">
+                      {gameTx(language)('promo.challenge', {
+                        name: challenge.host.name,
+                        table: challenge.host.table,
+                        game: gameTx(language)(`game.${challenge.game}`),
+                      })}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChallengeToJoin(challenge.id);
+                        setGamesOpen(true);
+                      }}
+                      className="shrink-0 rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-stone-900"
+                    >
+                      {gameTx(language)('promo.accept')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {isDineIn && liveOrderStatus !== 'refused' && (
               <button
                 type="button"
-                onClick={() => setGamesOpen(true)}
+                onClick={() => {
+                  setChallengeToJoin(null);
+                  setGamesOpen(true);
+                }}
                 className="group relative flex w-full items-center gap-4 overflow-hidden rounded-3xl bg-gradient-to-br from-stone-900 via-navy-800 to-navy-700 p-5 text-left text-white shadow-card transition-transform duration-300 hover:-translate-y-0.5 sm:p-6"
               >
                 <span className="absolute -right-6 -top-8 text-[110px] leading-none opacity-15 transition-transform duration-500 group-hover:rotate-12">🎱</span>
@@ -2356,8 +2393,10 @@ function RestaurantFlow({ restaurant }: { restaurant: RestaurantWithMenu }) {
           <GameLounge
             restaurantId={restaurant.id}
             table={selectedTable}
+            tableCount={restaurant.tableCount}
             defaultName={customerName}
             locale={language}
+            joinRoomId={challengeToJoin}
             onClose={() => setGamesOpen(false)}
           />
         </Suspense>

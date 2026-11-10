@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { Locale } from '../lib/i18n';
 import { gameTx, type GameTx } from './gameText';
@@ -57,14 +57,19 @@ type LocalGame = { game: GameId; players: GamePlayer[]; state: unknown };
 export function GameLounge({
   restaurantId,
   table,
+  tableCount,
   defaultName,
   locale,
+  joinRoomId,
   onClose,
 }: {
   restaurantId: string;
   table: string;
+  tableCount: number;
   defaultName: string;
   locale: Locale;
+  /** Défi accepté depuis l'écran de commande : partie à rejoindre dès la connexion. */
+  joinRoomId?: string | null;
   onClose: () => void;
 }) {
   const tx = useMemo(() => gameTx(locale), [locale]);
@@ -79,6 +84,18 @@ export function GameLounge({
   const [id] = useState(playerId);
   const me = useMemo<GamePlayer>(() => ({ id, name: name || '?', table }), [id, name, table]);
   const lobby = useGameLobby(restaurantId, me, Boolean(name));
+  // Création en ligne : jeu choisi, puis table défiée (null : toutes les tables).
+  const [creating, setCreating] = useState<GameId | null>(null);
+  const [target, setTarget] = useState<string | null>(null);
+  const tables = useMemo(() => Array.from({ length: Math.max(1, tableCount) }, (_, index) => String(index + 1)), [tableCount]);
+
+  const autoJoined = useRef(false);
+  const { status: lobbyStatus, room: lobbyRoom, joinRoom } = lobby;
+  useEffect(() => {
+    if (!joinRoomId || autoJoined.current || lobbyStatus !== 'online' || lobbyRoom) return;
+    autoJoined.current = true;
+    joinRoom(joinRoomId);
+  }, [joinRoomId, lobbyStatus, lobbyRoom, joinRoom]);
 
   const submitName = (event: FormEvent) => {
     event.preventDefault();
@@ -196,7 +213,11 @@ export function GameLounge({
             <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
             {tx('online.waiting')}
           </p>
-          {isHost && <p className="mt-2 text-xs text-stone-400">{tx('online.waitingText')}</p>}
+          {isHost && (
+            <p className="mt-2 text-xs leading-5 text-stone-400">
+              {room.target ? tx('online.waitingTable', { table: room.target }) : tx('online.waitingText')}
+            </p>
+          )}
           <ul className="mt-5 space-y-2 text-left">
             {room.players.map((player) => (
               <li key={player.id} className="flex items-center justify-between rounded-2xl bg-stone-50 px-4 py-2.5 text-sm">
@@ -244,6 +265,58 @@ export function GameLounge({
         reactions={lobby.reactions}
         onReact={lobby.react}
       />,
+    );
+  }
+
+  // ---------- Création : choix de la table ----------
+  if (creating) {
+    const chip = (value: string | null, label: string, wide = false) => (
+      <button
+        key={value ?? 'all'}
+        type="button"
+        onClick={() => setTarget(value)}
+        className={`rounded-2xl px-3 py-3 text-sm font-bold transition-colors ${wide ? 'col-span-2' : ''} ${
+          target === value ? 'bg-stone-900 text-white' : 'border border-stone-200 bg-white text-stone-700 hover:border-stone-400'
+        }`}
+      >
+        {label}
+      </button>
+    );
+    return shell(
+      <div className="rounded-3xl border border-stone-200/70 bg-white p-5 shadow-soft">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">{GAME_EMOJI[creating]}</span>
+          <div>
+            <p className="font-display text-lg font-bold">{gameName(tx, creating)}</p>
+            <p className="text-xs text-stone-500">{gameText(tx, creating)}</p>
+          </div>
+        </div>
+        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{tx('create.title')}</p>
+        <div className="mt-2">{chip(null, tx('create.anyTable'))}</div>
+        <div className="mt-2 grid max-h-64 grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-5">
+          {tables.map((value) => (value === table ? chip(value, tx('create.myTable', { table: value }), true) : chip(value, value)))}
+        </div>
+        <div className="mt-5 flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              lobby.createRoom(creating, target);
+              setCreating(null);
+            }}
+            className="flex-1 rounded-full bg-amber-400 px-5 py-3 text-sm font-bold text-stone-900"
+          >
+            {tx('create.submit')}
+            {target ? ` · ${tx('create.table', { table: target })}` : ''}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCreating(null)}
+            className="rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-semibold text-stone-600"
+          >
+            {tx('online.cancel')}
+          </button>
+        </div>
+      </div>,
     );
   }
 
@@ -309,7 +382,17 @@ export function GameLounge({
         <div className="mt-5 space-y-5">
           {lobby.status === 'connecting' && <p className="text-center text-sm text-stone-500">{tx('online.connecting')}</p>}
           {lobby.status === 'offline' && (
-            <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{tx('online.offline')}</p>
+            <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <p>{tx('online.offline')}</p>
+              {lobby.lastError && <p className="mt-1 break-all text-[11px] text-amber-700/70">{lobby.lastError}</p>}
+              <button
+                type="button"
+                onClick={lobby.retry}
+                className="mt-3 rounded-full bg-amber-400 px-4 py-2 text-xs font-bold text-stone-900"
+              >
+                {tx('online.retry')}
+              </button>
+            </div>
           )}
           {lobby.status === 'online' && (
             <>
@@ -331,9 +414,17 @@ export function GameLounge({
                 ) : (
                   <ul className="mt-2 space-y-2">
                     {lobby.openRooms.map((open) => (
-                      <li key={open.id} className="flex items-center gap-3 rounded-2xl border border-stone-200/70 bg-white px-4 py-3 shadow-soft">
+                      <li
+                        key={open.id}
+                        className={`flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-soft ${
+                          open.target === table ? 'border-amber-300 bg-amber-50' : 'border-stone-200/70 bg-white'
+                        }`}
+                      >
                         <span className="text-2xl">{GAME_EMOJI[open.game]}</span>
                         <div className="min-w-0 flex-1">
+                          {open.target === table && (
+                            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-700">{tx('online.challengeForYou')}</p>
+                          )}
                           <p className="truncate text-sm font-bold">
                             {gameName(tx, open.game)} · {open.host.name}
                           </p>
@@ -361,7 +452,10 @@ export function GameLounge({
                     <button
                       key={game}
                       type="button"
-                      onClick={() => lobby.createRoom(game)}
+                      onClick={() => {
+                        setCreating(game);
+                        setTarget(null);
+                      }}
                       className="rounded-3xl border border-stone-200/70 bg-white p-4 text-left shadow-soft transition-transform duration-200 hover:-translate-y-0.5"
                     >
                       <p className="text-3xl">{GAME_EMOJI[game]}</p>
