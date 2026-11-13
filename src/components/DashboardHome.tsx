@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import type { Order, OrderStatus, RestaurantWithMenu } from '../lib/types';
 import { money } from '../lib/format';
 import { useDashboardLocale, useDt } from '../lib/dashboardLocale';
+import { NfcShippingCard } from './NfcShippingCard';
 
 export type DashboardOverview = {
   views: number;
@@ -207,6 +208,9 @@ export function DashboardHome({
           </div>
         </div>
       </section>
+
+      {/* Envoi des cartes NFC : visible dès que l'abonnement est actif (essai compris). */}
+      {restaurant.subscriptionStatus === 'active' && <NfcShippingCard restaurant={restaurant} />}
 
       {/* Bien démarrer */}
       {showChecklist && (

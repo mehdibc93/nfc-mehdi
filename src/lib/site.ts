@@ -12,6 +12,13 @@ export const CONTACT_EMAIL = 'contact.nourevo@gmail.com';
 // Démonstration publique (restaurant Le Jardin Parisien), proposée sur toutes les pages publiques.
 export const DEMO_HREF = '/r/le-jardin-parisien?demo=1';
 
+// Numéro WhatsApp de Nourevo (format international, sans « + »).
+export const WHATSAPP_NUMBER = '33753924902';
+
 // Commande de cartes NFC par WhatsApp (message pré-rempli).
-export const WHATSAPP_NFC_HREF =
-  'https://wa.me/33753924902?text=Bonjour%2C%20je%20souhaite%20commander%20une%20carte%20NFC%20pour%20mon%20restaurant.';
+export const WHATSAPP_NFC_HREF = `https://wa.me/${WHATSAPP_NUMBER}?text=Bonjour%2C%20je%20souhaite%20commander%20une%20carte%20NFC%20pour%20mon%20restaurant.`;
+
+/** Lien WhatsApp vers Nourevo avec un message pré-rempli. */
+export function whatsappHref(message: string): string {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
