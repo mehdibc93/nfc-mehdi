@@ -12,7 +12,7 @@
 //
 // Secrets requis : PUSH_WEBHOOK_SECRET (chaîne aléatoire de votre choix, à reporter dans
 // l'en-tête du webhook), VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
-// (ex: "mailto:contact@nourevo.com"). SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY sont déjà
+// (ex: "mailto:contact.nourevo@gmail.com"). SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY sont déjà
 // injectées automatiquement.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
