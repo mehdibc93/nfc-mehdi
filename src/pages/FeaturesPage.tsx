@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { SiteHeader } from '../components/SiteHeader';
 import { SiteFooter } from '../components/SiteFooter';
 import { FeatureExplorer } from '../components/FeatureExplorer';
 import { BrowserFrame, PhoneFrame } from '../components/LandingVisuals';
 import { Reveal } from '../components/Reveal';
 import { CtaBand, PageIntro, SectionHeading } from '../components/MarketingBlocks';
+import { GamesShowcase } from '../components/GamesShowcase';
 import { setPublicPageMeta } from '../lib/seo';
 
 // « Ce qui change au quotidien » : avant / avec Nourevo. Pas des avis : des situations du service,
@@ -44,9 +45,16 @@ const DAILY_CHANGES = [
 ];
 
 export function FeaturesPage() {
+  const { hash } = useLocation();
   useEffect(() => {
     setPublicPageMeta('/fonctionnalites');
   }, []);
+  // Arrivée depuis un lien « /fonctionnalites#jeux » : la page vient d'être affichée, on défile vers la section.
+  useEffect(() => {
+    if (!hash) return undefined;
+    const timer = window.setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' }), 100);
+    return () => window.clearTimeout(timer);
+  }, [hash]);
 
   return (
     <>
@@ -97,6 +105,8 @@ export function FeaturesPage() {
             ))}
           </div>
         </section>
+
+        <GamesShowcase />
 
         <section id="explorer" className="mx-auto w-full max-w-7xl scroll-mt-24 px-4 pt-24 sm:px-8 lg:px-10">
           <Reveal>

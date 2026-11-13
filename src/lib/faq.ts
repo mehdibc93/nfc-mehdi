@@ -37,6 +37,16 @@ export const FAQ_ITEMS = [
       'Oui, une carte de démonstration complète est accessible depuis la page d\'accueil ("Voir la démo « Le Jardin Parisien »"), sans avoir besoin de créer de compte.',
   },
   {
+    question: 'Qu\'est-ce que la salle de jeux ?',
+    answer:
+      'Depuis la carte, vos clients peuvent jouer en attendant leurs amis ou leurs plats : des jeux d\'ambiance à toute la table sur un seul téléphone (Tu préfères ?, Undercover, quiz, Devine le prix…), un jeu de cartes contre des robots, ou des défis contre les autres tables du restaurant, chacun sur son téléphone. Aucune application à installer, et c\'est inclus dans l\'abonnement.',
+  },
+  {
+    question: 'Puis-je désactiver la salle de jeux ou certains jeux ?',
+    answer:
+      'Oui. Depuis votre dashboard, vous coupez la salle de jeux en un clic, ou vous choisissez jeu par jeu ceux que vos clients voient. Vous y trouvez aussi le nombre de clients qui l\'ont ouverte et les jeux les plus joués.',
+  },
+  {
     question: 'Que se passe-t-il si un plat n\'est plus disponible ?',
     answer:
       'Vous pouvez suivre le stock de chaque plat individuellement — dès qu\'il atteint zéro, il disparaît automatiquement de la carte, sans action de votre part. Vous pouvez aussi marquer un plat "Rupture de stock" manuellement à tout moment.',

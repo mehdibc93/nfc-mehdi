@@ -5,6 +5,7 @@ import { SiteFooter } from '../components/SiteFooter';
 import { BrowserFrame, NfcCard, PhoneFrame } from '../components/LandingVisuals';
 import { ProductTour } from '../components/ProductTour';
 import { Reveal } from '../components/Reveal';
+import { GamesShowcase } from '../components/GamesShowcase';
 import { CtaBand, DemoButton, SectionHeading, usePrimaryCta } from '../components/MarketingBlocks';
 import { useAuth } from '../hooks/useAuth';
 import { setPublicPageMeta } from '../lib/seo';
@@ -316,6 +317,9 @@ export function LandingPage() {
             ))}
           </div>
         </section>
+
+        {/* 4 bis. La salle de jeux : jouer en attendant, entre tables */}
+        <GamesShowcase compact />
 
         {/* 5. La preuve en vidéo */}
         <section className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-8 lg:px-10">

@@ -80,6 +80,19 @@ const ADVANTAGES: Advantage[] = [
     visual: { kind: 'phone', src: '/images/landing/client-langues.jpg', alt: 'Le choix de la langue sur la carte' },
   },
   {
+    id: 'jeux',
+    goal: 'Ravir vos clients',
+    title: 'Une attente qui passe plus vite',
+    text: 'En attendant leurs amis ou leurs plats, vos clients jouent ensemble : entre eux à table, ou en défiant les autres tables de la salle.',
+    points: [
+      '11 jeux d’ambiance et 4 jeux classiques, sans application',
+      'Des défis entre tables, chacun sur son téléphone',
+      'Chaque jeu s’active ou se masque depuis votre espace',
+    ],
+    visual: { kind: 'phone', src: '/images/landing/jeux-salle.jpg', alt: 'La salle de jeux sur la carte du restaurant' },
+    link: { to: '/fonctionnalites#jeux', label: 'Voir la salle de jeux' },
+  },
+  {
     id: 'avis',
     goal: 'Ravir vos clients',
     title: 'Plus d’avis Google, au bon moment',

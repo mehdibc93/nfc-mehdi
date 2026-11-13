@@ -105,7 +105,7 @@ export const PUBLIC_PAGES: PublicPageMeta[] = [
     path: '/fonctionnalites',
     title: 'Fonctionnalités — Nourevo',
     description:
-      'Carte digitale, commande et paiement à table, Mode Service en temps réel, stocks, statistiques et rentabilité : ce que Nourevo change au quotidien pour votre équipe.',
+      'Carte digitale, commande et paiement à table, Mode Service en temps réel, salle de jeux pour vos clients, stocks, statistiques et rentabilité : ce que Nourevo change au quotidien.',
     changefreq: 'monthly',
     priority: 0.9,
   },
