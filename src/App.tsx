@@ -13,6 +13,7 @@ import { ServicePage } from './pages/ServicePage';
 import { ProfitabilityPage } from './pages/ProfitabilityPage';
 import { ConfigurationPage } from './pages/ConfigurationPage';
 import { RestaurantExperience } from './pages/RestaurantExperience';
+import { AdminPage } from './pages/AdminPage';
 import { publicRoutes } from './publicRoutes';
 import { ScrollToTop } from './components/ScrollToTop';
 
@@ -143,6 +144,14 @@ function App() {
               <RequireActiveSubscription>
                 <ConfigurationPage />
               </RequireActiveSubscription>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth>
+              <AdminPage />
             </RequireAuth>
           }
         />

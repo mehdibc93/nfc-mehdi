@@ -64,6 +64,7 @@ Disallow: /service
 Disallow: /connexion
 Disallow: /inscription
 Disallow: /reinitialiser-mot-de-passe
+Disallow: /admin
 Disallow: /app.html
 
 Sitemap: ${SITE_URL}/sitemap.xml

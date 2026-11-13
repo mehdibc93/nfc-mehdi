@@ -7,6 +7,7 @@
     { "source": "/connexion", "destination": "/app" },
     { "source": "/inscription", "destination": "/app" },
     { "source": "/reinitialiser-mot-de-passe", "destination": "/app" },
+    { "source": "/admin", "destination": "/app" },
     { "source": "/r/:path*", "destination": "/app" }
   ],
   "headers": [
@@ -16,6 +17,7 @@
     { "source": "/connexion", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
     { "source": "/inscription", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
     { "source": "/reinitialiser-mot-de-passe", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/admin", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
     { "source": "/r/:path*", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }
   ]
 }
