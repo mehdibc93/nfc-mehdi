@@ -6,7 +6,7 @@ import type { Stripe } from '@stripe/stripe-js';
 const stripePromises = new Map<string, Promise<Stripe | null>>();
 
 export function getStripe(stripeAccountId: string): Promise<Stripe | null> {
-  const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+  const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim();
   if (!publishableKey) {
     throw new Error(
       'VITE_STRIPE_PUBLISHABLE_KEY manquante — ajoutez-la dans .env.local (voir .env.example).',
