@@ -8,6 +8,7 @@ import { SiteHeader } from '../components/SiteHeader';
 import { PhoneFrame } from '../components/LandingVisuals';
 import { Reveal } from '../components/Reveal';
 import { CtaBand, DemoButton, PageIntro, SectionHeading, usePrimaryCta } from '../components/MarketingBlocks';
+import { TestimonialsSection } from '../components/TestimonialsSection';
 
 // Prix ramené à la journée (12 mois / 365 jours), pour rendre le coût concret.
 const PER_DAY: Record<string, string> = {
@@ -188,6 +189,9 @@ export function PricingPage() {
             </div>
           </Reveal>
         </section>
+
+        {/* Retours de restaurateurs, au moment où l'on hésite à s'abonner. */}
+        <TestimonialsSection />
 
         {/* Inclus partout */}
         <section className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-8 lg:px-10">

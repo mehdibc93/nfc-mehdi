@@ -13,7 +13,7 @@ import { PLANS } from '../lib/plans';
 import { FAQ_ITEMS } from '../lib/faq';
 import { PAYMENT_LOGOS, STRIPE_LOGO } from '../lib/paymentLogos';
 import { DEMO_HREF } from '../lib/site';
-import { TESTIMONIALS } from '../lib/testimonials';
+import { TestimonialsSection } from '../components/TestimonialsSection';
 
 // Accueil pensé pour convertir : la promesse, la preuve (vidéo, vraies captures), les bénéfices,
 // le fonctionnement, des mises en situation, le prix, les objections, puis l'appel à l'action.
@@ -440,53 +440,7 @@ export function LandingPage() {
         </section>
 
         {/* Avis de restaurateurs : affichés seulement quand de vrais avis existent (src/lib/testimonials.ts). */}
-        {TESTIMONIALS.length > 0 && (
-          <section className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-8 lg:px-10">
-            <Reveal>
-              <SectionHeading eyebrow="Ils utilisent Nourevo" title="Ce qu’en disent les restaurateurs" />
-            </Reveal>
-            <div
-              className={`mt-12 grid gap-5 ${TESTIMONIALS.length === 1 ? 'mx-auto max-w-2xl' : TESTIMONIALS.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}
-            >
-              {TESTIMONIALS.map((item, index) => (
-                <Reveal key={item.name + item.restaurant} delayMs={(index % 3) * 80}>
-                  <figure className="flex h-full flex-col justify-between rounded-3xl border border-stone-200/70 bg-white p-7 shadow-soft">
-                    <blockquote className="text-base leading-7 text-stone-700">
-                      « {item.quote} »
-                    </blockquote>
-                    <figcaption className="mt-6 flex items-center gap-3 border-t border-stone-100 pt-5">
-                      {item.photo ? (
-                        <img
-                          src={item.photo}
-                          alt=""
-                          width={48}
-                          height={48}
-                          loading="lazy"
-                          className="h-12 w-12 shrink-0 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span
-                          aria-hidden="true"
-                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-navy-600 to-navy-800 font-display text-lg font-bold text-white"
-                        >
-                          {item.name.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                      <span>
-                        <span className="block font-semibold text-stone-900">{item.name}</span>
-                        <span className="block text-sm text-stone-500">
-                          {item.role}, {item.restaurant}
-                          {item.city ? ` · ${item.city}` : ''}
-                        </span>
-                        {item.since && <span className="block text-xs text-stone-400">{item.since}</span>}
-                      </span>
-                    </figcaption>
-                  </figure>
-                </Reveal>
-              ))}
-            </div>
-          </section>
-        )}
+        <TestimonialsSection />
 
         {/* 9. Le prix, avec les garanties juste au-dessus des formules */}
         <section className="mx-auto w-full max-w-6xl px-4 pt-24 sm:px-8 lg:px-10">

@@ -7,6 +7,7 @@ import { BrowserFrame, PhoneFrame } from '../components/LandingVisuals';
 import { Reveal } from '../components/Reveal';
 import { CtaBand, PageIntro, SectionHeading, usePrimaryCta } from '../components/MarketingBlocks';
 import { setPublicPageMeta } from '../lib/seo';
+import { TestimonialsSection } from '../components/TestimonialsSection';
 
 // Page « Avantages » : les bénéfices regroupés par objectif du restaurateur, chacun illustré par
 // une vraie capture et rattaché à une fonctionnalité existante. Aucun chiffre de résultat annoncé.
@@ -307,6 +308,9 @@ export function AdvantagesPage() {
             </section>
           ))}
         </div>
+
+        {/* Retours de restaurateurs ayant testé Nourevo. */}
+        <TestimonialsSection className="pt-28" />
 
         {/* Comparaison par type de solution : la colonne Nourevo est mise en avant comme une carte. */}
         <section className="mx-auto w-full max-w-4xl px-4 pt-28 sm:px-8">
