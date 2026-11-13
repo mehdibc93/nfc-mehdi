@@ -1,7 +1,7 @@
 -- Nourevo — migration : page d'administration (nourevo.fr/admin), réservée au fondateur.
 -- À exécuter une fois dans le SQL Editor, APRÈS migration_031_nfc_shipments.sql.
 --
--- Le compte administrateur est celui de contact.nourevo@gmail.com (tout en bas) : il doit être
+-- Le compte administrateur est mehdibc293500@gmail.com (tout en bas) : il doit être
 -- inscrit sur Nourevo (/inscription) AVANT d'exécuter ce script, sinon relancez juste la fin.
 
 -- Liste des administrateurs (comptes autorisés sur /admin).
@@ -54,7 +54,7 @@ $$;
 revoke all on function admin_subscribers() from public, anon;
 grant execute on function admin_subscribers() to authenticated;
 
--- Le compte contact.nourevo@gmail.com devient administrateur.
+-- Le compte mehdibc293500@gmail.com devient administrateur.
 insert into admins (user_id)
-select id from auth.users where email = 'contact.nourevo@gmail.com'
+select id from auth.users where email = 'mehdibc293500@gmail.com'
 on conflict do nothing;
